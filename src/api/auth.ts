@@ -1,0 +1,42 @@
+import client from './client'
+
+export interface LoginParams {
+  email: string
+  password: string
+}
+
+export interface RegisterParams {
+  email: string
+  password: string
+  verificationCode: string
+}
+
+export interface TokenData {
+  accessToken: string
+  refreshToken: string
+  expiresIn: number
+  userInfo: {
+    id: number
+    email: string
+    nickname: string
+    avatar: string
+    role: string
+  }
+}
+
+export const authApi = {
+  login: (params: LoginParams) =>
+    client.post<{ data: TokenData }>('/auth/login', params),
+
+  register: (params: RegisterParams) =>
+    client.post<{ data: TokenData }>('/auth/register', params),
+
+  refresh: (refreshToken: string) =>
+    client.post<{ data: TokenData }>('/auth/refresh', { refreshToken }),
+
+  logout: () =>
+    client.post('/auth/logout'),
+
+  sendCode: (email: string) =>
+    client.post('/auth/send-code', { email }),
+}

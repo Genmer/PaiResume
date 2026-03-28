@@ -30,6 +30,12 @@ dist-ssr
 *.sln
 *.sw?
 
+# Java / Maven
+server/target/
+*.class
+*.jar
+*.war
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
