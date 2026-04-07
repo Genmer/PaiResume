@@ -21,6 +21,8 @@ import { generateResumePdfBlob, type ResumePdfPageMode } from '../../utils/resum
 interface PreviewPanelProps {
   modules: ResumeModule[]
   loading: boolean
+  forcedMode?: PreviewMode
+  hideHeader?: boolean
 }
 
 type PreviewMode = 'live' | 'pdf-standard' | 'pdf-continuous'
@@ -176,9 +178,14 @@ function usePdfPreview(modules: ResumeModule[], pageMode: ResumePdfPageMode, ena
   return { url, loading, error }
 }
 
-export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
+export function PreviewPanel({
+  modules,
+  loading,
+  forcedMode,
+  hideHeader = false,
+}: PreviewPanelProps) {
   const shouldReduceMotion = useReducedMotion() ?? false
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('live')
+  const [previewMode, setPreviewMode] = useState<PreviewMode>(forcedMode ?? 'live')
   const sortedModules = [...modules].sort((a, b) => {
     if (a.sortOrder === b.sortOrder) {
       return a.id - b.id
@@ -213,6 +220,12 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
     ? 'Resume Continuous PDF Preview'
     : 'Resume Standard PDF Preview'
 
+  useEffect(() => {
+    if (forcedMode) {
+      setPreviewMode(forcedMode)
+    }
+  }, [forcedMode])
+
   if (loading && modules.length === 0) {
     return (
       <div className="flex h-full items-center justify-center bg-white text-gray-300">
@@ -233,59 +246,61 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
+    <div className={`flex h-full flex-col ${hideHeader ? '' : 'bg-gray-50'}`}>
       <div className="w-full">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              {previewMode === 'live' ? '文本预览' : activePdfTitle}
-            </h2>
-            {previewMode === 'live' ? (
-              <p className="mt-1 text-xs text-gray-500">
-                当前展示的是编辑内容的文本预览效果。
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-gray-500">
-                {activePdfDescription}
-              </p>
-            )}
+        {!hideHeader && (
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {previewMode === 'live' ? '文本预览' : activePdfTitle}
+              </h2>
+              {previewMode === 'live' ? (
+                <p className="mt-1 text-xs text-gray-500">
+                  当前展示的是编辑内容的文本预览效果。
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-500">
+                  {activePdfDescription}
+                </p>
+              )}
+            </div>
+            <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setPreviewMode('live')}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  previewMode === 'live'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                文本预览
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewMode('pdf-standard')}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  previewMode === 'pdf-standard'
+                    ? 'bg-primary-700 text-white'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                标准 PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewMode('pdf-continuous')}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  previewMode === 'pdf-continuous'
+                    ? 'bg-primary-700 text-white'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                智能一页
+              </button>
+            </div>
           </div>
-          <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setPreviewMode('live')}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                previewMode === 'live'
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              文本预览
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreviewMode('pdf-standard')}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                previewMode === 'pdf-standard'
-                  ? 'bg-primary-700 text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              标准 PDF
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreviewMode('pdf-continuous')}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                previewMode === 'pdf-continuous'
-                  ? 'bg-primary-700 text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              智能一页
-            </button>
-          </div>
-        </div>
+        )}
 
         {previewMode !== 'live' ? (
           <PdfPreviewCard
@@ -440,7 +455,7 @@ function PdfPreviewCard({
   return (
     <section
       ref={containerRef}
-      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.38)]"
+      className="overflow-hidden rounded-2xl border border-gray-200 bg-slate-100/90 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.38)]"
     >
       {preview.error || renderError ? (
         <div className="flex h-[70vh] min-h-[520px] items-center justify-center px-6 text-sm text-red-500">
@@ -448,17 +463,24 @@ function PdfPreviewCard({
         </div>
       ) : preview.url ? (
         <div className="relative">
-          <div>
+          <div className="space-y-8 px-4 py-5 md:px-6 md:py-6">
             {pages.map((page) => (
-              <figure key={page.pageNumber} className="overflow-hidden bg-white">
-                <img
-                  src={page.dataUrl}
-                  alt={`${iframeTitle} 第 ${page.pageNumber} 页`}
-                  width={Math.round(page.width)}
-                  height={Math.round(page.height)}
-                  className="block w-full h-auto"
-                />
-              </figure>
+              <div key={page.pageNumber} className="relative">
+                <figure className="mx-auto overflow-hidden bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.32)]">
+                  <img
+                    src={page.dataUrl}
+                    alt={`${iframeTitle} 第 ${page.pageNumber} 页`}
+                    width={Math.round(page.width)}
+                    height={Math.round(page.height)}
+                    className="block w-full h-auto"
+                  />
+                </figure>
+                {pages.length > 1 ? (
+                  <span className="pointer-events-none absolute right-3 top-3 rounded bg-white/88 px-2 py-1 text-[10px] font-medium tracking-wide text-slate-400 shadow-sm">
+                    第 {page.pageNumber} 页
+                  </span>
+                ) : null}
+              </div>
             ))}
           </div>
           {(preview.loading || rendering) ? (

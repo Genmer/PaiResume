@@ -8,6 +8,8 @@ interface ModuleSidebarProps {
   onAddModule: (moduleType: ModuleType) => void
   analysisActive?: boolean
   onSelectAnalysis?: () => void
+  chromePreviewActive?: boolean
+  onSelectChromePreview?: () => void
 }
 
 const ALL_MODULE_TYPES: ModuleType[] = [
@@ -28,8 +30,11 @@ export function ModuleSidebar({
   onAddModule,
   analysisActive = false,
   onSelectAnalysis,
+  chromePreviewActive = false,
+  onSelectChromePreview,
 }: ModuleSidebarProps) {
   const existingTypes = new Set(modules.map((m) => m.moduleType as ModuleType))
+  const moduleViewActive = !analysisActive && !chromePreviewActive
 
   return (
     <aside className="sticky top-[65px] min-h-[calc(100vh-65px)] max-h-[calc(100vh-65px)] w-56 self-start overflow-y-auto border-r border-gray-200 bg-white">
@@ -38,7 +43,7 @@ export function ModuleSidebar({
         <nav className="space-y-1">
           {ALL_MODULE_TYPES.map((type) => {
             const exists = existingTypes.has(type)
-            const isActive = !analysisActive && activeModuleType === type
+            const isActive = moduleViewActive && activeModuleType === type
             const count = modules.filter((m) => m.moduleType === type).length
 
             return (
@@ -88,6 +93,20 @@ export function ModuleSidebar({
             <span className="flex items-center gap-2.5">
               <span className="text-base">📊</span>
               <span className="flex-1">简历分析</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={onSelectChromePreview}
+            className={`mt-1 w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+              chromePreviewActive
+                ? 'bg-primary-50 font-medium text-primary-700'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <span className="flex items-center gap-2.5">
+              <span className="text-base">🌐</span>
+              <span className="flex-1">Chrome预览</span>
             </span>
           </button>
         </div>

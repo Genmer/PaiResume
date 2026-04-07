@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import EditorPage from './pages/EditorPage'
+import ChromePreviewPage from './pages/ChromePreviewPage'
 import FieldOptimizePage from './pages/FieldOptimizePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,14 @@ function App() {
           element={
             <ProtectedRoute>
               <EditorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/preview/:id"
+          element={
+            <ProtectedRoute>
+              <ChromePreviewPage />
             </ProtectedRoute>
           }
         />

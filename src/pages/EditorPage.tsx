@@ -4,6 +4,7 @@ import { useResumeStore } from '../store/resumeStore'
 import { Header } from '../components/layout/Header'
 import { ModuleSidebar } from '../components/editor/ModuleSidebar'
 import { PreviewPanel } from '../components/editor/PreviewPanel'
+import { ChromePreviewFrame } from '../components/editor/ChromePreviewFrame'
 import { AiOptimizePanel } from '../components/analysis/AiOptimizePanel'
 import { ResumeAnalysis } from '../components/analysis/ResumeAnalysis'
 import { BasicInfoForm } from '../components/modules/BasicInfoForm'
@@ -19,7 +20,7 @@ import { MODULE_LABELS, SINGLETON_MODULES, type ModuleType } from '../types'
 import { normalizeJobIntentionContent } from '../utils/moduleContent'
 import { downloadResumePdf, type ResumePdfPageMode } from '../utils/resumePdf'
 
-type EditorView = 'module' | 'analysis'
+type EditorView = 'module' | 'analysis' | 'chrome-preview'
 const AI_OPTIMIZABLE_MODULE_TYPES = new Set<ModuleType>(['research', 'skill'])
 const PREVIEW_PANEL_COLLAPSED_STORAGE_KEY = 'pai-resume.preview-panel-collapsed'
 
@@ -44,7 +45,12 @@ export default function EditorPage() {
 
   const resumeId = Number(id)
   const requestedModuleType = searchParams.get('moduleType')
-  const requestedView: EditorView = searchParams.get('view') === 'analysis' ? 'analysis' : 'module'
+  const requestedViewParam = searchParams.get('view')
+  const requestedView: EditorView = requestedViewParam === 'analysis'
+    ? 'analysis'
+    : requestedViewParam === 'chrome-preview'
+      ? 'chrome-preview'
+      : 'module'
   const initialModuleType = requestedModuleType && requestedModuleType in getDefaultContentMap()
     ? requestedModuleType as ModuleType
     : null
@@ -80,8 +86,8 @@ export default function EditorPage() {
     if (effectiveModuleType) {
       nextParams.set('moduleType', effectiveModuleType)
     }
-    if (nextView === 'analysis') {
-      nextParams.set('view', 'analysis')
+    if (nextView !== 'module') {
+      nextParams.set('view', nextView)
     }
     setSearchParams(nextParams, { replace: true })
   }, [activeModuleType, setSearchParams])
@@ -105,7 +111,12 @@ export default function EditorPage() {
     }
 
     const currentQueryModuleType = searchParams.get('moduleType')
-    const currentQueryView = searchParams.get('view') === 'analysis' ? 'analysis' : 'module'
+    const currentQueryViewParam = searchParams.get('view')
+    const currentQueryView: EditorView = currentQueryViewParam === 'analysis'
+      ? 'analysis'
+      : currentQueryViewParam === 'chrome-preview'
+        ? 'chrome-preview'
+        : 'module'
     if (nextActiveModuleType && (currentQueryModuleType !== nextActiveModuleType || currentQueryView !== editorView)) {
       updateEditorLocation(editorView, nextActiveModuleType)
     }
@@ -116,7 +127,12 @@ export default function EditorPage() {
       return
     }
 
-    const currentQueryView = searchParams.get('view') === 'analysis' ? 'analysis' : 'module'
+    const currentQueryViewParam = searchParams.get('view')
+    const currentQueryView: EditorView = currentQueryViewParam === 'analysis'
+      ? 'analysis'
+      : currentQueryViewParam === 'chrome-preview'
+        ? 'chrome-preview'
+        : 'module'
     if (currentQueryView !== editorView) {
       updateEditorLocation(editorView)
     }
@@ -132,6 +148,12 @@ export default function EditorPage() {
     setAiModuleId(null)
     setEditorView('analysis')
     updateEditorLocation('analysis')
+  }, [updateEditorLocation])
+
+  const openChromePreviewView = useCallback(() => {
+    setAiModuleId(null)
+    setEditorView('chrome-preview')
+    updateEditorLocation('chrome-preview')
   }, [updateEditorLocation])
 
   const handleAddModule = useCallback(
@@ -235,27 +257,29 @@ export default function EditorPage() {
         exporting={exporting}
       />
 
-      <button
-        type="button"
-        onClick={() => setPreviewCollapsed((current) => !current)}
-        aria-label={previewCollapsed ? '展开预览面板' : '收起预览面板'}
-        title={previewCollapsed ? '展开预览面板' : '收起预览面板'}
-        style={{ right: previewToggleRight }}
-        className="fixed top-1/2 z-30 flex h-24 w-8 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-500 shadow-[0_18px_38px_-18px_rgba(15,23,42,0.32)] backdrop-blur transition hover:border-primary-200 hover:text-primary-700"
-      >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          {previewCollapsed ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 5l-7 7 7 7" />
-          ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />
-          )}
-        </svg>
-        <span className="mt-2 text-[10px] font-semibold tracking-[0.28em] [writing-mode:vertical-rl]">
-          预览
-        </span>
-      </button>
+      {editorView !== 'chrome-preview' && (
+        <button
+          type="button"
+          onClick={() => setPreviewCollapsed((current) => !current)}
+          aria-label={previewCollapsed ? '展开预览面板' : '收起预览面板'}
+          title={previewCollapsed ? '展开预览面板' : '收起预览面板'}
+          style={{ right: previewToggleRight }}
+          className="fixed top-1/2 z-30 flex h-24 w-8 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-500 shadow-[0_18px_38px_-18px_rgba(15,23,42,0.32)] backdrop-blur transition hover:border-primary-200 hover:text-primary-700"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {previewCollapsed ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 5l-7 7 7 7" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />
+            )}
+          </svg>
+          <span className="mt-2 text-[10px] font-semibold tracking-[0.28em] [writing-mode:vertical-rl]">
+            预览
+          </span>
+        </button>
+      )}
 
-      {previewCollapsed && (
+      {editorView !== 'chrome-preview' && previewCollapsed && (
         <div className="fixed right-0 top-[65px] z-20 h-[calc(100vh-65px)] w-14 border-l border-gray-200 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_45%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)]">
           <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
             <div className="flex flex-col gap-1.5">
@@ -278,6 +302,8 @@ export default function EditorPage() {
           onAddModule={handleAddModule}
           analysisActive={editorView === 'analysis'}
           onSelectAnalysis={openAnalysisView}
+          chromePreviewActive={editorView === 'chrome-preview'}
+          onSelectChromePreview={openChromePreviewView}
         />
 
         <main className="min-w-0 flex-1 p-6 xl:px-8">
@@ -291,6 +317,8 @@ export default function EditorPage() {
 
               <ResumeAnalysis resumeId={resumeId} />
             </div>
+          ) : editorView === 'chrome-preview' ? (
+            <ChromePreviewFrame resumeId={resumeId} />
           ) : activeModuleType ? (
             <div className={moduleContainerClassName}>
               {exportError && (
@@ -374,19 +402,21 @@ export default function EditorPage() {
           )}
         </main>
 
-        <aside
-          className={`relative shrink-0 self-start border-l border-gray-200 bg-gray-50 transition-[width,min-width,max-width,padding] duration-300 ease-out ${
-            previewCollapsed
-              ? 'w-14 min-w-14 max-w-14 p-0'
-              : 'w-[540px] min-w-[500px] max-w-[42vw] p-6 xl:px-8'
-          }`}
-        >
-          <div className="relative sticky top-[89px]">
-            {!previewCollapsed && (
-              <PreviewPanel modules={modules} loading={loading} />
-            )}
-          </div>
-        </aside>
+        {editorView !== 'chrome-preview' && (
+          <aside
+            className={`relative shrink-0 self-start border-l border-gray-200 bg-gray-50 transition-[width,min-width,max-width,padding] duration-300 ease-out ${
+              previewCollapsed
+                ? 'w-14 min-w-14 max-w-14 p-0'
+                : 'w-[540px] min-w-[500px] max-w-[42vw] p-6 xl:px-8'
+            }`}
+          >
+            <div className="relative sticky top-[89px]">
+              {!previewCollapsed && (
+                <PreviewPanel modules={modules} loading={loading} />
+              )}
+            </div>
+          </aside>
+        )}
       </div>
 
       {aiModuleId && (
