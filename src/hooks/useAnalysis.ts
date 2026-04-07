@@ -30,6 +30,16 @@ export function useAnalysis() {
     }
   }, [])
 
+  const loadLatestAnalysis = useCallback(async (resumeId: number) => {
+    setAnalysisResult(null)
+    try {
+      const { data } = await resumeApi.getLatestAnalysis(resumeId)
+      setAnalysisResult(data.data)
+    } catch (err) {
+      console.error('加载最近分析结果失败:', err)
+    }
+  }, [])
+
   /**
    * 重置分析结果
    */
@@ -42,6 +52,7 @@ export function useAnalysis() {
     analysisResult,
     isAnalyzing,
     analyze,
+    loadLatestAnalysis,
     resetAnalysis,
     error,
   }

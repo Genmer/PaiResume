@@ -423,6 +423,16 @@ export const resumeApi = {
       })
     ),
 
+  getLatestAnalysis: (resumeId: number) =>
+    withAiLogging(
+      'resume-analysis-latest',
+      {
+        resumeId,
+        url: `/resumes/${resumeId}/analysis/latest`,
+      },
+      () => client.get<ApiEnvelope<AnalysisResult | null>>(`/resumes/${resumeId}/analysis/latest`)
+    ),
+
   smartOnePagePreview: (resumeId: number, data: SmartOnePagePreviewRequest) =>
     withAiLogging(
       'smart-onepage-preview',

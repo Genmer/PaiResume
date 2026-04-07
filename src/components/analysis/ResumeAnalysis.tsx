@@ -31,6 +31,7 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
     analysisResult,
     isAnalyzing,
     analyze,
+    loadLatestAnalysis,
     resetAnalysis,
     error,
   } = useAnalysis()
@@ -48,6 +49,10 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
     setPromptDraft(nextPrompt)
     setSavedPrompt(nextPrompt)
   }, [])
+
+  useEffect(() => {
+    void loadLatestAnalysis(resumeId)
+  }, [resumeId, loadLatestAnalysis])
 
   const hasUnsavedChanges = useMemo(
     () => promptDraft.trim() !== savedPrompt.trim(),
