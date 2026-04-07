@@ -49,6 +49,8 @@ import java.util.stream.Collectors;
 public class AiServiceImpl implements AiService {
     private static final double A4_HEIGHT = 841.89d;
     private static final Pattern ENGLISH_KEYWORD_PATTERN = Pattern.compile("[A-Za-z][A-Za-z0-9.+#/_-]{1,}");
+    private static final Pattern HAN_TO_ENGLISH_PATTERN = Pattern.compile("([\\p{IsHan}])([A-Za-z][A-Za-z0-9.+#/_-]*)");
+    private static final Pattern ENGLISH_TO_HAN_PATTERN = Pattern.compile("([A-Za-z][A-Za-z0-9.+#/_-]*)([\\p{IsHan}])");
     private static final Pattern PLACEHOLDER_CANDIDATE_PATTERN = Pattern.compile("^(版本|方向|候选)\\s*[0-9一二三四五六七八九十]+\\s*[:：]?$");
     private static final Set<String> ALLOWED_ISSUE_TYPES = Set.of("missing", "weak", "format", "content");
     private static final Set<String> IGNORED_ANALYSIS_FIELDS = Set.of("basic_info.summary", "professional_summary", "skill", "专业技能");
@@ -325,7 +327,7 @@ public class AiServiceImpl implements AiService {
                     plan.moduleType(), plan.fieldType(), truncateText(response, 1200));
 
             if (candidateOutput) {
-                var candidates = parseTextCandidatesResponse(response);
+                var candidates = normalizeResumeCandidates(parseTextCandidatesResponse(response));
                 log.info("[AI Optimize][Service] parsed field optimize candidates: moduleType={}, fieldType={}, count={}, candidates={}",
                         plan.moduleType(), plan.fieldType(), candidates.size(), candidates.stream().map(item -> truncateText(item, 160)).toList());
                 if ("project_description".equals(plan.fieldType()) && !areTextCandidatesUsable(candidates)) {
@@ -347,7 +349,7 @@ public class AiServiceImpl implements AiService {
 
                     log.info("[AI Optimize][Service] upstream retry raw response: moduleType={}, fieldType={}, body={}",
                             plan.moduleType(), plan.fieldType(), truncateText(retryResponse, 1200));
-                    candidates = parseTextCandidatesResponse(retryResponse);
+                    candidates = normalizeResumeCandidates(parseTextCandidatesResponse(retryResponse));
                     log.info("[AI Optimize][Service] parsed retry candidates: moduleType={}, count={}, candidates={}",
                             plan.moduleType(), candidates.size(), candidates.stream().map(item -> truncateText(item, 160)).toList());
                 }
@@ -363,7 +365,7 @@ public class AiServiceImpl implements AiService {
                 );
             }
 
-            var optimizedText = cleanTextResponse(response);
+            var optimizedText = normalizeResumeMixedTextSpacing(cleanTextResponse(response));
             if (optimizedText.isBlank()) {
                 throw new BusinessException(ResultCode.AI_RESPONSE_INVALID);
             }
@@ -417,10 +419,14 @@ public class AiServiceImpl implements AiService {
             );
 
             if (plan.candidateOutput()) {
-                var candidates = extractCandidatesFromStreamResult(streamResult);
+                var candidates = normalizeResumeCandidates(extractCandidatesFromStreamResult(streamResult));
                 if (candidates.isEmpty() && "length".equals(streamResult.finishReason())) {
-                    emitStreamEvent(eventConsumer, "status", Map.of("message", "首次输出被截断，正在补全最终候选。"));
-                    candidates = finalizeCandidateOutput(targetModel, systemPrompt, plan.prompt());
+                    emitStreamEvent(eventConsumer, "status", Map.of("message", "首次输出被截断，正在补全最终候选，这一步可能需要几秒。"));
+                    candidates = normalizeResumeCandidates(finalizeCandidateOutput(targetModel, systemPrompt, plan.prompt(), streamResult.content()));
+                    if (candidates.isEmpty()) {
+                        emitStreamEvent(eventConsumer, "status", Map.of("message", "首次补全未拿到可用结果，正在重试一次。"));
+                        candidates = normalizeResumeCandidates(finalizeCandidateOutput(targetModel, systemPrompt, plan.prompt(), streamResult.content()));
+                    }
                 }
                 log.info("[AI Optimize][Service] stream field optimize candidates ready: moduleType={}, fieldType={}, count={}, candidates={}",
                         plan.moduleType(), plan.fieldType(), candidates.size(), candidates.stream().map(candidate -> truncateText(candidate, 80)).toList());
@@ -434,9 +440,9 @@ public class AiServiceImpl implements AiService {
                 );
             }
 
-            var optimizedText = cleanTextContent(streamResult.content());
+            var optimizedText = normalizeResumeMixedTextSpacing(cleanTextContent(streamResult.content()));
             if (optimizedText.isBlank()) {
-                optimizedText = extractOptimizedTextFromReasoning(streamResult.reasoning());
+                optimizedText = normalizeResumeMixedTextSpacing(extractOptimizedTextFromReasoning(streamResult.reasoning()));
             }
             if (optimizedText.isBlank()) {
                 throw new BusinessException(ResultCode.AI_RESPONSE_INVALID.getCode(), "AI 思考已结束，但未返回最终结果，请重试");
@@ -1538,16 +1544,9 @@ public class AiServiceImpl implements AiService {
             var root = objectMapper.readTree(response);
             var content = extractAssistantContent(root, false).trim();
             if (content.isBlank()) {
-                var reasoningContent = root.path("choices").path(0).path("message").path("reasoning_content").asText("");
-                var candidatesFromReasoning = extractCandidatesFromReasoning(reasoningContent);
-                if (!candidatesFromReasoning.isEmpty()) {
-                    return candidatesFromReasoning;
-                }
-
                 var finishReason = root.path("choices").path(0).path("finish_reason").asText("");
-                var reasoningPreview = truncateText(reasoningContent, 300);
-                log.warn("[AI Optimize][Service] assistant content is empty for candidate response: finishReason={}, reasoningPreview={}",
-                        finishReason, reasoningPreview);
+                log.warn("[AI Optimize][Service] assistant content is empty for candidate response: finishReason={}",
+                        finishReason);
                 throw new BusinessException(ResultCode.AI_RESPONSE_INVALID.getCode(), "AI 未返回可用候选结果，请重试");
             }
             return parseTextCandidatesContent(content);
@@ -1566,6 +1565,31 @@ public class AiServiceImpl implements AiService {
             cleaned = cleaned.replaceFirst("\\s*```$", "");
         }
         return cleaned.replaceAll("^\"|\"$", "").trim();
+    }
+
+    private List<String> normalizeResumeCandidates(List<String> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return List.of();
+        }
+        return candidates.stream()
+                .map(this::normalizeResumeMixedTextSpacing)
+                .toList();
+    }
+
+    private String normalizeResumeMixedTextSpacing(String text) {
+        var normalized = text == null ? "" : text;
+        if (normalized.isBlank()) {
+            return normalized;
+        }
+
+        String previous;
+        do {
+            previous = normalized;
+            normalized = HAN_TO_ENGLISH_PATTERN.matcher(normalized).replaceAll("$1 $2");
+            normalized = ENGLISH_TO_HAN_PATTERN.matcher(normalized).replaceAll("$1 $2");
+        } while (!normalized.equals(previous));
+
+        return normalized;
     }
 
     private String extractOptimizedTextFromReasoning(String reasoning) {
@@ -1611,38 +1635,7 @@ public class AiServiceImpl implements AiService {
     }
 
     private List<String> extractCandidatesFromStreamResult(StreamChatResult streamResult) {
-        var candidates = parseCandidatePayloadOrEmpty(streamResult == null ? "" : streamResult.content());
-        if (!candidates.isEmpty()) {
-            return candidates;
-        }
-        return extractCandidatesFromReasoning(streamResult == null ? "" : streamResult.reasoning());
-    }
-
-    private List<String> extractCandidatesFromReasoning(String reasoning) {
-        var normalized = reasoning == null ? "" : reasoning.trim();
-        if (normalized.isBlank()) {
-            return List.of();
-        }
-
-        var directJsonCandidates = parseCandidatePayloadOrEmpty(normalized);
-        if (!directJsonCandidates.isEmpty()) {
-            return directJsonCandidates;
-        }
-
-        var markers = List.of("最终结果：", "最终结果:", "最终优化结果：", "最终优化结果是：");
-        for (var marker : markers) {
-            var markerIndex = normalized.lastIndexOf(marker);
-            if (markerIndex < 0) {
-                continue;
-            }
-            var tail = normalized.substring(markerIndex + marker.length()).trim();
-            var markerCandidates = parseCandidatePayloadOrEmpty(tail);
-            if (!markerCandidates.isEmpty()) {
-                return markerCandidates;
-            }
-        }
-
-        return List.of();
+        return parseCandidatePayloadOrEmpty(streamResult == null ? "" : streamResult.content());
     }
 
     private List<String> parseCandidatePayloadOrEmpty(String content) {
@@ -1785,7 +1778,7 @@ public class AiServiceImpl implements AiService {
         return false;
     }
 
-    private List<String> finalizeCandidateOutput(String targetModel, String systemPrompt, String originalPrompt) {
+    private List<String> finalizeCandidateOutput(String targetModel, String systemPrompt, String originalPrompt, String partialContent) {
         var finalizePrompt = """
                 你上一条回答在输出最终候选 JSON 时被截断了。
                 现在不要重复分析，不要解释，不要输出 Markdown 代码块，也不要输出思考过程。
@@ -1795,14 +1788,23 @@ public class AiServiceImpl implements AiService {
                 原始任务如下：
                 """ + originalPrompt;
 
+        var partial = partialContent == null ? "" : partialContent.trim();
+        if (!partial.isBlank()) {
+            finalizePrompt += """
+
+                    
+                    上一条已经输出但被截断的内容如下，请优先基于它补全为最终合法 JSON：
+                    """ + "\n" + truncateText(partial, 2000);
+        }
+
         var response = invokeChatCompletion(
                 targetModel,
                 systemPrompt,
                 finalizePrompt,
                 0.2,
-                2600,
+                3200,
                 true,
-                false
+                true
         );
 
         if (response == null) {

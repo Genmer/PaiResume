@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { resumeApi, type AiFieldOptimizeRequest, type FieldOptimizePromptConfig, type ResumeModule } from '../api/resume'
+import { MarkdownPreview } from '../components/ui/MarkdownPreview'
 import { useResumeStore } from '../store/resumeStore'
 import { normalizeInternshipContent, normalizeProjectContent } from '../utils/moduleContent'
 
@@ -55,6 +56,38 @@ function normalizeCandidates(value: unknown): string[] {
   return value
     .map((item) => (typeof item === 'string' ? item.trim() : ''))
     .filter((item) => item.length > 0)
+}
+
+function formatCandidatesAsMarkdown(candidates: string[]) {
+  return candidates
+    .map((candidate, index) => `### 版本 ${index + 1}\n\n${candidate.trim()}`)
+    .join('\n\n')
+}
+
+function parseCandidatesFromStreamedContent(content: string): string[] {
+  const trimmed = content.trim()
+  if (!trimmed) {
+    return []
+  }
+
+  const unfenced = trimmed
+    .replace(/^```[a-zA-Z]*\s*/, '')
+    .replace(/\s*```$/, '')
+    .trim()
+  const start = unfenced.indexOf('{')
+  const end = unfenced.lastIndexOf('}')
+  const jsonText = start >= 0 && end > start ? unfenced.slice(start, end + 1) : unfenced
+
+  try {
+    const payload = JSON.parse(jsonText) as { candidates?: unknown }
+    return normalizeCandidates(payload.candidates)
+  } catch {
+    return []
+  }
+}
+
+function countDisplayCharacters(value: string) {
+  return value.replace(/\s+/g, '').length
 }
 
 function promptStorageKey(moduleType: string, fieldType: FieldType) {
@@ -293,8 +326,15 @@ export default function FieldOptimizePage() {
   )
 
   const streamAbortRef = useRef<AbortController | null>(null)
+  const streamedContentRef = useRef('')
   const [saving, setSaving] = useState(false)
   const [systemPromptDraft, setSystemPromptDraft] = useState('')
+  const [savedSystemPrompt, setSavedSystemPrompt] = useState('')
+  const [systemPromptNotice, setSystemPromptNotice] = useState('')
+  const effectiveSystemPrompt = useMemo(
+    () => systemPromptDraft.trim() || promptConfig.systemPrompt.trim(),
+    [systemPromptDraft, promptConfig.systemPrompt]
+  )
   const [promptDraft, setPromptDraft] = useState('')
   const [savedPrompt, setSavedPrompt] = useState('')
   const [promptNotice, setPromptNotice] = useState('')
@@ -355,6 +395,7 @@ export default function FieldOptimizePage() {
       error: fieldContext.original.trim() ? undefined : '当前字段内容为空，暂时无法优化。',
       multiCandidate: fieldContext.multiCandidate,
     })
+    streamedContentRef.current = ''
     setCandidateDrafts([])
     setOptimizedDraft('')
   }, [fieldContext])
@@ -376,7 +417,69 @@ export default function FieldOptimizePage() {
     const storedSystemPrompt = window.localStorage.getItem(systemPromptStorageKey())?.trim()
     const initialSystemPrompt = storedSystemPrompt || promptConfig.systemPrompt
     setSystemPromptDraft(initialSystemPrompt)
+    setSavedSystemPrompt(initialSystemPrompt)
+    setSystemPromptNotice(storedSystemPrompt ? '已加载你上次保存的系统提示词。' : '')
   }, [promptConfig.systemPrompt])
+
+  useEffect(() => {
+    if (!fieldContext || !resumeId || !numericModuleId) {
+      return
+    }
+
+    let active = true
+    void resumeApi.getLatestFieldOptimizeRecord(resumeId, numericModuleId, {
+      fieldType: fieldContext.request.fieldType,
+      index: fieldContext.request.index ?? null,
+    })
+      .then((response) => {
+        if (!active) {
+          return
+        }
+
+        const latestRecord = response.data.data
+        if (!latestRecord) {
+          return
+        }
+
+        const nextCandidates = fieldContext.multiCandidate ? normalizeCandidates(latestRecord.candidates) : []
+        const nextOptimized = fieldContext.multiCandidate ? '' : (latestRecord.optimized || '')
+        const nextStreamedContent = latestRecord.streamedContent || (
+          fieldContext.multiCandidate
+            ? formatCandidatesAsMarkdown(nextCandidates)
+            : nextOptimized
+        )
+
+        streamedContentRef.current = nextStreamedContent
+        setCandidateDrafts(nextCandidates)
+        setOptimizedDraft(nextOptimized)
+        setState((prev) => {
+          if (prev.status === 'streaming') {
+            return prev
+          }
+          return {
+            ...prev,
+            title: fieldContext.title,
+            original: latestRecord.original?.trim() ? latestRecord.original : fieldContext.original,
+            streamedContent: nextStreamedContent,
+            reasoning: latestRecord.reasoning || '',
+            status: latestRecord.status === 'error' ? 'error' : 'completed',
+            error: latestRecord.error || undefined,
+            optimized: fieldContext.multiCandidate ? undefined : nextOptimized,
+            candidates: nextCandidates,
+            multiCandidate: fieldContext.multiCandidate,
+          }
+        })
+      })
+      .catch(() => {
+        if (!active) {
+          return
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [fieldContext, resumeId, numericModuleId])
 
   const handleBack = () => {
     streamAbortRef.current?.abort()
@@ -404,11 +507,20 @@ export default function FieldOptimizePage() {
   }
 
   const handleSaveSystemPrompt = () => {
-    const nextSystemPrompt = systemPromptDraft.trim()
+    const nextSystemPrompt = effectiveSystemPrompt
     if (!nextSystemPrompt) {
+      setSystemPromptNotice('系统提示词不能为空。')
       return
     }
+    setSystemPromptDraft(nextSystemPrompt)
     window.localStorage.setItem(systemPromptStorageKey(), nextSystemPrompt)
+    setSavedSystemPrompt(nextSystemPrompt)
+    setSystemPromptNotice('系统提示词已保存。')
+  }
+
+  const handleResetSystemPrompt = () => {
+    setSystemPromptDraft(promptConfig.systemPrompt)
+    setSystemPromptNotice('已恢复为默认系统提示词，点击保存后可覆盖本地配置。')
   }
 
   const handleResetPrompt = () => {
@@ -449,6 +561,7 @@ export default function FieldOptimizePage() {
       candidates: [],
       multiCandidate: fieldContext.multiCandidate,
     })
+    streamedContentRef.current = ''
     setCandidateDrafts([])
     setOptimizedDraft('')
     setPromptNotice(prompt === savedPrompt ? '正在按已保存提示词优化。' : '正在按当前提示词优化。')
@@ -457,11 +570,11 @@ export default function FieldOptimizePage() {
       const result = await resumeApi.aiOptimizeFieldStream(
         resumeId,
         numericModuleId,
-        {
-          ...fieldContext.request,
-          prompt,
-          systemPrompt: systemPromptDraft.trim(),
-        },
+          {
+            ...fieldContext.request,
+            prompt,
+            systemPrompt: effectiveSystemPrompt,
+          },
         {
           signal: abortController.signal,
           onEvent: (event) => {
@@ -495,9 +608,11 @@ export default function FieldOptimizePage() {
               return
             }
             if (event.event === 'content_delta') {
+              const nextStreamedContent = typeof event.data.text === 'string' ? event.data.text : streamedContentRef.current
+              streamedContentRef.current = nextStreamedContent
               setState((prev) => ({
                 ...prev,
-                streamedContent: typeof event.data.text === 'string' ? event.data.text : prev.streamedContent,
+                streamedContent: nextStreamedContent,
               }))
               return
             }
@@ -515,7 +630,9 @@ export default function FieldOptimizePage() {
       const nextCandidates = fieldContext.multiCandidate
         ? (() => {
             const candidates = normalizeCandidates(result.candidates)
-            return candidates.length > 0 ? candidates : (result.optimized ? [result.optimized] : [])
+            const streamedCandidates = parseCandidatesFromStreamedContent(streamedContentRef.current)
+            const resolvedCandidates = streamedCandidates.length > 0 ? streamedCandidates : candidates
+            return resolvedCandidates.length > 0 ? resolvedCandidates : (result.optimized ? [result.optimized] : [])
           })()
         : []
       const nextOptimized = fieldContext.multiCandidate ? '' : result.optimized
@@ -526,7 +643,7 @@ export default function FieldOptimizePage() {
         title: fieldContext.title,
         original: result.original,
         streamedContent: prev.streamedContent || (fieldContext.multiCandidate
-          ? JSON.stringify({ candidates: result.candidates ?? [] }, null, 2)
+          ? formatCandidatesAsMarkdown(nextCandidates)
           : result.optimized),
         reasoning: prev.reasoning,
         status: 'completed',
@@ -601,71 +718,96 @@ export default function FieldOptimizePage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="shrink-0 text-sm font-medium text-slate-700">系统提示词：</div>
-                <input
-                  type="text"
-                  value={systemPromptDraft}
-                  onChange={(event) => setSystemPromptDraft(event.target.value)}
-                  className="min-w-0 flex-1 rounded-xl border border-primary-100 bg-primary-50/40 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+            <div className="grid gap-6 xl:grid-cols-[0.95fr_1.25fr]">
+              <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-slate-800">系统提示词</div>
+                    <div className="mt-1 text-xs text-slate-500">控制优化风格和表达约束，通常只需少量调整。</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetSystemPrompt}
+                      disabled={isStreaming}
+                      className="rounded-lg border border-primary-100 px-3 py-2 text-xs text-slate-600 transition hover:border-primary-200 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      恢复默认
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveSystemPrompt}
+                      disabled={isStreaming}
+                      className="shrink-0 rounded-lg border border-primary-100 px-3 py-2 text-xs text-slate-600 transition hover:border-primary-200 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      保存
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={systemPromptDraft || promptConfig.systemPrompt}
+                  onChange={(event) => {
+                    setSystemPromptDraft(event.target.value)
+                    setSystemPromptNotice('')
+                  }}
+                  rows={7}
+                  className="w-full rounded-2xl border border-primary-100 bg-primary-50/30 px-4 py-3 text-sm leading-7 text-slate-700 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                  placeholder="系统提示词用于约束整体风格。"
                 />
-                <button
-                  type="button"
-                  onClick={handleSaveSystemPrompt}
-                  disabled={isStreaming}
-                  className="shrink-0 rounded-lg border border-primary-100 px-3 py-2 text-xs text-slate-600 transition hover:border-primary-200 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  保存
-                </button>
-              </div>
+                <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+                  <span>{systemPromptNotice || (effectiveSystemPrompt.trim() === savedSystemPrompt.trim() ? '\u00a0' : '当前系统提示词有未保存修改。')}</span>
+                  <span>{effectiveSystemPrompt.trim().length} 字</span>
+                </div>
+              </section>
 
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-medium text-slate-800">用户提示词</div>
+              <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-slate-800">用户提示词</div>
+                    <div className="mt-1 text-xs text-slate-500">补充本次目标、输出格式和特殊改写要求。</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetPrompt}
+                      disabled={isStreaming || !fieldContext}
+                      className="rounded-lg border border-primary-100 px-3 py-2 text-xs text-slate-600 transition hover:border-primary-200 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      恢复默认
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSavePrompt}
+                      disabled={isStreaming || !fieldContext}
+                      className="rounded-lg border border-primary-100 px-3 py-2 text-xs text-slate-600 transition hover:border-primary-200 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      保存
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleResetPrompt}
-                    disabled={isStreaming || !fieldContext}
-                    className="rounded-lg border border-primary-100 px-3 py-2 text-xs text-slate-600 transition hover:border-primary-200 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    恢复默认
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSavePrompt}
-                    disabled={isStreaming || !fieldContext}
-                    className="rounded-lg border border-primary-100 px-3 py-2 text-xs text-slate-600 transition hover:border-primary-200 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    保存
-                  </button>
+                <textarea
+                  value={promptDraft}
+                  onChange={(event) => {
+                    setPromptDraft(event.target.value)
+                    setPromptNotice('')
+                  }}
+                  rows={7}
+                  className="w-full rounded-2xl border border-primary-100 bg-primary-50/30 px-4 py-3 text-sm leading-7 text-slate-700 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                  placeholder="请先调整提示词，再开始优化。"
+                />
+                <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
+                  <span>{promptNotice || (promptDraft.trim() === savedPrompt.trim() ? '\u00a0' : '当前提示词有未保存修改。')}</span>
+                  <span>{promptDraft.trim().length} 字</span>
                 </div>
-              </div>
-              <textarea
-                value={promptDraft}
-                onChange={(event) => {
-                  setPromptDraft(event.target.value)
-                  setPromptNotice('')
-                }}
-                rows={5}
-                className="w-full rounded-2xl border border-primary-100 bg-primary-50/30 px-4 py-3 text-sm leading-7 text-slate-700 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                placeholder="请先调整提示词，再开始优化。"
-              />
-              <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-500">
-                <span>{promptNotice || (promptDraft.trim() === savedPrompt.trim() ? '\u00a0' : '当前提示词有未保存修改。')}</span>
-                <span>{promptDraft.trim().length} 字</span>
-              </div>
-            </section>
+              </section>
+            </div>
 
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.25fr]">
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-6">
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-medium text-slate-800">AI 生成过程</div>
-                      <div className="mt-1 text-xs text-slate-500">展示模型生成中的过程事件与返回内容。</div>
                     </div>
                     <button
                       type="button"
@@ -676,15 +818,34 @@ export default function FieldOptimizePage() {
                       {state.status === 'idle' ? '开始优化' : '重新生成'}
                     </button>
                   </div>
-                  <pre className="min-h-[360px] overflow-auto whitespace-pre-wrap rounded-2xl border border-primary-100 bg-gradient-to-br from-primary-50 via-white to-slate-50 p-4 text-xs leading-6 text-slate-700">
-                    {state.reasoning || (isStreaming ? '正在等待生成过程输出...' : '点击“开始优化”后，这里会展示完整的生成过程。')}
-                  </pre>
+                  <div className="space-y-4">
+                    <div>
+                      <MarkdownPreview
+                        content={state.reasoning}
+                        emptyText={isStreaming ? '正在等待生成过程输出...' : '点击“开始优化”后，这里会展示完整的生成过程。'}
+                        className="min-h-[220px] border-primary-100 bg-gradient-to-br from-primary-50 via-white to-slate-50"
+                      />
+                    </div>
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">流式结果</div>
+                      <MarkdownPreview
+                        content={state.streamedContent}
+                        emptyText={isStreaming ? '正在等待结果输出...' : '点击“开始优化”后，这里会展示流式返回内容。'}
+                        className="min-h-[120px] border-primary-100 bg-white"
+                      />
+                    </div>
+                  </div>
                 </section>
               </div>
 
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-6">
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="mb-3 text-sm font-medium text-slate-800">优化前</div>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="text-sm font-medium text-slate-800">优化前</div>
+                    <div className="text-xs text-slate-500">
+                      {countDisplayCharacters(state.original)} 字
+                    </div>
+                  </div>
                   <pre className="max-h-[28vh] overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700">
                     {state.original || (loading ? '正在加载字段内容...' : '当前字段暂无内容。')}
                   </pre>
@@ -697,7 +858,12 @@ export default function FieldOptimizePage() {
                       {state.candidates && state.candidates.length > 0 ? state.candidates.map((candidate, candidateIndex) => (
                         <div key={`${candidateIndex}-${candidate}`} className="rounded-2xl border border-primary-100 bg-gradient-to-br from-primary-50/70 via-white to-primary-50/40 p-4">
                           <div className="mb-3 flex items-center justify-between gap-3">
-                            <div className="text-xs font-medium uppercase tracking-wide text-primary-700">版本 {candidateIndex + 1}</div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-xs font-medium uppercase tracking-wide text-primary-700">版本 {candidateIndex + 1}</div>
+                              <div className="text-xs text-slate-500">
+                                {countDisplayCharacters(candidateDrafts[candidateIndex] ?? candidate)} 字
+                              </div>
+                            </div>
                             <button
                               type="button"
                               onClick={() => void handleAdopt((candidateDrafts[candidateIndex] || candidate).trim())}
@@ -724,7 +890,12 @@ export default function FieldOptimizePage() {
                 ) : (
                   <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <div className="text-sm font-medium text-slate-800">优化后</div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm font-medium text-slate-800">优化后</div>
+                        <div className="text-xs text-slate-500">
+                          {countDisplayCharacters(optimizedDraft)} 字
+                        </div>
+                      </div>
                       <button
                         type="button"
                         onClick={() => optimizedDraft.trim() && void handleAdopt(optimizedDraft.trim())}

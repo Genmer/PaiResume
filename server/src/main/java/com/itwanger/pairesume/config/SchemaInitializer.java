@@ -20,13 +20,45 @@ import java.sql.Connection;
 public class SchemaInitializer implements ApplicationRunner {
 
     private final DataSource dataSource;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             ScriptUtils.executeSqlScript(connection,
                     new org.springframework.core.io.ClassPathResource("schema.sql"));
+            migrateAiOptimizeRecordStatusColumn();
             log.info("Schema initialized successfully");
+        }
+    }
+
+    private void migrateAiOptimizeRecordStatusColumn() {
+        try {
+            Integer legacyStatusCount = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*)
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'ai_optimize_record'
+                      AND COLUMN_NAME = 'status'
+                    """, Integer.class);
+            Integer recordStatusCount = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*)
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'ai_optimize_record'
+                      AND COLUMN_NAME = 'record_status'
+                    """, Integer.class);
+
+            if (legacyStatusCount != null && legacyStatusCount > 0
+                    && (recordStatusCount == null || recordStatusCount == 0)) {
+                jdbcTemplate.execute("""
+                        ALTER TABLE `ai_optimize_record`
+                        CHANGE COLUMN `status` `record_status` VARCHAR(16) NOT NULL COMMENT '状态: completed/error'
+                        """);
+                log.info("Migrated ai_optimize_record.status to record_status");
+            }
+        } catch (Exception e) {
+            log.warn("Failed to migrate ai_optimize_record status column", e);
         }
     }
 }

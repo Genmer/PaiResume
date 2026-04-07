@@ -32,6 +32,21 @@ export interface AiFieldOptimizeResponse {
   candidates?: string[]
 }
 
+export interface AiFieldOptimizeRecord {
+  id: number
+  status: 'completed' | 'error'
+  original: string
+  reasoning: string
+  streamedContent: string
+  optimized?: string
+  candidates?: string[]
+  error?: string
+  prompt?: string
+  systemPrompt?: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface FieldOptimizePromptConfig {
   systemPrompt: string
   descriptionPrompt: string
@@ -282,6 +297,17 @@ export const resumeApi = {
 
   getFieldOptimizePromptConfig: () =>
     client.get<ApiEnvelope<FieldOptimizePromptConfig>>('/resumes/field-optimize-prompts'),
+
+  getLatestFieldOptimizeRecord: (resumeId: number, moduleId: number, params: { fieldType: string; index?: number | null }) =>
+    client.get<ApiEnvelope<AiFieldOptimizeRecord | null>>(
+      `/resumes/${resumeId}/modules/${moduleId}/ai-optimize-field/latest`,
+      {
+        params: {
+          fieldType: params.fieldType,
+          ...(params.index === null || params.index === undefined ? {} : { index: params.index }),
+        },
+      }
+    ),
 
   aiOptimizeFieldStream: async (
     resumeId: number,
