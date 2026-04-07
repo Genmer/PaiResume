@@ -336,7 +336,7 @@ export function Header({
                           onClick={() => handleExportClick('continuous')}
                           className="mt-1 flex w-full rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
                         >
-                          连续长页 PDF
+                          智能一页 PDF
                         </button>
                       </div>
                     )}

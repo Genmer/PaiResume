@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import * as PDFJS from 'pdfjs-dist'
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion'
 import type { ResumeModule } from '../../api/resume'
 import { MODULE_LABELS, type ModuleType } from '../../types'
@@ -28,6 +30,15 @@ interface PdfPreviewState {
   loading: boolean
   error: string
 }
+
+interface RenderedPdfPage {
+  pageNumber: number
+  width: number
+  height: number
+  dataUrl: string
+}
+
+PDFJS.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 
 const pageMotion: Variants = {
   hidden: {
@@ -194,9 +205,9 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
   const standardPdfPreview = usePdfPreview(modules, 'standard', previewMode === 'pdf-standard')
   const continuousPdfPreview = usePdfPreview(modules, 'continuous', previewMode === 'pdf-continuous')
   const activePdfPreview = previewMode === 'pdf-continuous' ? continuousPdfPreview : standardPdfPreview
-  const activePdfTitle = previewMode === 'pdf-continuous' ? '连续长页预览' : '标准 PDF 预览'
+  const activePdfTitle = previewMode === 'pdf-continuous' ? '智能一页预览' : '标准 PDF 预览'
   const activePdfDescription = previewMode === 'pdf-continuous'
-    ? '单张连续长页，适合长图式查看与导出。'
+    ? '自动压缩为单张一页。'
     : '标准 A4 分页预览。'
   const activePdfIframeTitle = previewMode === 'pdf-continuous'
     ? 'Resume Continuous PDF Preview'
@@ -271,7 +282,7 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              连续长页
+              智能一页
             </button>
           </div>
         </div>
@@ -320,22 +331,139 @@ function PdfPreviewCard({
   preview: PdfPreviewState
   iframeTitle: string
 }) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+  const [pages, setPages] = useState<RenderedPdfPage[]>([])
+  const [rendering, setRendering] = useState(false)
+  const [renderError, setRenderError] = useState('')
+
+  useEffect(() => {
+    const element = containerRef.current
+    if (!element || typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) {
+        return
+      }
+
+      setContainerWidth(Math.floor(entry.contentRect.width))
+    })
+
+    observer.observe(element)
+    setContainerWidth(Math.floor(element.getBoundingClientRect().width))
+
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!preview.url || containerWidth <= 0) {
+      setPages([])
+      setRenderError('')
+      setRendering(false)
+      return
+    }
+
+    const previewUrl = preview.url
+    let cancelled = false
+    setRendering(true)
+    setRenderError('')
+
+    void (async () => {
+      try {
+        const arrayBuffer = await fetch(previewUrl).then(async (response) => {
+          if (!response.ok) {
+            throw new Error('PDF 预览加载失败')
+          }
+          return response.arrayBuffer()
+        })
+
+        const pdf = await PDFJS.getDocument({ data: arrayBuffer }).promise
+        const renderedPages: RenderedPdfPage[] = []
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber)
+          const baseViewport = page.getViewport({ scale: 1 })
+          const scale = containerWidth / baseViewport.width
+          const viewport = page.getViewport({ scale })
+          const outputScale = window.devicePixelRatio || 1
+
+          const canvas = document.createElement('canvas')
+          const context = canvas.getContext('2d')
+          if (!context) {
+            throw new Error('PDF 预览上下文创建失败')
+          }
+
+          canvas.width = Math.floor(viewport.width * outputScale)
+          canvas.height = Math.floor(viewport.height * outputScale)
+          canvas.style.width = `${viewport.width}px`
+          canvas.style.height = `${viewport.height}px`
+
+          await page.render({
+            canvasContext: context,
+            viewport,
+            transform: outputScale === 1 ? undefined : [outputScale, 0, 0, outputScale, 0, 0],
+          }).promise
+
+          renderedPages.push({
+            pageNumber,
+            width: viewport.width,
+            height: viewport.height,
+            dataUrl: canvas.toDataURL('image/png'),
+          })
+        }
+
+        if (cancelled) {
+          return
+        }
+
+        setPages(renderedPages)
+        setRendering(false)
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        setPages([])
+        setRendering(false)
+        setRenderError(error instanceof Error ? error.message : 'PDF 预览渲染失败')
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [containerWidth, preview.url])
+
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.38)]">
-      {preview.error ? (
+    <section
+      ref={containerRef}
+      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.38)]"
+    >
+      {preview.error || renderError ? (
         <div className="flex h-[70vh] min-h-[520px] items-center justify-center px-6 text-sm text-red-500">
-          {preview.error}
+          {preview.error || renderError}
         </div>
       ) : preview.url ? (
         <div className="relative">
-          <iframe
-            title={iframeTitle}
-            src={`${preview.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-            className="h-[70vh] min-h-[520px] w-full bg-white"
-          />
-          {preview.loading ? (
+          <div>
+            {pages.map((page) => (
+              <figure key={page.pageNumber} className="overflow-hidden bg-white">
+                <img
+                  src={page.dataUrl}
+                  alt={`${iframeTitle} 第 ${page.pageNumber} 页`}
+                  width={Math.round(page.width)}
+                  height={Math.round(page.height)}
+                  className="block w-full h-auto"
+                />
+              </figure>
+            ))}
+          </div>
+          {(preview.loading || rendering) ? (
             <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-medium text-gray-500 shadow-sm ring-1 ring-gray-200">
-              更新中...
+              {rendering ? '渲染中...' : '更新中...'}
             </span>
           ) : null}
         </div>
@@ -718,14 +846,8 @@ function ModulePreviewSection({
             <span className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full border px-2 text-[11px] font-semibold tracking-[0.22em] ${surfaceTone.badge}`}>
               {String(index + 1).padStart(2, '0')}
             </span>
-            <div>
-              <h2 className="text-base font-semibold text-primary-900">{label}</h2>
-              <p className="text-xs text-primary-400">内容分区</p>
-            </div>
+            <h2 className="text-base font-semibold text-primary-900">{label}</h2>
           </div>
-          <span className="text-[11px] uppercase tracking-[0.24em] text-primary-400">
-            Preview
-          </span>
         </div>
         {renderContent()}
       </div>
