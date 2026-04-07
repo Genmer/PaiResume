@@ -14,14 +14,20 @@ import {
   normalizeResearchContent,
   normalizeSkillContent,
 } from '../../utils/moduleContent'
-import { generateResumePdfBlob } from '../../utils/resumePdf'
+import { generateResumePdfBlob, type ResumePdfPageMode } from '../../utils/resumePdf'
 
 interface PreviewPanelProps {
   modules: ResumeModule[]
   loading: boolean
 }
 
-type PreviewMode = 'live' | 'pdf'
+type PreviewMode = 'live' | 'pdf-standard' | 'pdf-continuous'
+
+interface PdfPreviewState {
+  url: string | null
+  loading: boolean
+  error: string
+}
 
 const pageMotion: Variants = {
   hidden: {
@@ -82,18 +88,86 @@ const moduleCardMotion: Variants = {
   }),
 }
 
+function usePdfPreview(modules: ResumeModule[], pageMode: ResumePdfPageMode, enabled: boolean): PdfPreviewState {
+  const [url, setUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const activeUrlRef = useRef<string | null>(null)
+  const requestIdRef = useRef(0)
+  const signatureRef = useRef('')
+
+  useEffect(() => {
+    if (modules.length === 0) {
+      requestIdRef.current += 1
+      signatureRef.current = ''
+      setUrl(null)
+      setLoading(false)
+      setError('')
+      if (activeUrlRef.current) {
+        URL.revokeObjectURL(activeUrlRef.current)
+        activeUrlRef.current = null
+      }
+      return
+    }
+
+    if (!enabled) {
+      return
+    }
+
+    const nextSignature = JSON.stringify({ modules, pageMode })
+    if (nextSignature === signatureRef.current && activeUrlRef.current) {
+      setLoading(false)
+      setError('')
+      return
+    }
+
+    let cancelled = false
+    const requestId = requestIdRef.current + 1
+    requestIdRef.current = requestId
+    setLoading(Boolean(activeUrlRef.current))
+    setError('')
+
+    void generateResumePdfBlob(modules, { pageMode })
+      .then((blob) => {
+        if (cancelled || requestId !== requestIdRef.current) {
+          return
+        }
+
+        const nextUrl = URL.createObjectURL(blob)
+        signatureRef.current = nextSignature
+        if (activeUrlRef.current) {
+          URL.revokeObjectURL(activeUrlRef.current)
+        }
+        activeUrlRef.current = nextUrl
+        setUrl(nextUrl)
+        setLoading(false)
+      })
+      .catch((reason: unknown) => {
+        if (cancelled || requestId !== requestIdRef.current) {
+          return
+        }
+
+        setLoading(false)
+        setError(reason instanceof Error ? reason.message : 'PDF 预览生成失败，请稍后重试')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [enabled, modules, pageMode])
+
+  useEffect(() => () => {
+    if (activeUrlRef.current) {
+      URL.revokeObjectURL(activeUrlRef.current)
+    }
+  }, [])
+
+  return { url, loading, error }
+}
+
 export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
   const shouldReduceMotion = useReducedMotion() ?? false
   const [previewMode, setPreviewMode] = useState<PreviewMode>('live')
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
-  const [stagedPdfPreviewUrl, setStagedPdfPreviewUrl] = useState<string | null>(null)
-  const [pdfRefreshing, setPdfRefreshing] = useState(false)
-  const [pdfError, setPdfError] = useState('')
-  const pdfUrlRef = useRef<string | null>(null)
-  const stagedPdfUrlRef = useRef<string | null>(null)
-  const pdfRenderRequestRef = useRef(0)
-  const pdfRenderSignatureRef = useRef('')
-
   const sortedModules = [...modules].sort((a, b) => {
     if (a.sortOrder === b.sortOrder) {
       return a.id - b.id
@@ -117,116 +191,16 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
 
     return !(module.moduleType === 'award' && hasEducationModule)
   })
-
-  useEffect(() => {
-    if (modules.length === 0) {
-      pdfRenderSignatureRef.current = ''
-      pdfRenderRequestRef.current += 1
-      setPdfRefreshing(false)
-      setPdfError('')
-      setPdfPreviewUrl(null)
-      setStagedPdfPreviewUrl(null)
-      if (pdfUrlRef.current) {
-        URL.revokeObjectURL(pdfUrlRef.current)
-        pdfUrlRef.current = null
-      }
-      if (stagedPdfUrlRef.current) {
-        URL.revokeObjectURL(stagedPdfUrlRef.current)
-        stagedPdfUrlRef.current = null
-      }
-      return
-    }
-
-    const nextSignature = JSON.stringify(modules)
-    if (nextSignature === pdfRenderSignatureRef.current && pdfUrlRef.current) {
-      if (previewMode !== 'pdf') {
-        setPdfRefreshing(false)
-      }
-      setPdfError('')
-      return
-    }
-
-    let cancelled = false
-    const requestId = pdfRenderRequestRef.current + 1
-    pdfRenderRequestRef.current = requestId
-    const renderDelay = previewMode === 'pdf' ? 0 : 320
-    setPdfRefreshing(previewMode === 'pdf' || !!pdfUrlRef.current)
-    setPdfError('')
-
-    const timer = window.setTimeout(() => {
-      void generateResumePdfBlob(modules)
-        .then((blob) => {
-          if (cancelled || requestId !== pdfRenderRequestRef.current) {
-            return
-          }
-
-          const nextUrl = URL.createObjectURL(blob)
-          pdfRenderSignatureRef.current = nextSignature
-
-          if (!pdfUrlRef.current) {
-            pdfUrlRef.current = nextUrl
-            setPdfPreviewUrl(nextUrl)
-            return
-          }
-
-          if (stagedPdfUrlRef.current) {
-            URL.revokeObjectURL(stagedPdfUrlRef.current)
-          }
-          stagedPdfUrlRef.current = nextUrl
-          setStagedPdfPreviewUrl(nextUrl)
-        })
-        .catch((error: unknown) => {
-          if (cancelled || requestId !== pdfRenderRequestRef.current) {
-            return
-          }
-
-          setPdfRefreshing(false)
-          const message = error instanceof Error ? error.message : 'PDF 预览生成失败，请稍后重试'
-          setPdfError(message)
-        })
-    }, renderDelay)
-
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [modules, previewMode])
-
-  useEffect(() => () => {
-    if (pdfUrlRef.current) {
-      URL.revokeObjectURL(pdfUrlRef.current)
-    }
-    if (stagedPdfUrlRef.current) {
-      URL.revokeObjectURL(stagedPdfUrlRef.current)
-    }
-  }, [])
-
-  const commitStagedPdfPreview = () => {
-    if (!stagedPdfUrlRef.current) {
-      setPdfRefreshing(false)
-      return
-    }
-
-    const previousActiveUrl = pdfUrlRef.current
-    const nextActiveUrl = stagedPdfUrlRef.current
-
-    pdfUrlRef.current = nextActiveUrl
-    stagedPdfUrlRef.current = null
-
-    setPdfPreviewUrl(nextActiveUrl)
-    setStagedPdfPreviewUrl(null)
-    setPdfRefreshing(false)
-
-    if (previousActiveUrl && previousActiveUrl !== nextActiveUrl) {
-      URL.revokeObjectURL(previousActiveUrl)
-    }
-  }
-
-  const handleVisiblePdfLoad = () => {
-    if (!stagedPdfUrlRef.current) {
-      setPdfRefreshing(false)
-    }
-  }
+  const standardPdfPreview = usePdfPreview(modules, 'standard', previewMode === 'pdf-standard')
+  const continuousPdfPreview = usePdfPreview(modules, 'continuous', previewMode === 'pdf-continuous')
+  const activePdfPreview = previewMode === 'pdf-continuous' ? continuousPdfPreview : standardPdfPreview
+  const activePdfTitle = previewMode === 'pdf-continuous' ? '连续长页预览' : '标准 PDF 预览'
+  const activePdfDescription = previewMode === 'pdf-continuous'
+    ? '单张连续长页，适合长图式查看与导出。'
+    : '标准 A4 分页预览。'
+  const activePdfIframeTitle = previewMode === 'pdf-continuous'
+    ? 'Resume Continuous PDF Preview'
+    : 'Resume Standard PDF Preview'
 
   if (loading && modules.length === 0) {
     return (
@@ -253,11 +227,15 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              {previewMode === 'pdf' ? 'PDF 预览' : '文本预览'}
+              {previewMode === 'live' ? '文本预览' : activePdfTitle}
             </h2>
-            {previewMode !== 'pdf' && (
+            {previewMode === 'live' ? (
               <p className="mt-1 text-xs text-gray-500">
                 当前展示的是编辑内容的文本预览效果。
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-gray-500">
+                {activePdfDescription}
               </p>
             )}
           </div>
@@ -275,54 +253,34 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
             </button>
             <button
               type="button"
-              onClick={() => setPreviewMode('pdf')}
+              onClick={() => setPreviewMode('pdf-standard')}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                previewMode === 'pdf'
+                previewMode === 'pdf-standard'
                   ? 'bg-primary-700 text-white'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              PDF 预览
+              标准 PDF
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewMode('pdf-continuous')}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                previewMode === 'pdf-continuous'
+                  ? 'bg-primary-700 text-white'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              连续长页
             </button>
           </div>
         </div>
 
-        {previewMode === 'pdf' ? (
-          <div className="relative overflow-hidden border border-gray-200 bg-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.38)]">
-            {pdfError ? (
-              <div className="flex min-h-[297mm] items-center justify-center px-6 text-sm text-red-500">
-                {pdfError}
-              </div>
-            ) : pdfPreviewUrl ? (
-              <div className="relative">
-                <iframe
-                  title="Resume PDF Preview"
-                  src={`${pdfPreviewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                  className="h-[calc(100vh-220px)] w-full bg-white"
-                  onLoad={handleVisiblePdfLoad}
-                />
-                {stagedPdfPreviewUrl ? (
-                  <iframe
-                    title="Resume PDF Preview Staged"
-                    src={`${stagedPdfPreviewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                    className="pointer-events-none absolute inset-0 h-[calc(100vh-220px)] w-full opacity-0"
-                    aria-hidden="true"
-                    tabIndex={-1}
-                    onLoad={commitStagedPdfPreview}
-                  />
-                ) : null}
-                {pdfRefreshing ? (
-                  <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-white/92 px-3 py-1 text-[11px] font-medium text-gray-500 shadow-sm ring-1 ring-gray-200">
-                    更新中...
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <div className="flex min-h-[297mm] items-center justify-center text-sm text-gray-400">
-                正在准备 PDF 预览...
-              </div>
-            )}
-          </div>
+        {previewMode !== 'live' ? (
+          <PdfPreviewCard
+            preview={activePdfPreview}
+            iframeTitle={activePdfIframeTitle}
+          />
         ) : (
           <motion.div
             initial={shouldReduceMotion ? false : 'hidden'}
@@ -352,6 +310,41 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
         )}
       </div>
     </div>
+  )
+}
+
+function PdfPreviewCard({
+  preview,
+  iframeTitle,
+}: {
+  preview: PdfPreviewState
+  iframeTitle: string
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_28px_70px_-42px_rgba(15,23,42,0.38)]">
+      {preview.error ? (
+        <div className="flex h-[70vh] min-h-[520px] items-center justify-center px-6 text-sm text-red-500">
+          {preview.error}
+        </div>
+      ) : preview.url ? (
+        <div className="relative">
+          <iframe
+            title={iframeTitle}
+            src={`${preview.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+            className="h-[70vh] min-h-[520px] w-full bg-white"
+          />
+          {preview.loading ? (
+            <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-white/92 px-2.5 py-1 text-[11px] font-medium text-gray-500 shadow-sm ring-1 ring-gray-200">
+              更新中...
+            </span>
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex h-[70vh] min-h-[520px] items-center justify-center text-sm text-gray-400">
+          正在准备 PDF 预览...
+        </div>
+      )}
+    </section>
   )
 }
 

@@ -17,7 +17,7 @@ import { AwardForm } from '../components/modules/AwardForm'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { MODULE_LABELS, SINGLETON_MODULES, type ModuleType } from '../types'
 import { normalizeJobIntentionContent } from '../utils/moduleContent'
-import { downloadResumePdf } from '../utils/resumePdf'
+import { downloadResumePdf, type ResumePdfPageMode } from '../utils/resumePdf'
 
 type EditorView = 'module' | 'analysis'
 const AI_OPTIMIZABLE_MODULE_TYPES = new Set<ModuleType>(['research', 'skill'])
@@ -51,7 +51,7 @@ export default function EditorPage() {
       setActiveModuleType(initialModuleType)
       setAiModuleId(null)
       setEditorView('module')
-      fetchModules(resumeId)
+      void fetchModules(resumeId)
     }
   }, [resumeId, fetchModules, initialModuleType])
 
@@ -123,7 +123,7 @@ export default function EditorPage() {
   const canAddAnotherInstance = activeModuleType ? !SINGLETON_MODULES.includes(activeModuleType) : false
   const canOptimizeActiveModule = activeModuleType ? AI_OPTIMIZABLE_MODULE_TYPES.has(activeModuleType) : false
 
-  const handleExportPdf = useCallback(async () => {
+  const handleExportPdf = useCallback(async (pageMode: ResumePdfPageMode) => {
     if (modules.length === 0) {
       setExportError('请先完善简历内容后再导出 PDF')
       return
@@ -132,7 +132,10 @@ export default function EditorPage() {
     setExporting(true)
     setExportError('')
     try {
-      await downloadResumePdf(modules, resumeId)
+      await downloadResumePdf(modules, resumeId, {
+        pageMode,
+        ...(pageMode === 'continuous' ? { fileNameSuffix: 'continuous' } : {}),
+      })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '导出 PDF 失败，请稍后重试'
       setExportError(message)
@@ -170,9 +173,8 @@ export default function EditorPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        onExportPdf={() => void handleExportPdf()}
+        onExportPdf={(pageMode) => void handleExportPdf(pageMode)}
         exporting={exporting}
-        smartOnePageHref={resumeId ? `/editor/${resumeId}/smart-onepage` : undefined}
       />
 
       <div className="flex flex-1 overflow-hidden">

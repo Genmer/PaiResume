@@ -139,6 +139,8 @@ export interface ResumePdfOptions {
   fileNameSuffix?: string
 }
 
+export type ResumePdfPageMode = NonNullable<ResumePdfOptions['pageMode']>
+
 const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
 

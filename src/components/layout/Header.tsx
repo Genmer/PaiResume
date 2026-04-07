@@ -3,12 +3,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useResumeStore } from '../../store/resumeStore'
 import { getResumeImporter, resumeImporters, type ResumeImportType } from '../../utils/importers'
+import type { ResumePdfPageMode } from '../../utils/resumePdf'
 import { LogoMark } from '../branding/LogoMark'
 
 interface HeaderProps {
-  onExportPdf?: () => void
+  onExportPdf?: (pageMode: ResumePdfPageMode) => void
   exporting?: boolean
-  smartOnePageHref?: string
 }
 
 const IMPORT_LOG_PREFIX = '[resume-import]'
@@ -43,15 +43,16 @@ function getImportTypeFromFile(file: File): ResumeImportType | null {
 export function Header({
   onExportPdf,
   exporting = false,
-  smartOnePageHref,
 }: HeaderProps) {
   const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuthStore()
   const { importResume } = useResumeStore()
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [importMenuOpen, setImportMenuOpen] = useState(false)
   const [importingType, setImportingType] = useState<ResumeImportType | null>(null)
   const [importError, setImportError] = useState('')
   const [draggingImportFile, setDraggingImportFile] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const fileInputRefs = useRef<Partial<Record<ResumeImportType, HTMLInputElement | null>>>({})
   const dragDepthRef = useRef(0)
@@ -107,19 +108,25 @@ export function Header({
   }, [importResume, navigate])
 
   useEffect(() => {
-    if (!importMenuOpen) {
+    if (!importMenuOpen && !exportMenuOpen) {
       return
     }
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+
+      if (menuRef.current && !menuRef.current.contains(target)) {
         setImportMenuOpen(false)
+      }
+
+      if (exportMenuRef.current && !exportMenuRef.current.contains(target)) {
+        setExportMenuOpen(false)
       }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [importMenuOpen])
+  }, [exportMenuOpen, importMenuOpen])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -230,6 +237,11 @@ export function Header({
     navigate('/login')
   }
 
+  const handleExportClick = (pageMode: ResumePdfPageMode) => {
+    onExportPdf?.(pageMode)
+    setExportMenuOpen(false)
+  }
+
   const handleImportChange = (type: ResumeImportType) => async (event: ChangeEvent<HTMLInputElement>) => {
     logImportStep('handleImportChange:fired', {
       type,
@@ -294,28 +306,41 @@ export function Header({
                   我的简历
                 </Link>
                 {onExportPdf && (
-                  <button
-                    type="button"
-                    onClick={onExportPdf}
-                    disabled={exporting}
-                    className="inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14" />
-                    </svg>
-                    {exporting ? '导出中...' : '导出 PDF'}
-                  </button>
-                )}
-                {smartOnePageHref && (
-                  <Link
-                    to={smartOnePageHref}
-                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 transition-colors hover:border-primary-200 hover:text-primary-700"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h10" />
-                    </svg>
-                    智能一页
-                  </Link>
+                  <div className="relative" ref={exportMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setExportMenuOpen((open) => !open)}
+                      disabled={exporting}
+                      className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 transition-colors hover:border-primary-200 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v10m0 0l-4-4m4 4l4-4M5 20h14" />
+                      </svg>
+                      {exporting ? '导出中...' : '导出 PDF'}
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m19 9-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {exportMenuOpen && (
+                      <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
+                        <button
+                          type="button"
+                          onClick={() => handleExportClick('standard')}
+                          className="flex w-full rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                        >
+                          标准 PDF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleExportClick('continuous')}
+                          className="mt-1 flex w-full rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                        >
+                          连续长页 PDF
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
                 <div className="relative" ref={menuRef}>
                   <button
