@@ -32,7 +32,7 @@ export function ModuleSidebar({
   const existingTypes = new Set(modules.map((m) => m.moduleType as ModuleType))
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-200 h-full overflow-y-auto">
+    <aside className="sticky top-[65px] min-h-[calc(100vh-65px)] max-h-[calc(100vh-65px)] w-56 self-start overflow-y-auto border-r border-gray-200 bg-white">
       <div className="p-4">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">模块</h2>
         <nav className="space-y-1">

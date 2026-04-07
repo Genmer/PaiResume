@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAnalysis } from '../../hooks/useAnalysis'
+import { AutoResizeTextarea } from '../ui/AutoResizeTextarea'
 import { Button } from '../ui/Button'
 import { Section } from '../ui/Section'
 
@@ -40,7 +41,6 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
   const [savedPrompt, setSavedPrompt] = useState(DEFAULT_ANALYSIS_PROMPT)
   const [saveHint, setSaveHint] = useState<string | null>(null)
   const [showReasoning, setShowReasoning] = useState(true)
-  const reasoningViewportRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -56,14 +56,6 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
   useEffect(() => {
     void loadLatestAnalysis(resumeId)
   }, [resumeId, loadLatestAnalysis])
-
-  useEffect(() => {
-    if (!analysisReasoning || !reasoningViewportRef.current) {
-      return
-    }
-
-    reasoningViewportRef.current.scrollTop = reasoningViewportRef.current.scrollHeight
-  }, [analysisReasoning])
 
   const hasUnsavedChanges = useMemo(
     () => promptDraft.trim() !== savedPrompt.trim(),
@@ -139,20 +131,20 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
   }
 
   return (
-    <div className="flex min-h-full flex-col gap-6">
-      <div className="flex min-h-[calc(100dvh-10rem)] flex-col rounded-xl border border-gray-200 bg-white p-5">
-        <textarea
-          rows={7}
+    <div className="flex flex-col gap-6">
+      <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-5">
+        <AutoResizeTextarea
+          minRows={10}
           value={promptDraft}
           onChange={(event) => {
             setPromptDraft(event.target.value)
             setSaveHint(null)
           }}
-          className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-7 text-gray-700 outline-none transition focus:border-primary-300 focus:ring-4 focus:ring-primary-100"
+          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-7 text-gray-700 outline-none transition focus:border-primary-300 focus:ring-4 focus:ring-primary-100"
           placeholder="在这里编写你的简历分析提示词"
         />
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button type="button" onClick={handleSavePrompt}>
             保存提示词
           </Button>
@@ -173,13 +165,13 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
         </div>
 
         {saveHint && (
-          <div className="mt-4 rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-700">
+          <div className="rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-700">
             {saveHint}
           </div>
         )}
 
         {error && (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -208,10 +200,7 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
             </div>
 
             {showReasoning && (
-              <div
-                ref={reasoningViewportRef}
-                className="mt-4 max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-slate-950 px-4 py-3 text-sm leading-6 text-slate-100"
-              >
+              <div className="mt-4 rounded-xl border border-gray-200 bg-slate-950 px-4 py-3 text-sm leading-6 text-slate-100">
                 {analysisReasoning ? (
                   <pre className="whitespace-pre-wrap break-words font-sans">{analysisReasoning}</pre>
                 ) : (

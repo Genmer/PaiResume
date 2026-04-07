@@ -177,6 +177,9 @@ export default function EditorPage() {
   const canOptimizeActiveModule = activeModuleType ? AI_OPTIMIZABLE_MODULE_TYPES.has(activeModuleType) : false
   const analysisContainerClassName = previewCollapsed ? 'mx-auto max-w-6xl' : 'mx-auto max-w-4xl'
   const moduleContainerClassName = previewCollapsed ? 'mx-auto max-w-5xl' : 'mx-auto max-w-3xl'
+  const previewToggleRight = previewCollapsed
+    ? '42px'
+    : 'calc(clamp(500px, 42vw, 540px) - 16px)'
 
   const handleExportPdf = useCallback(async (pageMode: ResumePdfPageMode) => {
     if (modules.length === 0) {
@@ -226,13 +229,48 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header
         onExportPdf={(pageMode) => void handleExportPdf(pageMode)}
         exporting={exporting}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setPreviewCollapsed((current) => !current)}
+        aria-label={previewCollapsed ? '展开预览面板' : '收起预览面板'}
+        title={previewCollapsed ? '展开预览面板' : '收起预览面板'}
+        style={{ right: previewToggleRight }}
+        className="fixed top-1/2 z-30 flex h-24 w-8 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-500 shadow-[0_18px_38px_-18px_rgba(15,23,42,0.32)] backdrop-blur transition hover:border-primary-200 hover:text-primary-700"
+      >
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {previewCollapsed ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 5l-7 7 7 7" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />
+          )}
+        </svg>
+        <span className="mt-2 text-[10px] font-semibold tracking-[0.28em] [writing-mode:vertical-rl]">
+          预览
+        </span>
+      </button>
+
+      {previewCollapsed && (
+        <div className="fixed right-0 top-[65px] z-20 h-[calc(100vh-65px)] w-14 border-l border-gray-200 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_45%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)]">
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
+            <div className="flex flex-col gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary-200" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary-300" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary-400" />
+            </div>
+            <span className="text-[11px] font-medium tracking-[0.32em] text-gray-500 [writing-mode:vertical-rl]">
+              右侧预览
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-1 items-start">
         <ModuleSidebar
           modules={modules}
           activeModuleType={activeModuleType}
@@ -242,9 +280,9 @@ export default function EditorPage() {
           onSelectAnalysis={openAnalysisView}
         />
 
-        <main className="min-w-0 flex-1 overflow-y-auto p-6 xl:px-8">
+        <main className="min-w-0 flex-1 p-6 xl:px-8">
           {editorView === 'analysis' ? (
-            <div className={`${analysisContainerClassName} flex min-h-full flex-col`}>
+            <div className={analysisContainerClassName}>
               {exportError && (
                 <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {exportError}
@@ -337,49 +375,17 @@ export default function EditorPage() {
         </main>
 
         <aside
-          className={`relative shrink-0 border-l border-gray-200 bg-gray-50 transition-[width,min-width,max-width,padding] duration-300 ease-out ${
+          className={`relative shrink-0 self-start border-l border-gray-200 bg-gray-50 transition-[width,min-width,max-width,padding] duration-300 ease-out ${
             previewCollapsed
               ? 'w-14 min-w-14 max-w-14 p-0'
               : 'w-[540px] min-w-[500px] max-w-[42vw] p-6 xl:px-8'
           }`}
         >
-          <button
-            type="button"
-            onClick={() => setPreviewCollapsed((current) => !current)}
-            aria-label={previewCollapsed ? '展开预览面板' : '收起预览面板'}
-            title={previewCollapsed ? '展开预览面板' : '收起预览面板'}
-            className="absolute left-0 top-1/2 z-20 flex h-24 w-9 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-500 shadow-[0_18px_38px_-18px_rgba(15,23,42,0.32)] backdrop-blur transition hover:border-primary-200 hover:text-primary-700"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {previewCollapsed ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 5l-7 7 7 7" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />
-              )}
-            </svg>
-            <span className="mt-2 text-[10px] font-semibold tracking-[0.28em] [writing-mode:vertical-rl]">
-              预览
-            </span>
-          </button>
-
-          {previewCollapsed ? (
-            <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_55%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)]">
-              <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
-                <div className="flex flex-col gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary-200" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary-300" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary-400" />
-                </div>
-                <span className="text-[11px] font-medium tracking-[0.32em] text-gray-500 [writing-mode:vertical-rl]">
-                  右侧预览
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="h-full overflow-y-auto">
+          <div className="relative sticky top-[89px]">
+            {!previewCollapsed && (
               <PreviewPanel modules={modules} loading={loading} />
-            </div>
-          )}
+            )}
+          </div>
         </aside>
       </div>
 
