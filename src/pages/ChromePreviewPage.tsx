@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useResumeStore } from '../store/resumeStore'
-import { generateResumePdfBlob, type ResumePdfPageMode } from '../utils/resumePdf'
+import { generateResumePdfBlob, resolveResumePdfTemplateId, type ResumePdfPageMode, type ResumePdfTemplateId } from '../utils/resumePdf'
 
 export default function ChromePreviewPage() {
   const { id } = useParams<{ id: string }>()
@@ -17,6 +17,7 @@ export default function ChromePreviewPage() {
   const pageMode: ResumePdfPageMode = searchParams.get('pageMode') === 'continuous'
     ? 'continuous'
     : 'standard'
+  const templateId: ResumePdfTemplateId = resolveResumePdfTemplateId(searchParams.get('templateId'))
 
   useEffect(() => {
     if (!resumeId) {
@@ -44,7 +45,7 @@ export default function ChromePreviewPage() {
     setPdfLoading(true)
     setPdfError('')
 
-    void generateResumePdfBlob(modules, { pageMode })
+    void generateResumePdfBlob(modules, { pageMode, templateId })
       .then((blob) => {
         if (cancelled || requestId !== requestIdRef.current) {
           return
@@ -70,7 +71,7 @@ export default function ChromePreviewPage() {
     return () => {
       cancelled = true
     }
-  }, [modules, pageMode, refreshToken])
+  }, [modules, pageMode, refreshToken, templateId])
 
   useEffect(() => () => {
     if (activeUrlRef.current) {

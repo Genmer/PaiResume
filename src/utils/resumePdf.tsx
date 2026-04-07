@@ -32,114 +32,564 @@ Font.register({
   ],
 })
 
-const styles = StyleSheet.create({
-  page: {
-    padding: 28,
-    fontSize: 11.2,
-    color: '#0f172a',
-    lineHeight: 1.5,
-    fontFamily: 'ResumePdfSans',
-  },
-  header: {
-    marginBottom: 14,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 6,
-  },
-  title: {
-    fontSize: 13,
-    fontWeight: 700,
-  },
-  subtitle: {
-    fontSize: 12.5,
-    color: '#1f2937',
-  },
-  contactRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    color: '#374151',
-  },
-  section: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: 700,
-    marginBottom: 6,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  item: {
-    marginBottom: 8,
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  strong: {
-    fontWeight: 700,
-  },
-  label: {
-    color: '#475569',
-    fontWeight: 700,
-  },
-  muted: {
-    color: '#4b5563',
-  },
-  wrappedTextRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 2,
-  },
-  orderedItem: {
-    marginTop: 2,
-    marginLeft: 14,
-  },
-  inlineMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    rowGap: 4,
-    columnGap: 12,
-  },
-  inlineMetaItem: {
-    marginRight: 12,
-    marginBottom: 4,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  chip: {
-    fontSize: 9,
-    color: '#2563eb',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  paragraph: {
-    marginTop: 4,
-    whiteSpace: 'pre-wrap',
-  },
-  listItem: {
-    marginTop: 2,
-  },
-})
-
 export interface ResumePdfOptions {
   pageMode?: 'standard' | 'continuous'
   fileNameSuffix?: string
+  templateId?: ResumePdfTemplateId
 }
 
 export type ResumePdfPageMode = NonNullable<ResumePdfOptions['pageMode']>
+export type ResumePdfTemplateId =
+  | 'default'
+  | 'compact'
+  | 'accent'
+  | 'minimal'
+  | 'executive'
+  | 'warm'
+  | 'slate'
+  | 'focus'
+
+export interface ResumePdfTemplateOption {
+  id: ResumePdfTemplateId
+  icon: string
+  name: string
+  description: string
+  previewTitle: string
+  previewSummary: string
+  previewHighlights: string[]
+}
+
+export const RESUME_PDF_TEMPLATES: ResumePdfTemplateOption[] = [
+  {
+    id: 'default',
+    icon: '◫',
+    name: '正常标准',
+    description: '稳健、清晰，适合大多数投递场景。',
+    previewTitle: '正常标准',
+    previewSummary: '适合常规投递场景，整体观感稳定，不会抢内容本身的注意力。',
+    previewHighlights: ['信息平衡', '留白适中', '阅读稳定'],
+  },
+  {
+    id: 'compact',
+    icon: '▤',
+    name: '紧凑密度',
+    description: '压缩留白，适合内容较多的一页展示。',
+    previewTitle: '紧凑密度',
+    previewSummary: '适合内容偏多的简历，优先把第一页压实，减少大片留白。',
+    previewHighlights: ['边距更小', '段距更短', '首页优先填充'],
+  },
+  {
+    id: 'accent',
+    icon: '✦',
+    name: '蓝调重点',
+    description: '强化标题和重点信息，视觉层次更明显。',
+    previewTitle: '蓝调重点',
+    previewSummary: '适合想强化模块层级和重点信息的简历，视觉记忆点会更强。',
+    previewHighlights: ['蓝色标题', '重点前置', '层次更强'],
+  },
+  {
+    id: 'minimal',
+    icon: '—',
+    name: '极简留白',
+    description: '更克制的装饰和更平的层级，适合偏作品集式表达。',
+    previewTitle: '极简留白',
+    previewSummary: '适合内容本身已经很强的简历，减少修饰，让版面更安静。',
+    previewHighlights: ['更少装饰', '层级更平', '版面更静'],
+  },
+  {
+    id: 'executive',
+    icon: '▮',
+    name: '深色抬头',
+    description: '头部更稳，标题更强，适合结果导向型项目内容。',
+    previewTitle: '深色抬头',
+    previewSummary: '适合项目和实习成果很扎实的简历，第一眼更有压住版面的感觉。',
+    previewHighlights: ['抬头更重', '标题更稳', '成果导向'],
+  },
+  {
+    id: 'warm',
+    icon: '◔',
+    name: '暖灰质感',
+    description: '减少冷蓝色，整体更柔和，适合内容偏叙述型简历。',
+    previewTitle: '暖灰质感',
+    previewSummary: '适合内容偏完整叙述的简历，视觉更柔和，不那么工具化。',
+    previewHighlights: ['暖灰配色', '语气更柔', '阅读顺滑'],
+  },
+  {
+    id: 'slate',
+    icon: '▦',
+    name: '冷灰技术',
+    description: '偏技术文档气质，压低装饰，突出结构与密度。',
+    previewTitle: '冷灰技术',
+    previewSummary: '适合后端、基础架构类简历，观感更像高质量技术文档。',
+    previewHighlights: ['冷灰色系', '文档感强', '结构优先'],
+  },
+  {
+    id: 'focus',
+    icon: '◎',
+    name: '重点聚焦',
+    description: '加大关键信息对比，适合想突出经历亮点的场景。',
+    previewTitle: '重点聚焦',
+    previewSummary: '适合想把核心项目和关键能力快速抛给招聘方的简历。',
+    previewHighlights: ['重点对比', '亮点更显', '扫描更快'],
+  },
+]
+
+const RESUME_PDF_TEMPLATE_IDS = new Set<ResumePdfTemplateId>(RESUME_PDF_TEMPLATES.map((template) => template.id))
+
+export function resolveResumePdfTemplateId(value: string | null | undefined): ResumePdfTemplateId {
+  if (value && RESUME_PDF_TEMPLATE_IDS.has(value as ResumePdfTemplateId)) {
+    return value as ResumePdfTemplateId
+  }
+  return 'default'
+}
+
+interface ResumePdfTheme {
+  pagePadding: number
+  baseFontSize: number
+  titleSize: number
+  subtitleSize: number
+  lineHeight: number
+  headerBottom: number
+  headerRowGap: number
+  headerRowBottom: number
+  contactGap: number
+  sectionGap: number
+  itemGap: number
+  sectionTitleSize: number
+  sectionTitleBottom: number
+  sectionTitlePaddingBottom: number
+  sectionTitleColor: string
+  sectionTitleBorderColor: string
+  labelColor: string
+  bodyColor: string
+  mutedColor: string
+  linkColor: string
+  chipTextColor: string
+  chipBackgroundColor: string
+  paragraphTop: number
+  listItemTop: number
+  orderedIndent: number
+  inlineMetaRowGap: number
+  inlineMetaColumnGap: number
+  inlineMetaItemRight: number
+  inlineMetaItemBottom: number
+  chipGap: number
+  chipTop: number
+  chipFontSize: number
+  chipHorizontalPadding: number
+  chipVerticalPadding: number
+}
+
+function getResumePdfTheme(templateId: ResumePdfTemplateId): ResumePdfTheme {
+  switch (templateId) {
+    case 'minimal':
+      return {
+        pagePadding: 30,
+        baseFontSize: 10.9,
+        titleSize: 12.7,
+        subtitleSize: 11.9,
+        lineHeight: 1.48,
+        headerBottom: 16,
+        headerRowGap: 14,
+        headerRowBottom: 6,
+        contactGap: 10,
+        sectionGap: 14,
+        itemGap: 8,
+        sectionTitleSize: 12.2,
+        sectionTitleBottom: 5,
+        sectionTitlePaddingBottom: 3,
+        sectionTitleColor: '#111827',
+        sectionTitleBorderColor: '#f1f5f9',
+        labelColor: '#6b7280',
+        bodyColor: '#111827',
+        mutedColor: '#6b7280',
+        linkColor: '#2563eb',
+        chipTextColor: '#475569',
+        chipBackgroundColor: '#f8fafc',
+        paragraphTop: 4,
+        listItemTop: 2,
+        orderedIndent: 13,
+        inlineMetaRowGap: 4,
+        inlineMetaColumnGap: 12,
+        inlineMetaItemRight: 12,
+        inlineMetaItemBottom: 4,
+        chipGap: 5,
+        chipTop: 3,
+        chipFontSize: 8.4,
+        chipHorizontalPadding: 5,
+        chipVerticalPadding: 1.8,
+      }
+    case 'executive':
+      return {
+        pagePadding: 26,
+        baseFontSize: 10.9,
+        titleSize: 14.2,
+        subtitleSize: 12.4,
+        lineHeight: 1.45,
+        headerBottom: 14,
+        headerRowGap: 16,
+        headerRowBottom: 6,
+        contactGap: 9,
+        sectionGap: 11,
+        itemGap: 7,
+        sectionTitleSize: 12.8,
+        sectionTitleBottom: 6,
+        sectionTitlePaddingBottom: 4,
+        sectionTitleColor: '#0f172a',
+        sectionTitleBorderColor: '#cbd5e1',
+        labelColor: '#334155',
+        bodyColor: '#111827',
+        mutedColor: '#475569',
+        linkColor: '#1d4ed8',
+        chipTextColor: '#0f172a',
+        chipBackgroundColor: '#e2e8f0',
+        paragraphTop: 4,
+        listItemTop: 2,
+        orderedIndent: 14,
+        inlineMetaRowGap: 4,
+        inlineMetaColumnGap: 12,
+        inlineMetaItemRight: 12,
+        inlineMetaItemBottom: 4,
+        chipGap: 6,
+        chipTop: 4,
+        chipFontSize: 8.8,
+        chipHorizontalPadding: 6,
+        chipVerticalPadding: 2,
+      }
+    case 'warm':
+      return {
+        pagePadding: 28,
+        baseFontSize: 11,
+        titleSize: 13.2,
+        subtitleSize: 12.2,
+        lineHeight: 1.5,
+        headerBottom: 14,
+        headerRowGap: 16,
+        headerRowBottom: 6,
+        contactGap: 10,
+        sectionGap: 12,
+        itemGap: 8,
+        sectionTitleSize: 12.7,
+        sectionTitleBottom: 6,
+        sectionTitlePaddingBottom: 4,
+        sectionTitleColor: '#92400e',
+        sectionTitleBorderColor: '#f3e8d8',
+        labelColor: '#78716c',
+        bodyColor: '#292524',
+        mutedColor: '#57534e',
+        linkColor: '#b45309',
+        chipTextColor: '#9a3412',
+        chipBackgroundColor: '#ffedd5',
+        paragraphTop: 4,
+        listItemTop: 2,
+        orderedIndent: 14,
+        inlineMetaRowGap: 4,
+        inlineMetaColumnGap: 12,
+        inlineMetaItemRight: 12,
+        inlineMetaItemBottom: 4,
+        chipGap: 6,
+        chipTop: 4,
+        chipFontSize: 9,
+        chipHorizontalPadding: 6,
+        chipVerticalPadding: 2,
+      }
+    case 'slate':
+      return {
+        pagePadding: 24,
+        baseFontSize: 10.5,
+        titleSize: 12.6,
+        subtitleSize: 11.8,
+        lineHeight: 1.36,
+        headerBottom: 10,
+        headerRowGap: 12,
+        headerRowBottom: 4,
+        contactGap: 7,
+        sectionGap: 9,
+        itemGap: 5,
+        sectionTitleSize: 12,
+        sectionTitleBottom: 4,
+        sectionTitlePaddingBottom: 2,
+        sectionTitleColor: '#334155',
+        sectionTitleBorderColor: '#cbd5e1',
+        labelColor: '#475569',
+        bodyColor: '#0f172a',
+        mutedColor: '#64748b',
+        linkColor: '#2563eb',
+        chipTextColor: '#475569',
+        chipBackgroundColor: '#e2e8f0',
+        paragraphTop: 3,
+        listItemTop: 1,
+        orderedIndent: 11,
+        inlineMetaRowGap: 2,
+        inlineMetaColumnGap: 8,
+        inlineMetaItemRight: 8,
+        inlineMetaItemBottom: 2,
+        chipGap: 4,
+        chipTop: 2,
+        chipFontSize: 8.2,
+        chipHorizontalPadding: 5,
+        chipVerticalPadding: 1.6,
+      }
+    case 'focus':
+      return {
+        pagePadding: 26,
+        baseFontSize: 11,
+        titleSize: 13.6,
+        subtitleSize: 12.4,
+        lineHeight: 1.44,
+        headerBottom: 14,
+        headerRowGap: 16,
+        headerRowBottom: 5,
+        contactGap: 9,
+        sectionGap: 11,
+        itemGap: 7,
+        sectionTitleSize: 12.9,
+        sectionTitleBottom: 6,
+        sectionTitlePaddingBottom: 4,
+        sectionTitleColor: '#1e3a8a',
+        sectionTitleBorderColor: '#dbeafe',
+        labelColor: '#334155',
+        bodyColor: '#0f172a',
+        mutedColor: '#475569',
+        linkColor: '#1d4ed8',
+        chipTextColor: '#1d4ed8',
+        chipBackgroundColor: '#dbeafe',
+        paragraphTop: 4,
+        listItemTop: 2,
+        orderedIndent: 14,
+        inlineMetaRowGap: 4,
+        inlineMetaColumnGap: 12,
+        inlineMetaItemRight: 12,
+        inlineMetaItemBottom: 4,
+        chipGap: 6,
+        chipTop: 4,
+        chipFontSize: 8.9,
+        chipHorizontalPadding: 6,
+        chipVerticalPadding: 2,
+      }
+    case 'compact':
+      return {
+        pagePadding: 18,
+        baseFontSize: 9.8,
+        titleSize: 12,
+        subtitleSize: 11.1,
+        lineHeight: 1.28,
+        headerBottom: 8,
+        headerRowGap: 10,
+        headerRowBottom: 3,
+        contactGap: 6,
+        sectionGap: 7,
+        itemGap: 4,
+        sectionTitleSize: 11.8,
+        sectionTitleBottom: 4,
+        sectionTitlePaddingBottom: 2,
+        sectionTitleColor: '#0f172a',
+        sectionTitleBorderColor: '#dbeafe',
+        labelColor: '#475569',
+        bodyColor: '#0f172a',
+        mutedColor: '#475569',
+        linkColor: '#1d4ed8',
+        chipTextColor: '#1d4ed8',
+        chipBackgroundColor: '#eff6ff',
+        paragraphTop: 2,
+        listItemTop: 1,
+        orderedIndent: 10,
+        inlineMetaRowGap: 2,
+        inlineMetaColumnGap: 8,
+        inlineMetaItemRight: 8,
+        inlineMetaItemBottom: 2,
+        chipGap: 4,
+        chipTop: 2,
+        chipFontSize: 8,
+        chipHorizontalPadding: 4,
+        chipVerticalPadding: 1.5,
+      }
+    case 'accent':
+      return {
+        pagePadding: 28,
+        baseFontSize: 11.1,
+        titleSize: 13.8,
+        subtitleSize: 12.6,
+        lineHeight: 1.5,
+        headerBottom: 14,
+        headerRowGap: 16,
+        headerRowBottom: 6,
+        contactGap: 10,
+        sectionGap: 12,
+        itemGap: 8,
+        sectionTitleSize: 13,
+        sectionTitleBottom: 6,
+        sectionTitlePaddingBottom: 4,
+        sectionTitleColor: '#1d4ed8',
+        sectionTitleBorderColor: '#bfdbfe',
+        labelColor: '#334155',
+        bodyColor: '#0f172a',
+        mutedColor: '#475569',
+        linkColor: '#1d4ed8',
+        chipTextColor: '#1e40af',
+        chipBackgroundColor: '#dbeafe',
+        paragraphTop: 4,
+        listItemTop: 2,
+        orderedIndent: 14,
+        inlineMetaRowGap: 4,
+        inlineMetaColumnGap: 12,
+        inlineMetaItemRight: 12,
+        inlineMetaItemBottom: 4,
+        chipGap: 6,
+        chipTop: 4,
+        chipFontSize: 9,
+        chipHorizontalPadding: 6,
+        chipVerticalPadding: 2,
+      }
+    case 'default':
+    default:
+      return {
+        pagePadding: 28,
+        baseFontSize: 11.2,
+        titleSize: 13,
+        subtitleSize: 12.5,
+        lineHeight: 1.5,
+        headerBottom: 14,
+        headerRowGap: 16,
+        headerRowBottom: 6,
+        contactGap: 10,
+        sectionGap: 12,
+        itemGap: 8,
+        sectionTitleSize: 13,
+        sectionTitleBottom: 6,
+        sectionTitlePaddingBottom: 4,
+        sectionTitleColor: '#0f172a',
+        sectionTitleBorderColor: '#e5e7eb',
+        labelColor: '#475569',
+        bodyColor: '#0f172a',
+        mutedColor: '#4b5563',
+        linkColor: '#2563eb',
+        chipTextColor: '#2563eb',
+        chipBackgroundColor: '#eff6ff',
+        paragraphTop: 4,
+        listItemTop: 2,
+        orderedIndent: 14,
+        inlineMetaRowGap: 4,
+        inlineMetaColumnGap: 12,
+        inlineMetaItemRight: 12,
+        inlineMetaItemBottom: 4,
+        chipGap: 6,
+        chipTop: 4,
+        chipFontSize: 9,
+        chipHorizontalPadding: 6,
+        chipVerticalPadding: 2,
+      }
+  }
+}
+
+function createResumePdfStyles(theme: ResumePdfTheme) {
+  return StyleSheet.create({
+    page: {
+      padding: theme.pagePadding,
+      fontSize: theme.baseFontSize,
+      color: theme.bodyColor,
+      lineHeight: theme.lineHeight,
+      fontFamily: 'ResumePdfSans',
+    },
+    header: {
+      marginBottom: theme.headerBottom,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.headerRowGap,
+      marginBottom: theme.headerRowBottom,
+    },
+    title: {
+      fontSize: theme.titleSize,
+      fontWeight: 700,
+    },
+    subtitle: {
+      fontSize: theme.subtitleSize,
+      color: theme.bodyColor,
+    },
+    contactRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.contactGap,
+      color: theme.mutedColor,
+    },
+    section: {
+      marginBottom: theme.sectionGap,
+    },
+    sectionTitle: {
+      fontSize: theme.sectionTitleSize,
+      fontWeight: 700,
+      marginBottom: theme.sectionTitleBottom,
+      paddingBottom: theme.sectionTitlePaddingBottom,
+      color: theme.sectionTitleColor,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.sectionTitleBorderColor,
+    },
+    item: {
+      marginBottom: theme.itemGap,
+    },
+    rowBetween: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    strong: {
+      fontWeight: 700,
+    },
+    label: {
+      color: theme.labelColor,
+      fontWeight: 700,
+    },
+    muted: {
+      color: theme.mutedColor,
+    },
+    wrappedTextRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: theme.paragraphTop > 0 ? Math.min(theme.paragraphTop, 2) : 0,
+    },
+    orderedItem: {
+      marginTop: theme.listItemTop,
+      marginLeft: theme.orderedIndent,
+    },
+    inlineMeta: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      rowGap: theme.inlineMetaRowGap,
+      columnGap: theme.inlineMetaColumnGap,
+    },
+    inlineMetaItem: {
+      marginRight: theme.inlineMetaItemRight,
+      marginBottom: theme.inlineMetaItemBottom,
+    },
+    chips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.chipGap,
+      marginTop: theme.chipTop,
+    },
+    chip: {
+      fontSize: theme.chipFontSize,
+      color: theme.chipTextColor,
+      backgroundColor: theme.chipBackgroundColor,
+      paddingHorizontal: theme.chipHorizontalPadding,
+      paddingVertical: theme.chipVerticalPadding,
+      borderRadius: 999,
+    },
+    paragraph: {
+      marginTop: theme.paragraphTop,
+      whiteSpace: 'pre-wrap',
+    },
+    listItem: {
+      marginTop: theme.listItemTop,
+    },
+    link: {
+      color: theme.linkColor,
+      textDecoration: 'none',
+    },
+  })
+}
 
 const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
@@ -294,7 +744,12 @@ function tokenizeMixedText(value: string) {
   return mergedTokens
 }
 
-function renderWrappedLabeledText(label: string, value: string, keyPrefix: string) {
+function renderWrappedLabeledText(
+  styles: ReturnType<typeof createResumePdfStyles>,
+  label: string,
+  value: string,
+  keyPrefix: string
+) {
   return (
     <View style={styles.wrappedTextRow}>
       <Text style={styles.label}>{label}</Text>
@@ -305,7 +760,12 @@ function renderWrappedLabeledText(label: string, value: string, keyPrefix: strin
   )
 }
 
-function renderOrderedItem(value: string, index: number, keyPrefix: string) {
+function renderOrderedItem(
+  styles: ReturnType<typeof createResumePdfStyles>,
+  value: string,
+  index: number,
+  keyPrefix: string
+) {
   return (
     <View style={styles.orderedItem}>
       <View style={styles.wrappedTextRow}>
@@ -318,7 +778,11 @@ function renderOrderedItem(value: string, index: number, keyPrefix: string) {
   )
 }
 
-function renderBulletItem(value: string, keyPrefix: string) {
+function renderBulletItem(
+  styles: ReturnType<typeof createResumePdfStyles>,
+  value: string,
+  keyPrefix: string
+) {
   return (
     <View style={styles.orderedItem}>
       <View style={styles.wrappedTextRow}>
@@ -360,10 +824,17 @@ function buildFileName(modules: ResumeModule[], resumeId: number, options?: Resu
 function ResumePdfDocument({
   modules,
   pageSize = 'A4',
+  templateId = 'default',
 }: {
   modules: ResumeModule[]
   pageSize?: 'A4' | [number, number]
+  templateId?: ResumePdfTemplateId
 }) {
+  const styles = createResumePdfStyles(getResumePdfTheme(templateId))
+  const isMinimal = templateId === 'minimal'
+  const isExecutive = templateId === 'executive'
+  const isSlate = templateId === 'slate'
+  const isFocus = templateId === 'focus'
   const sortedModules = sortModules(modules)
   const basicInfoModule = sortedModules.find((module) => module.moduleType === 'basic_info')
   const basicInfo = basicInfoModule ? normalizeBasicInfoContent(basicInfoModule.content) : null
@@ -375,50 +846,87 @@ function ResumePdfDocument({
     .filter((module) => module.moduleType === 'award')
     .map((module) => normalizeAwardContent(module.content))
     .filter((award) => award.awardName || award.awardTime)
+  const headerContainerStyle = [
+    styles.header,
+    ...(isExecutive ? [{ backgroundColor: '#0f172a', padding: 14, marginBottom: 16 }] : []),
+    ...(isMinimal ? [{ marginBottom: 18 }] : []),
+  ]
+  const headerTitleStyle = [
+    styles.title,
+    ...(isExecutive ? [{ color: '#f8fafc' }] : []),
+  ]
+  const headerSubtitleStyle = [
+    styles.subtitle,
+    ...(isExecutive ? [{ color: '#e2e8f0' }] : []),
+  ]
+  const headerLabelStyle = [
+    styles.label,
+    ...(isExecutive ? [{ color: '#bfdbfe' }] : []),
+  ]
+  const headerContactStyle = [
+    styles.contactRow,
+    ...(isExecutive ? [{ color: '#e2e8f0' }] : []),
+  ]
+  const headerLinkStyle = [
+    styles.link,
+    ...(isExecutive ? [{ color: '#ffffff' }] : []),
+  ]
+  const sectionStyle = [
+    styles.section,
+    ...(isSlate ? [{ backgroundColor: '#f8fafc', padding: 8 }] : []),
+    ...(isFocus ? [{ borderLeftWidth: 3, borderLeftColor: '#2563eb', paddingLeft: 10 }] : []),
+  ]
+  const sectionTitleStyle = [
+    styles.sectionTitle,
+    ...(isMinimal ? [{ borderBottomWidth: 0, paddingBottom: 0, marginBottom: 4, color: '#111827' }] : []),
+    ...(isExecutive ? [{ backgroundColor: '#0f172a', color: '#f8fafc', paddingHorizontal: 8, paddingVertical: 4, borderBottomWidth: 0, marginBottom: 8 }] : []),
+    ...(isSlate ? [{ backgroundColor: '#e2e8f0', color: '#334155', paddingHorizontal: 7, paddingVertical: 3, borderBottomWidth: 0, marginBottom: 6 }] : []),
+    ...(isFocus ? [{ color: '#1d4ed8', borderBottomWidth: 0, paddingBottom: 0, marginBottom: 6 }] : []),
+  ]
 
   return (
     <Document>
       <Page size={pageSize} style={styles.page}>
         {basicInfo && (
-          <View style={styles.header}>
+          <View style={headerContainerStyle}>
             <View style={styles.headerRow}>
-              <Text style={styles.title}>
-                <Text style={styles.label}>姓名：</Text>
+              <Text style={headerTitleStyle}>
+                <Text style={headerLabelStyle}>姓名：</Text>
                 {basicInfo.name || '未填写'}
               </Text>
               {displayJobIntention ? (
-                <Text style={styles.subtitle}>
-                  <Text style={styles.label}>求职意向：</Text>
+                <Text style={headerSubtitleStyle}>
+                  <Text style={headerLabelStyle}>求职意向：</Text>
                   {displayJobIntention}
                 </Text>
               ) : null}
             </View>
-            <View style={styles.contactRow}>
-              {basicInfo.email ? <Text><Text style={styles.label}>邮箱：</Text>{basicInfo.email}</Text> : null}
-              {basicInfo.phone ? <Text><Text style={styles.label}>手机号：</Text>{basicInfo.phone}</Text> : null}
-              {basicInfo.wechat ? <Text><Text style={styles.label}>微信：</Text>{basicInfo.wechat}</Text> : null}
-              {basicInfo.targetCity ? <Text><Text style={styles.label}>意向城市：</Text>{basicInfo.targetCity}</Text> : null}
-              {basicInfo.salaryRange ? <Text><Text style={styles.label}>期望薪资：</Text>{basicInfo.salaryRange}</Text> : null}
-              {basicInfo.expectedEntryDate ? <Text><Text style={styles.label}>到岗时间：</Text>{basicInfo.expectedEntryDate}</Text> : null}
+            <View style={headerContactStyle}>
+              {basicInfo.email ? <Text><Text style={headerLabelStyle}>邮箱：</Text>{basicInfo.email}</Text> : null}
+              {basicInfo.phone ? <Text><Text style={headerLabelStyle}>手机号：</Text>{basicInfo.phone}</Text> : null}
+              {basicInfo.wechat ? <Text><Text style={headerLabelStyle}>微信：</Text>{basicInfo.wechat}</Text> : null}
+              {basicInfo.targetCity ? <Text><Text style={headerLabelStyle}>意向城市：</Text>{basicInfo.targetCity}</Text> : null}
+              {basicInfo.salaryRange ? <Text><Text style={headerLabelStyle}>期望薪资：</Text>{basicInfo.salaryRange}</Text> : null}
+              {basicInfo.expectedEntryDate ? <Text><Text style={headerLabelStyle}>到岗时间：</Text>{basicInfo.expectedEntryDate}</Text> : null}
               {basicInfo.github ? (
                 <Text>
-                  <Text style={styles.label}>GitHub：</Text>
-                  <Link src={normalizeExternalUrl(basicInfo.github)}>{basicInfo.github}</Link>
+                  <Text style={headerLabelStyle}>GitHub：</Text>
+                  <Link src={normalizeExternalUrl(basicInfo.github)} style={headerLinkStyle}>{basicInfo.github}</Link>
                 </Text>
               ) : null}
               {basicInfo.blog ? (
                 <Text>
-                  <Text style={styles.label}>博客：</Text>
-                  <Link src={normalizeExternalUrl(basicInfo.blog)}>{basicInfo.blog}</Link>
+                  <Text style={headerLabelStyle}>博客：</Text>
+                  <Link src={normalizeExternalUrl(basicInfo.blog)} style={headerLinkStyle}>{basicInfo.blog}</Link>
                 </Text>
               ) : null}
-              {basicInfo.hometown ? <Text><Text style={styles.label}>籍贯：</Text>{basicInfo.hometown}</Text> : null}
-              {basicInfo.workYears ? <Text><Text style={styles.label}>工作年限：</Text>{basicInfo.workYears}</Text> : null}
-              {basicInfo.leetcode ? <Text><Text style={styles.label}>LeetCode：</Text>{basicInfo.leetcode}</Text> : null}
+              {basicInfo.hometown ? <Text><Text style={headerLabelStyle}>籍贯：</Text>{basicInfo.hometown}</Text> : null}
+              {basicInfo.workYears ? <Text><Text style={headerLabelStyle}>工作年限：</Text>{basicInfo.workYears}</Text> : null}
+              {basicInfo.leetcode ? <Text><Text style={headerLabelStyle}>LeetCode：</Text>{basicInfo.leetcode}</Text> : null}
             </View>
             {basicInfo.summary ? (
-              <Text style={styles.paragraph}>
-                <Text style={styles.label}>个人总结：</Text>
+              <Text style={[styles.paragraph, ...(isExecutive ? [{ color: '#e2e8f0' }] : [])]}>
+                <Text style={headerLabelStyle}>个人总结：</Text>
                 {basicInfo.summary}
               </Text>
             ) : null}
@@ -446,8 +954,8 @@ function ResumePdfDocument({
                 content.major ? `专业：${content.major}` : '',
               ].filter(Boolean)
               return (
-                <View key={module.id} style={styles.section}>
-                  <Text style={styles.sectionTitle}>教育背景</Text>
+                <View key={module.id} style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>教育背景</Text>
                   <View style={styles.item}>
                     <View style={styles.rowBetween}>
                       <View style={styles.inlineMeta}>
@@ -455,7 +963,7 @@ function ResumePdfDocument({
                           <Text style={styles.label}>学校：</Text>
                           <Text style={styles.strong}>{content.school || '未填写'}</Text>
                         </Text>
-                        {schoolTags.map((tag) => (
+                        {!isMinimal && schoolTags.map((tag) => (
                           <Text key={tag} style={styles.chip}>{tag}</Text>
                         ))}
                       </View>
@@ -489,8 +997,8 @@ function ResumePdfDocument({
               const content = normalizeInternshipContent(module.content)
               const titleLine = [content.company, content.position, content.projectName].filter(Boolean).join(' - ')
               return (
-                <View key={module.id} style={styles.section}>
-                  <Text style={styles.sectionTitle}>实习经历</Text>
+                <View key={module.id} style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>实习经历</Text>
                   <View style={styles.item}>
                     <View style={styles.rowBetween}>
                       <Text style={styles.strong}>{titleLine || '公司 - 职位 - 项目名'}</Text>
@@ -498,7 +1006,7 @@ function ResumePdfDocument({
                     </View>
                     {content.projectDescription ? (
                       <View style={styles.paragraph}>
-                        {renderWrappedLabeledText('项目简介：', content.projectDescription, `summary-${module.id}`)}
+                        {renderWrappedLabeledText(styles, '项目简介：', content.projectDescription, `summary-${module.id}`)}
                       </View>
                     ) : null}
                     {content.techStack ? <Text style={styles.paragraph}><Text style={styles.label}>技术栈：</Text>{content.techStack}</Text> : null}
@@ -507,7 +1015,7 @@ function ResumePdfDocument({
                         <Text><Text style={styles.label}>核心职责：</Text></Text>
                         {content.responsibilities.map((line, index) => (
                           <View key={`${index}-${line}`} style={styles.listItem}>
-                            {renderOrderedItem(line, index, `duty-${module.id}-${index}`)}
+                            {renderOrderedItem(styles, line, index, `duty-${module.id}-${index}`)}
                           </View>
                         ))}
                       </View>
@@ -520,8 +1028,8 @@ function ResumePdfDocument({
               const content = normalizeProjectContent(module.content)
               const titleLine = [content.projectName, content.role].filter(Boolean).join(' - ')
               return (
-                <View key={module.id} style={styles.section}>
-                  <Text style={styles.sectionTitle}>项目经历</Text>
+                <View key={module.id} style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>项目经历</Text>
                   <View style={styles.item}>
                     <View style={styles.rowBetween}>
                       <Text style={styles.strong}>{titleLine || '项目 - 角色'}</Text>
@@ -530,7 +1038,7 @@ function ResumePdfDocument({
                     {content.techStack ? <Text style={styles.paragraph}>技术栈：{content.techStack}</Text> : null}
                     {content.description ? (
                       <View style={styles.paragraph}>
-                        {renderWrappedLabeledText('项目简介：', content.description, `project-summary-${module.id}`)}
+                        {renderWrappedLabeledText(styles, '项目简介：', content.description, `project-summary-${module.id}`)}
                       </View>
                     ) : null}
                     {content.achievements.length > 0 ? (
@@ -538,7 +1046,7 @@ function ResumePdfDocument({
                         <Text><Text style={styles.label}>核心职责：</Text></Text>
                         {content.achievements.map((item, index) => (
                           <View key={`${index}-${item}`} style={styles.listItem}>
-                            {renderOrderedItem(item, index, `project-${module.id}-${index}`)}
+                            {renderOrderedItem(styles, item, index, `project-${module.id}-${index}`)}
                           </View>
                         ))}
                       </View>
@@ -550,8 +1058,8 @@ function ResumePdfDocument({
             case 'skill': {
               const content = normalizeSkillContent(module.content)
               return (
-                <View key={module.id} style={styles.section}>
-                  <Text style={styles.sectionTitle}>专业技能</Text>
+                <View key={module.id} style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>专业技能</Text>
                   {content.categories
                     .filter((category) => category.items.length > 0)
                     .map((category, index) => {
@@ -564,7 +1072,7 @@ function ResumePdfDocument({
                             {hasTitle ? <Text style={styles.strong}>{category.name}</Text> : null}
                             {category.items.map((item, itemIndex) => (
                               <View key={itemIndex} style={styles.listItem}>
-                                {renderBulletItem(item, `skill-${index}-${itemIndex}`)}
+                                {renderBulletItem(styles, item, `skill-${index}-${itemIndex}`)}
                               </View>
                             ))}
                           </View>
@@ -587,8 +1095,8 @@ function ResumePdfDocument({
                 return null
               }
               return (
-                <View key={module.id} style={styles.section}>
-                  <Text style={styles.sectionTitle}>论文发表</Text>
+                <View key={module.id} style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>论文发表</Text>
                   <Text style={styles.strong}>{content.journalName || '论文'}</Text>
                   <Text>{[content.journalType, content.publishTime].filter(Boolean).join(' / ')}</Text>
                   {content.content ? <Text style={styles.paragraph}>{content.content}</Text> : null}
@@ -601,8 +1109,8 @@ function ResumePdfDocument({
                 return null
               }
               return (
-                <View key={module.id} style={styles.section}>
-                  <Text style={styles.sectionTitle}>科研经历</Text>
+                <View key={module.id} style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>科研经历</Text>
                   <Text style={styles.strong}>{content.projectName || '科研项目'}</Text>
                   {content.projectCycle ? <Text>{content.projectCycle}</Text> : null}
                   {content.background ? <Text style={styles.paragraph}>背景：{content.background}</Text> : null}
@@ -617,8 +1125,8 @@ function ResumePdfDocument({
               }
               const content = normalizeAwardContent(module.content)
               return (
-                <View key={module.id} style={styles.section}>
-                  <Text style={styles.sectionTitle}>获奖情况</Text>
+                <View key={module.id} style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>获奖情况</Text>
                   <Text>
                     {content.awardName || '奖项'}
                     {content.awardTime ? `（${formatAwardDisplayTime(content.awardTime)}）` : ''}
@@ -653,7 +1161,13 @@ export async function generateResumePdfBlob(modules: ResumeModule[], options?: R
   const pageSize = options?.pageMode === 'continuous'
     ? [A4_WIDTH, estimateContinuousPageHeight(modules)] as [number, number]
     : 'A4'
-  const document = <ResumePdfDocument modules={modules} pageSize={pageSize} />
+  const document = (
+    <ResumePdfDocument
+      modules={modules}
+      pageSize={pageSize}
+      templateId={options?.templateId ?? 'default'}
+    />
+  )
 
   return pdf(document).toBlob()
 }
