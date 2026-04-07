@@ -2,6 +2,7 @@ package com.itwanger.pairesume.service;
 
 import com.itwanger.pairesume.dto.ResumeAnalysisResultDTO;
 import com.itwanger.pairesume.dto.AiFieldOptimizeRequestDTO;
+import com.itwanger.pairesume.dto.FieldOptimizePromptConfigDTO;
 import com.itwanger.pairesume.dto.SmartOnePagePreviewRequestDTO;
 import com.itwanger.pairesume.dto.SmartOnePagePreviewResponseDTO;
 import com.itwanger.pairesume.entity.ResumeModule;
@@ -31,6 +32,8 @@ public interface AiService {
             AiFieldOptimizeRequestDTO request,
             Consumer<Map<String, Object>> eventConsumer
     );
+
+    FieldOptimizePromptConfigDTO getFieldOptimizePromptConfig();
 
     /**
      * 分析整份简历内容，返回结构化的 AI 评估结果

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { resumeApi, type AiFieldOptimizeRequest, type ResumeModule } from '../api/resume'
+import { resumeApi, type AiFieldOptimizeRequest, type FieldOptimizePromptConfig, type ResumeModule } from '../api/resume'
 import { useResumeStore } from '../store/resumeStore'
 import { normalizeInternshipContent, normalizeProjectContent } from '../utils/moduleContent'
 
@@ -27,71 +27,11 @@ interface FieldContext {
   moduleType: 'internship' | 'project'
 }
 
-const DEFAULT_PROJECT_DESCRIPTION_PROMPT = `你是一位技术简历专家，请只优化“项目简介”这一段原文，不要参考或扩写其他字段。
-
-优化要求：
-1. 只围绕原始项目简介改写，不补充项目名、角色、技术栈、职责等额外上下文。
-2. 每个版本都控制在 1-2 句话，突出“这是一个什么系统/平台、解决什么问题、核心价值是什么”。
-3. 不要展开到职责细节，不要堆技术栈，不要编造事实、数据、业务规模。
-4. 输出 3 个版本，分别偏保守、偏标准、偏有张力，但都必须适合直接放进简历。
-
-原始项目简介：
-{{original}}
-
-输出要求：
-- 只返回 JSON
-- JSON 结构必须是 {"candidates":["完整版本A","完整版本B","完整版本C"]}
-- 不要输出解释、标题、编号、Markdown 代码块
-- candidates 中的每一项都必须是完整可用的简历文案，严禁返回“版本1”“版本2”这类占位词`
-
-const DEFAULT_INTERNSHIP_RESPONSIBILITY_PROMPT = `你是一位技术简历专家，请只优化“实习经历”中的一条核心职责。
-
-改写要求：
-1. 明确写出用了什么技术栈。
-2. 明确写出解决了什么问题。
-3. 明确写出实现了什么业务或能力。
-4. 如果原文中存在量化数据或效果，必须保留；如果没有，就不要编造。
-5. 保持为一条适合放在简历里的高密度 bullet，语言专业、克制、结果导向。
-6. 严禁编造事实。
-
-当前上下文：
-- 公司：{{company}}
-- 岗位：{{position}}
-- 项目名：{{projectName}}
-- 技术栈：{{techStack}}
-- 项目简介：{{projectDescription}}
-
-原始职责：
-{{original}}
-
-输出要求：
-- 只输出优化后的纯文本
-- 不要加标题、编号、引号或解释`
-
-const DEFAULT_PROJECT_RESPONSIBILITY_PROMPT = `你是一位技术简历专家，请只优化“项目经历”中的一条核心职责。
-
-改写要求：
-1. 明确写出用了什么技术栈。
-2. 明确写出解决了什么问题。
-3. 明确写出实现了什么业务、能力或结果。
-4. 如果原文中存在量化数据或效果，必须保留；如果没有，就不要编造。
-5. 保持为一条适合放在简历里的高密度 bullet，语言专业、克制、结果导向。
-6. 严禁编造事实。
-
-当前上下文：
-- 项目名：{{projectName}}
-- 角色：{{role}}
-- 技术栈：{{techStack}}
-- 项目描述：{{description}}
-
-原始职责：
-{{original}}
-
-输出要求：
-- 只输出优化后的纯文本
-- 不要加标题、编号、引号或解释`
-
-const FIELD_OPTIMIZE_SYSTEM_PROMPT = '你是一位严格、克制、结果导向的中文技术简历优化专家。'
+const EMPTY_PROMPT_CONFIG: FieldOptimizePromptConfig = {
+  systemPrompt: '',
+  descriptionPrompt: '',
+  responsibilityPrompt: '',
+}
 
 function appendProcessLine(prevText: string, line: string) {
   const nextLine = line.trim()
@@ -168,7 +108,7 @@ function deriveFieldContext(module: ResumeModule | undefined, fieldType: string 
       return {
         title: `核心职责 ${index + 1}`,
         original: content.responsibilities[index]?.trim() || '',
-        multiCandidate: false,
+        multiCandidate: true,
         request: { fieldType: 'responsibility', index },
         moduleType: 'internship',
       }
@@ -191,7 +131,7 @@ function deriveFieldContext(module: ResumeModule | undefined, fieldType: string 
       return {
         title: `核心职责 ${index + 1}`,
         original: content.achievements[index]?.trim() || '',
-        multiCandidate: false,
+        multiCandidate: true,
         request: { fieldType: 'responsibility', index },
         moduleType: 'project',
       }
@@ -201,7 +141,12 @@ function deriveFieldContext(module: ResumeModule | undefined, fieldType: string 
   return null
 }
 
-function derivePromptVariables(module: ResumeModule | undefined, fieldContext: FieldContext | null, fieldType: FieldType | null, index: number | null) {
+function derivePromptVariables(
+  module: ResumeModule | undefined,
+  fieldContext: FieldContext | null,
+  fieldType: FieldType | null,
+  index: number | null
+): Record<string, string> {
   if (!module || !fieldContext || !fieldType) {
     return {}
   }
@@ -238,24 +183,20 @@ function derivePromptVariables(module: ResumeModule | undefined, fieldContext: F
   return {}
 }
 
-function buildDefaultPromptTemplate(module: ResumeModule | undefined, fieldType: FieldType | null) {
+function buildDefaultPromptTemplate(
+  module: ResumeModule | undefined,
+  fieldType: FieldType | null,
+  promptConfig: FieldOptimizePromptConfig
+) {
   if (!module || !fieldType) {
     return ''
   }
 
   if (fieldType === 'project_description') {
-    return DEFAULT_PROJECT_DESCRIPTION_PROMPT
+    return promptConfig.descriptionPrompt
   }
 
-  if (module.moduleType === 'internship') {
-    return DEFAULT_INTERNSHIP_RESPONSIBILITY_PROMPT
-  }
-
-  if (module.moduleType === 'project') {
-    return DEFAULT_PROJECT_RESPONSIBILITY_PROMPT
-  }
-
-  return ''
+  return promptConfig.responsibilityPrompt
 }
 
 function migrateStoredPromptTemplate(template: string, fieldContext: FieldContext | null, fieldType: FieldType | null) {
@@ -341,9 +282,10 @@ export default function FieldOptimizePage() {
     () => derivePromptVariables(module, fieldContext, fieldType as FieldType | null, Number.isFinite(index) ? index : null),
     [module, fieldContext, fieldType, index]
   )
+  const [promptConfig, setPromptConfig] = useState<FieldOptimizePromptConfig>(EMPTY_PROMPT_CONFIG)
   const defaultPromptTemplate = useMemo(
-    () => buildDefaultPromptTemplate(module, fieldType as FieldType | null),
-    [module, fieldType]
+    () => buildDefaultPromptTemplate(module, fieldType as FieldType | null, promptConfig),
+    [module, fieldType, promptConfig]
   )
   const defaultPrompt = useMemo(
     () => replaceTemplatePlaceholders(defaultPromptTemplate, promptVariables),
@@ -352,7 +294,7 @@ export default function FieldOptimizePage() {
 
   const streamAbortRef = useRef<AbortController | null>(null)
   const [saving, setSaving] = useState(false)
-  const [systemPromptDraft, setSystemPromptDraft] = useState(FIELD_OPTIMIZE_SYSTEM_PROMPT)
+  const [systemPromptDraft, setSystemPromptDraft] = useState('')
   const [promptDraft, setPromptDraft] = useState('')
   const [savedPrompt, setSavedPrompt] = useState('')
   const [promptNotice, setPromptNotice] = useState('')
@@ -369,6 +311,26 @@ export default function FieldOptimizePage() {
 
   useEffect(() => () => {
     streamAbortRef.current?.abort()
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    void resumeApi.getFieldOptimizePromptConfig()
+      .then((response) => {
+        if (!mounted) {
+          return
+        }
+        setPromptConfig(response.data.data)
+      })
+      .catch(() => {
+        if (!mounted) {
+          return
+        }
+        setPromptConfig(EMPTY_PROMPT_CONFIG)
+      })
+    return () => {
+      mounted = false
+    }
   }, [])
 
   useEffect(() => {
@@ -408,13 +370,13 @@ export default function FieldOptimizePage() {
     setPromptDraft(initialPrompt)
     setSavedPrompt(initialPrompt)
     setPromptNotice(storedPrompt ? '已加载你上次保存的提示词。' : '')
-  }, [fieldContext, defaultPromptTemplate, promptVariables])
+  }, [fieldContext, defaultPrompt, defaultPromptTemplate, promptVariables])
 
   useEffect(() => {
     const storedSystemPrompt = window.localStorage.getItem(systemPromptStorageKey())?.trim()
-    const initialSystemPrompt = storedSystemPrompt || FIELD_OPTIMIZE_SYSTEM_PROMPT
+    const initialSystemPrompt = storedSystemPrompt || promptConfig.systemPrompt
     setSystemPromptDraft(initialSystemPrompt)
-  }, [])
+  }, [promptConfig.systemPrompt])
 
   const handleBack = () => {
     streamAbortRef.current?.abort()

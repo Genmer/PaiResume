@@ -32,6 +32,12 @@ export interface AiFieldOptimizeResponse {
   candidates?: string[]
 }
 
+export interface FieldOptimizePromptConfig {
+  systemPrompt: string
+  descriptionPrompt: string
+  responsibilityPrompt: string
+}
+
 export type AiFieldOptimizeStreamEventName =
   | 'connected'
   | 'meta'
@@ -273,6 +279,9 @@ export const resumeApi = {
         { timeout: 70000 }
       )
     ),
+
+  getFieldOptimizePromptConfig: () =>
+    client.get<ApiEnvelope<FieldOptimizePromptConfig>>('/resumes/field-optimize-prompts'),
 
   aiOptimizeFieldStream: async (
     resumeId: number,

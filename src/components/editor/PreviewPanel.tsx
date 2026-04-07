@@ -255,9 +255,11 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
             <h2 className="text-lg font-semibold text-gray-900">
               {previewMode === 'pdf' ? 'PDF 预览' : '文本预览'}
             </h2>
-            <p className="mt-1 text-xs text-gray-500">
-              {previewMode === 'pdf' ? '当前展示的是与导出完全同源的 PDF 效果。' : '当前展示的是编辑内容的文本预览效果。'}
-            </p>
+            {previewMode !== 'pdf' && (
+              <p className="mt-1 text-xs text-gray-500">
+                当前展示的是编辑内容的文本预览效果。
+              </p>
+            )}
           </div>
           <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
             <button
@@ -296,14 +298,14 @@ export function PreviewPanel({ modules, loading }: PreviewPanelProps) {
                 <iframe
                   title="Resume PDF Preview"
                   src={`${pdfPreviewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                  className="h-[calc(100vh-220px)] min-h-[720px] w-full bg-white"
+                  className="h-[calc(100vh-220px)] w-full bg-white"
                   onLoad={handleVisiblePdfLoad}
                 />
                 {stagedPdfPreviewUrl ? (
                   <iframe
                     title="Resume PDF Preview Staged"
                     src={`${stagedPdfPreviewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                    className="pointer-events-none absolute inset-0 h-[calc(100vh-220px)] min-h-[720px] w-full opacity-0"
+                    className="pointer-events-none absolute inset-0 h-[calc(100vh-220px)] w-full opacity-0"
                     aria-hidden="true"
                     tabIndex={-1}
                     onLoad={commitStagedPdfPreview}

@@ -3,6 +3,7 @@ package com.itwanger.pairesume.service.impl;
 import com.itwanger.pairesume.common.BusinessException;
 import com.itwanger.pairesume.common.ResultCode;
 import com.itwanger.pairesume.dto.AiFieldOptimizeRequestDTO;
+import com.itwanger.pairesume.dto.FieldOptimizePromptConfigDTO;
 import com.itwanger.pairesume.dto.ResumeAnalysisIssueDTO;
 import com.itwanger.pairesume.dto.ResumeAnalysisResultDTO;
 import com.itwanger.pairesume.dto.SmartOnePageModuleDecisionDTO;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -25,6 +27,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -95,6 +99,9 @@ public class AiServiceImpl implements AiService {
     @Value("${ai.timeout}")
     private int timeout;
 
+    @Value("${app.prompts.field-optimize.config-file:config/field-optimize-prompts.yml}")
+    private String fieldOptimizePromptConfigFile;
+
     private static final String SYSTEM_PROMPT = """
             你是一位顶级的技术招聘官和简历优化专家，尤其擅长指导计算机领域的应届生和实习生。你的任务是优化下方提供的简历模块 JSON 内容，使其在求职（开发、测试、运维等岗位）时更具竞争力。
 
@@ -113,65 +120,71 @@ public class AiServiceImpl implements AiService {
             %s
             ---
             """;
+    private static final String DEFAULT_FIELD_OPTIMIZE_SYSTEM_PROMPT = "你是一位严格、克制、结果导向的中文技术简历优化专家。";
+    private static final String DEFAULT_FIELD_OPTIMIZE_CONFIG_PATH = "config/field-optimize-prompts.yml";
     private static final String INTERNSHIP_PROJECT_DESCRIPTION_PROMPT = """
             你是一位技术简历专家，请只优化“项目简介”这一段原文，不要参考或扩写其他字段。
 
             优化要求：
-            1. 只围绕原始项目简介改写，不补充公司、岗位、项目名、技术栈、职责等额外上下文。
-            2. 每个版本都控制在 1-2 句话，突出“这是一个什么系统/平台、解决什么问题、核心价值是什么”。
-            3. 不要展开到职责细节，不要堆技术栈，不要编造事实、数据、业务规模。
-            4. 输出 3 个版本，分别偏保守、偏标准、偏有张力，但都必须适合直接放进简历。
+            1. 突出“这是一个什么系统/平台、用到了哪些关键的技术栈、解决什么问题、核心价值是什么”。
+            2. 可以适当增加一些数据、业务规模。
+            3. 输出 3 个版本，分别偏保守、偏标准、偏有张力，但都必须适合直接放进简历。
 
             原始项目简介：
-            %s
+            {{original}}
 
             输出要求：
             - 只返回 JSON
             - JSON 结构必须是 {"candidates":["完整版本A","完整版本B","完整版本C"]}
-            - 不要输出解释、标题、编号、Markdown 代码块
             - candidates 中的每一项都必须是完整可用的简历文案，严禁返回“版本1”“版本2”这类占位词
             """;
     private static final String INTERNSHIP_RESPONSIBILITY_PROMPT = """
             你是一位技术简历专家，请只优化“实习经历”中的一条核心职责。
 
-            改写要求：
-            1. 明确写出用了什么技术栈。
-            2. 明确写出解决了什么问题。
-            3. 明确写出实现了什么业务或能力。
-            4. 如果原文中存在量化数据或效果，必须保留；如果没有，就不要编造。
-            5. 保持为一条适合放在简历里的高密度 bullet，语言专业、克制、结果导向。
-            6. 严禁编造事实。
+            优化要求：
+            1. 用了什么技术栈，解决了什么问题，实现了什么业务或能力。
+            2. 如果原文中存在量化数据或效果，必须保留；如果没有，可适当增加，但不过分，合情合理，如果牵强，可以不要量化数据。
+            3. 输出 3 个版本，分别偏保守、偏标准、偏有张力，但都必须适合直接放进简历。
+            4. 保持语言专业、克制、结果导向。
+            5. 严禁编造事实。
+
+            提炼和润色方向：
+            - 版本1（偏保守）：尽量贴近原文，只做结构优化和表达提纯。
+            - 版本2（偏标准）：更完整地写清技术栈、问题、能力，适合作为默认投递版本。
+            - 版本3（偏有张力）：在不编造事实的前提下，更强调技术价值、架构价值或业务支撑价值。
 
             当前上下文：
-            - 公司：%s
-            - 岗位：%s
-            - 项目名：%s
-            - 技术栈：%s
-            - 项目简介：%s
+            - 公司：{{company}}
+            - 岗位：{{position}}
+            - 项目名：{{projectName}}
+            - 技术栈：{{techStack}}
+            - 项目简介：{{projectDescription}}
 
             原始职责：
-            %s
-
-            输出要求：
-            - 只输出优化后的纯文本
-            - 不要加标题、编号、引号或解释
-            """;
-    private static final String PROJECT_DESCRIPTION_PROMPT = """
-            你是一位技术简历专家，请只优化“项目简介”这一段原文，不要参考或扩写其他字段。
-
-            优化要求：
-            1. 只围绕原始项目简介改写，不补充项目名、角色、技术栈、职责等额外上下文。
-            2. 每个版本都控制在 1-2 句话，突出“这是一个什么系统/平台、解决什么问题、核心价值是什么”。
-            3. 不要展开到职责细节，不要堆技术栈，不要编造事实、数据、业务规模。
-            4. 输出 3 个版本，分别偏保守、偏标准、偏有张力，但都必须适合直接放进简历。
-
-            原始项目简介：
-            %s
+            {{original}}
 
             输出要求：
             - 只返回 JSON
             - JSON 结构必须是 {"candidates":["完整版本A","完整版本B","完整版本C"]}
-            - 不要输出解释、标题、编号、Markdown 代码块
+            - 如果你开启了思考并会在思考区展示分析过程，那么你必须在思考的最后额外输出一行固定格式：
+              最终结果：{"candidates":["完整版本A","完整版本B","完整版本C"]}
+            - 不要讨论输出格式，不要讨论 Markdown、代码块、系统提示词是否冲突
+            - candidates 中的每一项都必须是完整可用的简历文案，严禁返回“版本1”“版本2”这类占位词
+            """;
+    private static final String PROJECT_DESCRIPTION_PROMPT = """
+            你是一位技术简历专家，请只优化“项目描述”这一段原文，不要参考或扩写其他字段。
+
+            优化要求：
+            1. 突出“这是一个什么系统/平台、用到了哪些关键的技术栈、解决什么问题、核心价值是什么”。
+            2. 可以适当增加一些数据、业务规模。
+            3. 输出 3 个版本，分别偏保守、偏标准、偏有张力，但都必须适合直接放进简历。
+
+            原始项目描述：
+            {{original}}
+
+            输出要求：
+            - 只返回 JSON
+            - JSON 结构必须是 {"candidates":["完整版本A","完整版本B","完整版本C"]}
             - candidates 中的每一项都必须是完整可用的简历文案，严禁返回“版本1”“版本2”这类占位词
             """;
     private static final String PROJECT_DESCRIPTION_RETRY_PROMPT = """
@@ -189,26 +202,34 @@ public class AiServiceImpl implements AiService {
     private static final String PROJECT_RESPONSIBILITY_PROMPT = """
             你是一位技术简历专家，请只优化“项目经历”中的一条核心职责。
 
-            改写要求：
-            1. 明确写出用了什么技术栈。
-            2. 明确写出解决了什么问题。
-            3. 明确写出实现了什么业务、能力或结果。
-            4. 如果原文中存在量化数据或效果，必须保留；如果没有，就不要编造。
-            5. 保持为一条适合放在简历里的高密度 bullet，语言专业、克制、结果导向。
-            6. 严禁编造事实。
+            优化要求：
+            1. 用了什么技术栈，解决了什么问题，实现了什么业务或能力。
+            2. 如果原文中存在量化数据或效果，必须保留；如果没有，可适当增加，但不过分，合情合理，如果牵强，可以不要量化数据。
+            3. 输出 3 个版本，分别偏保守、偏标准、偏有张力，但都必须适合直接放进简历。
+            4. 保持语言专业、克制、结果导向。
+            5. 严禁编造事实。
+
+            提炼和润色方向：
+            - 版本1（偏保守）：尽量贴近原文，只做结构优化和表达提纯。
+            - 版本2（偏标准）：更完整地写清技术栈、问题、能力，适合作为默认投递版本。
+            - 版本3（偏有张力）：在不编造事实的前提下，更强调技术价值、架构价值或业务支撑价值。
 
             当前上下文：
-            - 项目名：%s
-            - 角色：%s
-            - 技术栈：%s
-            - 项目描述：%s
+            - 项目名：{{projectName}}
+            - 角色：{{role}}
+            - 技术栈：{{techStack}}
+            - 项目描述：{{description}}
 
             原始职责：
-            %s
+            {{original}}
 
             输出要求：
-            - 只输出优化后的纯文本
-            - 不要加标题、编号、引号或解释
+            - 只返回 JSON
+            - JSON 结构必须是 {"candidates":["完整版本A","完整版本B","完整版本C"]}
+            - 如果你开启了思考并会在思考区展示分析过程，那么你必须在思考的最后额外输出一行固定格式：
+              最终结果：{"candidates":["完整版本A","完整版本B","完整版本C"]}
+            - 不要讨论输出格式，不要讨论 Markdown、代码块、系统提示词是否冲突
+            - candidates 中的每一项都必须是完整可用的简历文案，严禁返回“版本1”“版本2”这类占位词
             """;
 
     public AiServiceImpl(ObjectMapper objectMapper) {
@@ -224,11 +245,11 @@ public class AiServiceImpl implements AiService {
             String fieldType,
             String originalText,
             String prompt,
-            boolean projectDescriptionField
+            boolean candidateOutput
     ) {
     }
 
-    private record StreamChatResult(String content, String reasoning) {
+    private record StreamChatResult(String content, String reasoning, String finishReason) {
     }
 
     private static final class StreamLogState {
@@ -247,7 +268,7 @@ public class AiServiceImpl implements AiService {
         var prompt = String.format(SYSTEM_PROMPT, contentJson);
 
         try {
-            var response = invokeChatCompletion(model, prompt, "请优化这份简历内容", 0.7, 4000, false);
+            var response = invokeChatCompletion(model, prompt, "请优化这份简历内容", 0.7, 4000, false, false);
 
             if (response == null) {
                 throw new BusinessException(ResultCode.AI_SERVICE_BUSY);
@@ -267,6 +288,11 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
+    public FieldOptimizePromptConfigDTO getFieldOptimizePromptConfig() {
+        return loadFieldOptimizePromptConfig();
+    }
+
+    @Override
     public Map<String, Object> optimizeModuleField(String moduleType, Map<String, Object> content, AiFieldOptimizeRequestDTO request) {
         validateConfiguration();
         var plan = prepareFieldOptimizePlan(moduleType, content, request);
@@ -278,16 +304,17 @@ public class AiServiceImpl implements AiService {
                 truncateText(plan.originalText(), 240));
 
         try {
-            var projectDescriptionField = plan.projectDescriptionField();
-            var targetModel = projectDescriptionField ? analysisModel : model;
+            var candidateOutput = plan.candidateOutput();
+            var targetModel = model;
             var systemPrompt = resolveFieldSystemPrompt(request);
             var response = invokeChatCompletion(
                     targetModel,
                     systemPrompt,
                     plan.prompt(),
                     0.35,
-                    projectDescriptionField ? 1200 : 800,
-                    projectDescriptionField
+                    candidateOutput ? 1600 : 1000,
+                    candidateOutput,
+                    false
             );
 
             if (response == null) {
@@ -297,20 +324,21 @@ public class AiServiceImpl implements AiService {
             log.info("[AI Optimize][Service] upstream raw response: moduleType={}, fieldType={}, body={}",
                     plan.moduleType(), plan.fieldType(), truncateText(response, 1200));
 
-            if (projectDescriptionField) {
+            if (candidateOutput) {
                 var candidates = parseTextCandidatesResponse(response);
-                log.info("[AI Optimize][Service] parsed project description candidates: moduleType={}, count={}, candidates={}",
-                        plan.moduleType(), candidates.size(), candidates.stream().map(item -> truncateText(item, 160)).toList());
-                if (!areTextCandidatesUsable(candidates)) {
+                log.info("[AI Optimize][Service] parsed field optimize candidates: moduleType={}, fieldType={}, count={}, candidates={}",
+                        plan.moduleType(), plan.fieldType(), candidates.size(), candidates.stream().map(item -> truncateText(item, 160)).toList());
+                if ("project_description".equals(plan.fieldType()) && !areTextCandidatesUsable(candidates)) {
                     log.warn("[AI Optimize][Service] unusable project description candidates detected, retrying: moduleType={}, candidates={}",
                             plan.moduleType(), candidates.stream().map(item -> truncateText(item, 80)).toList());
                     var retryResponse = invokeChatCompletion(
-                            analysisModel,
+                            model,
                             systemPrompt,
                             PROJECT_DESCRIPTION_RETRY_PROMPT.formatted(plan.originalText()),
                             0.35,
                             1000,
-                            true
+                            true,
+                            false
                     );
 
                     if (retryResponse == null) {
@@ -375,22 +403,27 @@ public class AiServiceImpl implements AiService {
         emitStreamEvent(eventConsumer, "status", Map.of("message", "AI 已连接，正在生成结果。"));
 
         try {
-            var targetModel = plan.projectDescriptionField() ? analysisModel : model;
+            var targetModel = model;
             var systemPrompt = resolveFieldSystemPrompt(request);
             var streamResult = streamChatCompletion(
                     targetModel,
                     systemPrompt,
                     plan.prompt(),
                     0.35,
-                    plan.projectDescriptionField() ? 1800 : 1000,
-                    plan.projectDescriptionField(),
+                    plan.candidateOutput() ? 2400 : 1400,
+                    plan.candidateOutput(),
+                    false,
                     eventConsumer
             );
 
-            if (plan.projectDescriptionField()) {
-                var candidates = parseTextCandidatesContent(streamResult.content());
-                log.info("[AI Optimize][Service] stream project description result ready: moduleType={}, count={}, candidates={}",
-                        plan.moduleType(), candidates.size(), candidates.stream().map(candidate -> truncateText(candidate, 80)).toList());
+            if (plan.candidateOutput()) {
+                var candidates = extractCandidatesFromStreamResult(streamResult);
+                if (candidates.isEmpty() && "length".equals(streamResult.finishReason())) {
+                    emitStreamEvent(eventConsumer, "status", Map.of("message", "首次输出被截断，正在补全最终候选。"));
+                    candidates = finalizeCandidateOutput(targetModel, systemPrompt, plan.prompt());
+                }
+                log.info("[AI Optimize][Service] stream field optimize candidates ready: moduleType={}, fieldType={}, count={}, candidates={}",
+                        plan.moduleType(), plan.fieldType(), candidates.size(), candidates.stream().map(candidate -> truncateText(candidate, 80)).toList());
                 if (!areTextCandidatesUsable(candidates)) {
                     throw new BusinessException(ResultCode.AI_RESPONSE_INVALID.getCode(), "AI 返回了不可采纳的候选结果，请重试");
                 }
@@ -402,6 +435,9 @@ public class AiServiceImpl implements AiService {
             }
 
             var optimizedText = cleanTextContent(streamResult.content());
+            if (optimizedText.isBlank()) {
+                optimizedText = extractOptimizedTextFromReasoning(streamResult.reasoning());
+            }
             if (optimizedText.isBlank()) {
                 throw new BusinessException(ResultCode.AI_RESPONSE_INVALID.getCode(), "AI 思考已结束，但未返回最终结果，请重试");
             }
@@ -449,7 +485,13 @@ public class AiServiceImpl implements AiService {
                         "internship",
                         "project_description",
                         projectDescription,
-                        resolveFieldPrompt(request, INTERNSHIP_PROJECT_DESCRIPTION_PROMPT.formatted(projectDescription)),
+                        resolveFieldPrompt(
+                                request,
+                                renderPromptTemplate(
+                                        loadFieldOptimizePromptConfig().getDescriptionPrompt(),
+                                        Map.of("original", projectDescription)
+                                )
+                        ),
                         true
                 );
             }
@@ -468,16 +510,19 @@ public class AiServiceImpl implements AiService {
                         originalText,
                         resolveFieldPrompt(
                                 request,
-                                INTERNSHIP_RESPONSIBILITY_PROMPT.formatted(
-                                        company,
-                                        position,
-                                        projectName,
-                                        techStack,
-                                        projectDescription,
-                                        originalText
+                                renderPromptTemplate(
+                                        loadFieldOptimizePromptConfig().getResponsibilityPrompt(),
+                                        Map.of(
+                                                "company", company,
+                                                "position", position,
+                                                "projectName", projectName,
+                                                "techStack", techStack,
+                                                "projectDescription", projectDescription,
+                                                "original", originalText
+                                        )
                                 )
                         ),
-                        false
+                        true
                 );
             }
             default -> throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "不支持的字段级优化类型");
@@ -500,7 +545,13 @@ public class AiServiceImpl implements AiService {
                         "project",
                         "project_description",
                         description,
-                        resolveFieldPrompt(request, PROJECT_DESCRIPTION_PROMPT.formatted(description)),
+                        resolveFieldPrompt(
+                                request,
+                                renderPromptTemplate(
+                                        loadFieldOptimizePromptConfig().getDescriptionPrompt(),
+                                        Map.of("original", description)
+                                )
+                        ),
                         true
                 );
             }
@@ -519,15 +570,18 @@ public class AiServiceImpl implements AiService {
                         originalText,
                         resolveFieldPrompt(
                                 request,
-                                PROJECT_RESPONSIBILITY_PROMPT.formatted(
-                                        projectName,
-                                        role,
-                                        techStack,
-                                        description,
-                                        originalText
+                                renderPromptTemplate(
+                                        loadFieldOptimizePromptConfig().getResponsibilityPrompt(),
+                                        Map.of(
+                                                "projectName", projectName,
+                                                "role", role,
+                                                "techStack", techStack,
+                                                "description", description,
+                                                "original", originalText
+                                        )
                                 )
                         ),
-                        false
+                        true
                 );
             }
             default -> throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "不支持的字段级优化类型");
@@ -545,7 +599,105 @@ public class AiServiceImpl implements AiService {
         if (request != null && request.getSystemPrompt() != null && !request.getSystemPrompt().isBlank()) {
             return request.getSystemPrompt().trim();
         }
-        return "你是一位严格、克制、结果导向的中文技术简历优化专家。";
+        return loadFieldOptimizePromptConfig().getSystemPrompt();
+    }
+
+    private String resolveConfiguredFieldPrompt(String configuredPrompt, String fallbackPrompt) {
+        if (configuredPrompt == null || configuredPrompt.isBlank()) {
+            return fallbackPrompt;
+        }
+        return configuredPrompt.trim().replace("\\n", "\n");
+    }
+
+    private FieldOptimizePromptConfigDTO loadFieldOptimizePromptConfig() {
+        var fallback = buildFallbackFieldOptimizePromptConfig();
+        var configPath = resolveFieldOptimizePromptConfigPath();
+        if (configPath == null) {
+            return fallback;
+        }
+
+        try {
+            var yamlText = Files.readString(configPath, StandardCharsets.UTF_8);
+            if (yamlText.isBlank()) {
+                return fallback;
+            }
+            var yaml = new Yaml();
+            var parsed = yaml.load(yamlText);
+            if (!(parsed instanceof Map<?, ?> rawMap)) {
+                return fallback;
+            }
+
+            var config = new FieldOptimizePromptConfigDTO();
+            config.setSystemPrompt(resolveConfiguredFieldPrompt(readYamlString(rawMap, "systemPrompt"), DEFAULT_FIELD_OPTIMIZE_SYSTEM_PROMPT));
+            config.setDescriptionPrompt(resolveConfiguredFieldPrompt(
+                    firstNonBlank(
+                            readYamlString(rawMap, "descriptionPrompt"),
+                            readYamlString(rawMap, "internshipDescriptionPrompt"),
+                            readYamlString(rawMap, "projectDescriptionPrompt")
+                    ),
+                    INTERNSHIP_PROJECT_DESCRIPTION_PROMPT
+            ));
+            config.setResponsibilityPrompt(resolveConfiguredFieldPrompt(
+                    firstNonBlank(
+                            readYamlString(rawMap, "responsibilityPrompt"),
+                            readYamlString(rawMap, "internshipResponsibilityPrompt"),
+                            readYamlString(rawMap, "projectResponsibilityPrompt")
+                    ),
+                    INTERNSHIP_RESPONSIBILITY_PROMPT
+            ));
+            return config;
+        } catch (Exception e) {
+            log.warn("Failed to load field optimize prompt config from {}", configPath, e);
+            return fallback;
+        }
+    }
+
+    private FieldOptimizePromptConfigDTO buildFallbackFieldOptimizePromptConfig() {
+        var config = new FieldOptimizePromptConfigDTO();
+        config.setSystemPrompt(DEFAULT_FIELD_OPTIMIZE_SYSTEM_PROMPT);
+        config.setDescriptionPrompt(INTERNSHIP_PROJECT_DESCRIPTION_PROMPT);
+        config.setResponsibilityPrompt(INTERNSHIP_RESPONSIBILITY_PROMPT);
+        return config;
+    }
+
+    private Path resolveFieldOptimizePromptConfigPath() {
+        var candidates = List.of(
+                Path.of(fieldOptimizePromptConfigFile),
+                Path.of(DEFAULT_FIELD_OPTIMIZE_CONFIG_PATH),
+                Path.of("../" + DEFAULT_FIELD_OPTIMIZE_CONFIG_PATH)
+        );
+        for (var candidate : candidates) {
+            try {
+                var normalized = candidate.toAbsolutePath().normalize();
+                if (Files.exists(normalized) && Files.isRegularFile(normalized)) {
+                    return normalized;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    private String readYamlString(Map<?, ?> rawMap, String key) {
+        var value = rawMap.get(key);
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private String firstNonBlank(String... values) {
+        for (var value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private String renderPromptTemplate(String template, Map<String, String> variables) {
+        var rendered = template;
+        for (var entry : variables.entrySet()) {
+            rendered = rendered.replace("{{" + entry.getKey() + "}}", Objects.toString(entry.getValue(), ""));
+        }
+        return rendered;
     }
 
     @Override
@@ -561,7 +713,8 @@ public class AiServiceImpl implements AiService {
                     prompt,
                     0.3,
                     1600,
-                    true
+                    true,
+                    false
             );
 
             if (response == null) {
@@ -810,6 +963,7 @@ public class AiServiceImpl implements AiService {
                 buildSmartOnePageModulePrompt(resumeTitle, module, resumeContext, promptInstruction, templateMarkdown, skillPreset),
                 0.35,
                 3200,
+                false,
                 false
         );
 
@@ -1110,13 +1264,15 @@ public class AiServiceImpl implements AiService {
             String userPrompt,
             double temperature,
             int maxTokens,
-            boolean jsonMode
+            boolean jsonMode,
+            boolean disableThinking
     ) {
-        var requestBody = buildRequestBody(targetModel, systemPrompt, userPrompt, temperature, maxTokens, jsonMode);
-        log.info("[AI Optimize][Upstream] request: url={}, model={}, jsonMode={}, temperature={}, maxTokens={}, systemPrompt={}, userPrompt={}",
+        var requestBody = buildRequestBody(targetModel, systemPrompt, userPrompt, temperature, maxTokens, jsonMode, disableThinking);
+        log.info("[AI Optimize][Upstream] request: url={}, model={}, jsonMode={}, disableThinking={}, temperature={}, maxTokens={}, systemPrompt={}, userPrompt={}",
                 buildChatCompletionUrl(),
                 targetModel,
                 jsonMode,
+                disableThinking,
                 temperature,
                 maxTokens,
                 truncateText(systemPrompt, 200),
@@ -1139,14 +1295,16 @@ public class AiServiceImpl implements AiService {
             double temperature,
             int maxTokens,
             boolean jsonMode,
+            boolean disableThinking,
             Consumer<Map<String, Object>> eventConsumer
     ) throws Exception {
-        var requestBody = buildRequestBody(targetModel, systemPrompt, userPrompt, temperature, maxTokens, jsonMode);
+        var requestBody = buildRequestBody(targetModel, systemPrompt, userPrompt, temperature, maxTokens, jsonMode, disableThinking);
         requestBody.put("stream", true);
-        log.info("[AI Optimize][Upstream] stream request: url={}, model={}, jsonMode={}, temperature={}, maxTokens={}, systemPrompt={}, userPrompt={}",
+        log.info("[AI Optimize][Upstream] stream request: url={}, model={}, jsonMode={}, disableThinking={}, temperature={}, maxTokens={}, systemPrompt={}, userPrompt={}",
                 buildChatCompletionUrl(),
                 targetModel,
                 jsonMode,
+                disableThinking,
                 temperature,
                 maxTokens,
                 truncateText(systemPrompt, 200),
@@ -1171,13 +1329,14 @@ public class AiServiceImpl implements AiService {
         var reasoningBuilder = new StringBuilder();
         var contentBuilder = new StringBuilder();
         var dataBuilder = new StringBuilder();
+        var finishReasonBuilder = new StringBuilder();
         var streamLogState = new StreamLogState();
 
         try (var reader = new BufferedReader(new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isBlank()) {
-                    if (handleUpstreamSseEvent(dataBuilder.toString(), reasoningBuilder, contentBuilder, eventConsumer, streamLogState)) {
+                    if (handleUpstreamSseEvent(dataBuilder.toString(), reasoningBuilder, contentBuilder, finishReasonBuilder, eventConsumer, streamLogState)) {
                         break;
                     }
                     dataBuilder.setLength(0);
@@ -1195,7 +1354,7 @@ public class AiServiceImpl implements AiService {
         log.info("[AI Optimize][Upstream] stream completed: reasoningLength={}, contentLength={}",
                 reasoningBuilder.length(), contentBuilder.length());
         emitStreamEvent(eventConsumer, "status", Map.of("message", "AI 推理结束，正在整理最终结果。"));
-        return new StreamChatResult(contentBuilder.toString(), reasoningBuilder.toString());
+        return new StreamChatResult(contentBuilder.toString(), reasoningBuilder.toString(), finishReasonBuilder.toString());
     }
 
     private String buildChatCompletionUrl() {
@@ -1267,7 +1426,8 @@ public class AiServiceImpl implements AiService {
             String userPrompt,
             double temperature,
             int maxTokens,
-            boolean jsonMode
+            boolean jsonMode,
+            boolean disableThinking
     ) {
         var payload = new LinkedHashMap<String, Object>();
         payload.put("model", targetModel);
@@ -1279,6 +1439,9 @@ public class AiServiceImpl implements AiService {
         payload.put("max_tokens", maxTokens);
         if (jsonMode) {
             payload.put("response_format", Map.of("type", "json_object"));
+        }
+        if (disableThinking) {
+            payload.put("thinking", Map.of("type", "disabled"));
         }
         return payload;
     }
@@ -1359,7 +1522,11 @@ public class AiServiceImpl implements AiService {
     private String cleanTextResponse(String response) {
         try {
             var root = objectMapper.readTree(response);
-            return cleanTextContent(extractAssistantContent(root, false));
+            var content = cleanTextContent(extractAssistantContent(root, false));
+            if (!content.isBlank()) {
+                return content;
+            }
+            return extractOptimizedTextFromReasoning(root.path("choices").path(0).path("message").path("reasoning_content").asText(""));
         } catch (Exception e) {
             log.error("Failed to parse AI text response: {}", e.getMessage());
             throw new BusinessException(ResultCode.AI_RESPONSE_INVALID);
@@ -1371,8 +1538,14 @@ public class AiServiceImpl implements AiService {
             var root = objectMapper.readTree(response);
             var content = extractAssistantContent(root, false).trim();
             if (content.isBlank()) {
+                var reasoningContent = root.path("choices").path(0).path("message").path("reasoning_content").asText("");
+                var candidatesFromReasoning = extractCandidatesFromReasoning(reasoningContent);
+                if (!candidatesFromReasoning.isEmpty()) {
+                    return candidatesFromReasoning;
+                }
+
                 var finishReason = root.path("choices").path(0).path("finish_reason").asText("");
-                var reasoningPreview = truncateText(root.path("choices").path(0).path("message").path("reasoning_content").asText(""), 300);
+                var reasoningPreview = truncateText(reasoningContent, 300);
                 log.warn("[AI Optimize][Service] assistant content is empty for candidate response: finishReason={}, reasoningPreview={}",
                         finishReason, reasoningPreview);
                 throw new BusinessException(ResultCode.AI_RESPONSE_INVALID.getCode(), "AI 未返回可用候选结果，请重试");
@@ -1393,6 +1566,120 @@ public class AiServiceImpl implements AiService {
             cleaned = cleaned.replaceFirst("\\s*```$", "");
         }
         return cleaned.replaceAll("^\"|\"$", "").trim();
+    }
+
+    private String extractOptimizedTextFromReasoning(String reasoning) {
+        var normalized = reasoning == null ? "" : reasoning.trim();
+        if (normalized.isBlank()) {
+            return "";
+        }
+
+        var markers = List.of("最终结果：", "最终结果:", "最终优化结果是：", "最终优化结果：", "优化后的职责：", "优化后的版本：", "精修定稿：", "定稿：");
+        for (var marker : markers) {
+            var markerIndex = normalized.lastIndexOf(marker);
+            if (markerIndex < 0) {
+                continue;
+            }
+
+            var tail = normalized.substring(markerIndex + marker.length()).trim();
+            if (tail.isBlank()) {
+                continue;
+            }
+
+            tail = sanitizeReasoningSnippet(tail);
+            if (!tail.isBlank()) {
+                return tail;
+            }
+        }
+
+        var attemptPattern = Pattern.compile(
+                "(?s)(?:^|\\n)\\s*(?:[-*]\\s*)?(?:尝试|版本|草稿)\\s*[0-9一二三四五六七八九十]+\\s*[:：]\\s*(.+?)(?=(?:\\n\\s*(?:[-*]\\s*)?(?:尝试|版本|草稿)\\s*[0-9一二三四五六七八九十]+\\s*[:：])|(?:\\n\\s*(?:这个版本|让我再检查|让我检查|检查一下|校验|说明|要求|最终|结论|上游已结束输出|AI 推理结束|1\\.|2\\.|3\\.))|$)"
+        );
+        var attemptMatcher = attemptPattern.matcher(normalized);
+        String fallbackAttempt = "";
+        while (attemptMatcher.find()) {
+            var attemptText = sanitizeReasoningSnippet(attemptMatcher.group(1));
+            if (!attemptText.isBlank()) {
+                fallbackAttempt = attemptText;
+            }
+        }
+        if (!fallbackAttempt.isBlank()) {
+            return fallbackAttempt;
+        }
+
+        return "";
+    }
+
+    private List<String> extractCandidatesFromStreamResult(StreamChatResult streamResult) {
+        var candidates = parseCandidatePayloadOrEmpty(streamResult == null ? "" : streamResult.content());
+        if (!candidates.isEmpty()) {
+            return candidates;
+        }
+        return extractCandidatesFromReasoning(streamResult == null ? "" : streamResult.reasoning());
+    }
+
+    private List<String> extractCandidatesFromReasoning(String reasoning) {
+        var normalized = reasoning == null ? "" : reasoning.trim();
+        if (normalized.isBlank()) {
+            return List.of();
+        }
+
+        var directJsonCandidates = parseCandidatePayloadOrEmpty(normalized);
+        if (!directJsonCandidates.isEmpty()) {
+            return directJsonCandidates;
+        }
+
+        var markers = List.of("最终结果：", "最终结果:", "最终优化结果：", "最终优化结果是：");
+        for (var marker : markers) {
+            var markerIndex = normalized.lastIndexOf(marker);
+            if (markerIndex < 0) {
+                continue;
+            }
+            var tail = normalized.substring(markerIndex + marker.length()).trim();
+            var markerCandidates = parseCandidatePayloadOrEmpty(tail);
+            if (!markerCandidates.isEmpty()) {
+                return markerCandidates;
+            }
+        }
+
+        return List.of();
+    }
+
+    private List<String> parseCandidatePayloadOrEmpty(String content) {
+        try {
+            return parseTextCandidatesContent(content);
+        } catch (BusinessException ignored) {
+            return List.of();
+        }
+    }
+
+    private String sanitizeReasoningSnippet(String snippet) {
+        var value = snippet == null ? "" : snippet.trim();
+        if (value.isBlank()) {
+            return "";
+        }
+
+        value = value.replaceFirst("^[:：\\s]*", "");
+        var stopMatcher = Pattern.compile("\\n\\s*(这个版本|让我再检查|让我检查|检查一下|校验|说明|要求|上游已结束输出|AI 推理结束|1\\.|2\\.|3\\.)").matcher(value);
+        if (stopMatcher.find()) {
+            value = value.substring(0, stopMatcher.start()).trim();
+        }
+
+        value = value.replaceFirst("^[-*\\s]+", "").trim();
+
+        var quotedMatcher = Pattern.compile("[“\\\"]([^\\n”\\\"]{12,})[”\\\"]").matcher(value);
+        if (quotedMatcher.find()) {
+            return cleanTextContent(quotedMatcher.group(1));
+        }
+
+        var firstLine = value.lines()
+                .map(String::trim)
+                .filter(line -> !line.isBlank())
+                .filter(line -> !line.startsWith("-") && !line.startsWith("*"))
+                .findFirst()
+                .orElse(value);
+
+        return cleanTextContent(firstLine);
     }
 
     private List<String> parseTextCandidatesContent(String content) {
@@ -1444,6 +1731,7 @@ public class AiServiceImpl implements AiService {
             String rawData,
             StringBuilder reasoningBuilder,
             StringBuilder contentBuilder,
+            StringBuilder finishReasonBuilder,
             Consumer<Map<String, Object>> eventConsumer,
             StreamLogState streamLogState
     ) {
@@ -1482,6 +1770,8 @@ public class AiServiceImpl implements AiService {
 
             var finishReason = choice.path("finish_reason").asText("");
             if (!finishReason.isBlank()) {
+                finishReasonBuilder.setLength(0);
+                finishReasonBuilder.append(finishReason);
                 log.info("[AI Optimize][Upstream] finish reason received: finishReason={}, reasoningLength={}, contentLength={}",
                         finishReason, reasoningBuilder.length(), contentBuilder.length());
                 emitStreamEvent(eventConsumer, "status", Map.of(
@@ -1493,6 +1783,33 @@ public class AiServiceImpl implements AiService {
             log.warn("[AI Optimize][Service] failed to parse upstream stream chunk: {}", truncateText(eventData, 400), e);
         }
         return false;
+    }
+
+    private List<String> finalizeCandidateOutput(String targetModel, String systemPrompt, String originalPrompt) {
+        var finalizePrompt = """
+                你上一条回答在输出最终候选 JSON 时被截断了。
+                现在不要重复分析，不要解释，不要输出 Markdown 代码块，也不要输出思考过程。
+                请基于同样要求，直接返回最终完整 JSON：
+                {"candidates":["完整版本A","完整版本B","完整版本C"]}
+
+                原始任务如下：
+                """ + originalPrompt;
+
+        var response = invokeChatCompletion(
+                targetModel,
+                systemPrompt,
+                finalizePrompt,
+                0.2,
+                2600,
+                true,
+                false
+        );
+
+        if (response == null) {
+            return List.of();
+        }
+
+        return parseTextCandidatesResponse(response);
     }
 
     private void logReasoningProgress(StreamLogState state, String delta, StringBuilder reasoningBuilder) {
