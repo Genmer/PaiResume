@@ -41,6 +41,16 @@ public interface AiService {
     ResumeAnalysisResultDTO analyzeResume(String resumeTitle, List<ResumeModule> modules, String promptOverride);
 
     /**
+     * 流式分析整份简历内容，实时推送思考过程和最终结构化结果
+     */
+    ResumeAnalysisResultDTO streamAnalyzeResume(
+            String resumeTitle,
+            List<ResumeModule> modules,
+            String promptOverride,
+            Consumer<Map<String, Object>> eventConsumer
+    );
+
+    /**
      * 生成智能一页预览结果，返回压缩前后候选内容与连续长页元信息
      */
     SmartOnePagePreviewResponseDTO previewSmartOnePage(

@@ -21,6 +21,7 @@ import { downloadResumePdf, type ResumePdfPageMode } from '../utils/resumePdf'
 
 type EditorView = 'module' | 'analysis'
 const AI_OPTIMIZABLE_MODULE_TYPES = new Set<ModuleType>(['research', 'skill'])
+const PREVIEW_PANEL_COLLAPSED_STORAGE_KEY = 'pai-resume.preview-panel-collapsed'
 
 interface DeleteDialogState {
   moduleId: number
@@ -39,9 +40,11 @@ export default function EditorPage() {
   const [exportError, setExportError] = useState('')
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null)
   const [deletingModuleId, setDeletingModuleId] = useState<number | null>(null)
+  const [previewCollapsed, setPreviewCollapsed] = useState(false)
 
   const resumeId = Number(id)
   const requestedModuleType = searchParams.get('moduleType')
+  const requestedView: EditorView = searchParams.get('view') === 'analysis' ? 'analysis' : 'module'
   const initialModuleType = requestedModuleType && requestedModuleType in getDefaultContentMap()
     ? requestedModuleType as ModuleType
     : null
@@ -50,10 +53,38 @@ export default function EditorPage() {
     if (resumeId) {
       setActiveModuleType(initialModuleType)
       setAiModuleId(null)
-      setEditorView('module')
+      setEditorView(requestedView)
       void fetchModules(resumeId)
     }
-  }, [resumeId, fetchModules, initialModuleType])
+  }, [resumeId, fetchModules, initialModuleType, requestedView])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    setPreviewCollapsed(window.localStorage.getItem(PREVIEW_PANEL_COLLAPSED_STORAGE_KEY) === 'true')
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.localStorage.setItem(PREVIEW_PANEL_COLLAPSED_STORAGE_KEY, String(previewCollapsed))
+  }, [previewCollapsed])
+
+  const updateEditorLocation = useCallback((nextView: EditorView, moduleType?: ModuleType | null) => {
+    const nextParams = new URLSearchParams()
+    const effectiveModuleType = moduleType ?? activeModuleType
+    if (effectiveModuleType) {
+      nextParams.set('moduleType', effectiveModuleType)
+    }
+    if (nextView === 'analysis') {
+      nextParams.set('view', 'analysis')
+    }
+    setSearchParams(nextParams, { replace: true })
+  }, [activeModuleType, setSearchParams])
 
   useEffect(() => {
     if (modules.length === 0) {
@@ -72,14 +103,36 @@ export default function EditorPage() {
     if (nextActiveModuleType !== activeModuleType) {
       setActiveModuleType(nextActiveModuleType)
     }
-    if (nextActiveModuleType && searchParams.get('moduleType') !== nextActiveModuleType) {
-      setSearchParams({ moduleType: nextActiveModuleType }, { replace: true })
-    }
-  }, [modules, activeModuleType, initialModuleType, searchParams, setSearchParams])
 
-  const updateEditorLocation = useCallback((moduleType: ModuleType) => {
-    setSearchParams({ moduleType }, { replace: true })
-  }, [setSearchParams])
+    const currentQueryModuleType = searchParams.get('moduleType')
+    const currentQueryView = searchParams.get('view') === 'analysis' ? 'analysis' : 'module'
+    if (nextActiveModuleType && (currentQueryModuleType !== nextActiveModuleType || currentQueryView !== editorView)) {
+      updateEditorLocation(editorView, nextActiveModuleType)
+    }
+  }, [modules, activeModuleType, initialModuleType, searchParams, editorView, updateEditorLocation])
+
+  useEffect(() => {
+    if (modules.length === 0) {
+      return
+    }
+
+    const currentQueryView = searchParams.get('view') === 'analysis' ? 'analysis' : 'module'
+    if (currentQueryView !== editorView) {
+      updateEditorLocation(editorView)
+    }
+  }, [editorView, modules.length, searchParams, updateEditorLocation])
+
+  const openModuleView = useCallback((moduleType: ModuleType) => {
+    setActiveModuleType(moduleType)
+    setEditorView('module')
+    updateEditorLocation('module', moduleType)
+  }, [updateEditorLocation])
+
+  const openAnalysisView = useCallback(() => {
+    setAiModuleId(null)
+    setEditorView('analysis')
+    updateEditorLocation('analysis')
+  }, [updateEditorLocation])
 
   const handleAddModule = useCallback(
     async (moduleType: ModuleType) => {
@@ -87,7 +140,7 @@ export default function EditorPage() {
       await addModule(resumeId, moduleType, defaultContent)
       setActiveModuleType(moduleType)
       setEditorView('module')
-      updateEditorLocation(moduleType)
+      updateEditorLocation('module', moduleType)
     },
     [resumeId, addModule, updateEditorLocation]
   )
@@ -114,7 +167,7 @@ export default function EditorPage() {
       const defaultContent = getDefaultContent(moduleType)
       await addModule(resumeId, moduleType, defaultContent)
       setEditorView('module')
-      updateEditorLocation(moduleType)
+      updateEditorLocation('module', moduleType)
     },
     [resumeId, addModule, updateEditorLocation]
   )
@@ -122,6 +175,8 @@ export default function EditorPage() {
   const activeModules = modules.filter((m) => m.moduleType === activeModuleType)
   const canAddAnotherInstance = activeModuleType ? !SINGLETON_MODULES.includes(activeModuleType) : false
   const canOptimizeActiveModule = activeModuleType ? AI_OPTIMIZABLE_MODULE_TYPES.has(activeModuleType) : false
+  const analysisContainerClassName = previewCollapsed ? 'mx-auto max-w-6xl' : 'mx-auto max-w-4xl'
+  const moduleContainerClassName = previewCollapsed ? 'mx-auto max-w-5xl' : 'mx-auto max-w-3xl'
 
   const handleExportPdf = useCallback(async (pageMode: ResumePdfPageMode) => {
     if (modules.length === 0) {
@@ -181,37 +236,25 @@ export default function EditorPage() {
         <ModuleSidebar
           modules={modules}
           activeModuleType={activeModuleType}
-          onSelect={(moduleType) => {
-            setActiveModuleType(moduleType)
-            setEditorView('module')
-            updateEditorLocation(moduleType)
-          }}
+          onSelect={openModuleView}
           onAddModule={handleAddModule}
           analysisActive={editorView === 'analysis'}
-          onSelectAnalysis={() => {
-            setAiModuleId(null)
-            setEditorView('analysis')
-          }}
+          onSelectAnalysis={openAnalysisView}
         />
 
         <main className="min-w-0 flex-1 overflow-y-auto p-6 xl:px-8">
           {editorView === 'analysis' ? (
-            <div className="mx-auto max-w-4xl">
+            <div className={`${analysisContainerClassName} flex min-h-full flex-col`}>
               {exportError && (
                 <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {exportError}
                 </div>
               )}
 
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">简历分析</h2>
-                <p className="mt-1 text-sm text-gray-500">由服务端 AI 分析当前整份简历，给出更聚焦的优化建议。</p>
-              </div>
-
               <ResumeAnalysis resumeId={resumeId} />
             </div>
           ) : activeModuleType ? (
-            <div className="mx-auto max-w-3xl">
+            <div className={moduleContainerClassName}>
               {exportError && (
                 <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {exportError}
@@ -293,9 +336,51 @@ export default function EditorPage() {
           )}
         </main>
 
-        <div className="w-[540px] max-w-[42vw] min-w-[500px] overflow-y-auto border-l border-gray-200 bg-gray-50 p-6 xl:px-8">
-          <PreviewPanel modules={modules} loading={loading} />
-        </div>
+        <aside
+          className={`relative shrink-0 border-l border-gray-200 bg-gray-50 transition-[width,min-width,max-width,padding] duration-300 ease-out ${
+            previewCollapsed
+              ? 'w-14 min-w-14 max-w-14 p-0'
+              : 'w-[540px] min-w-[500px] max-w-[42vw] p-6 xl:px-8'
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewCollapsed((current) => !current)}
+            aria-label={previewCollapsed ? '展开预览面板' : '收起预览面板'}
+            title={previewCollapsed ? '展开预览面板' : '收起预览面板'}
+            className="absolute left-0 top-1/2 z-20 flex h-24 w-9 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-500 shadow-[0_18px_38px_-18px_rgba(15,23,42,0.32)] backdrop-blur transition hover:border-primary-200 hover:text-primary-700"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {previewCollapsed ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 5l-7 7 7 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />
+              )}
+            </svg>
+            <span className="mt-2 text-[10px] font-semibold tracking-[0.28em] [writing-mode:vertical-rl]">
+              预览
+            </span>
+          </button>
+
+          {previewCollapsed ? (
+            <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_55%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)]">
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
+                <div className="flex flex-col gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-200" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-300" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-400" />
+                </div>
+                <span className="text-[11px] font-medium tracking-[0.32em] text-gray-500 [writing-mode:vertical-rl]">
+                  右侧预览
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="h-full overflow-y-auto">
+              <PreviewPanel modules={modules} loading={loading} />
+            </div>
+          )}
+        </aside>
       </div>
 
       {aiModuleId && (

@@ -18,28 +18,32 @@ function resizeTextarea(element: HTMLTextAreaElement, minRows: number) {
 }
 
 export function AutoResizeTextarea({
-  minRows = 4,
+  minRows,
   className = '',
   onInput,
+  rows,
   value,
   ...props
 }: AutoResizeTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const effectiveMinRows = typeof rows === 'number' && rows > 0
+    ? rows
+    : (minRows ?? 2)
 
   useLayoutEffect(() => {
     if (textareaRef.current) {
-      resizeTextarea(textareaRef.current, minRows)
+      resizeTextarea(textareaRef.current, effectiveMinRows)
     }
-  }, [minRows, value])
+  }, [effectiveMinRows, value])
 
   return (
     <textarea
       {...props}
       ref={textareaRef}
-      rows={minRows}
+      rows={effectiveMinRows}
       value={value}
       onInput={(event) => {
-        resizeTextarea(event.currentTarget, minRows)
+        resizeTextarea(event.currentTarget, effectiveMinRows)
         onInput?.(event)
       }}
       className={className}

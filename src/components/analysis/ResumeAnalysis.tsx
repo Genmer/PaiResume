@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAnalysis } from '../../hooks/useAnalysis'
-import { AutoResizeTextarea } from '../ui/AutoResizeTextarea'
 import { Button } from '../ui/Button'
 import { Section } from '../ui/Section'
 
@@ -29,6 +28,8 @@ const DEFAULT_ANALYSIS_PROMPT = `请站在校招技术简历评审视角分析�
 export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
   const {
     analysisResult,
+    analysisReasoning,
+    analysisStatus,
     isAnalyzing,
     analyze,
     loadLatestAnalysis,
@@ -38,6 +39,8 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
   const [promptDraft, setPromptDraft] = useState(DEFAULT_ANALYSIS_PROMPT)
   const [savedPrompt, setSavedPrompt] = useState(DEFAULT_ANALYSIS_PROMPT)
   const [saveHint, setSaveHint] = useState<string | null>(null)
+  const [showReasoning, setShowReasoning] = useState(true)
+  const reasoningViewportRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -53,6 +56,14 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
   useEffect(() => {
     void loadLatestAnalysis(resumeId)
   }, [resumeId, loadLatestAnalysis])
+
+  useEffect(() => {
+    if (!analysisReasoning || !reasoningViewportRef.current) {
+      return
+    }
+
+    reasoningViewportRef.current.scrollTop = reasoningViewportRef.current.scrollHeight
+  }, [analysisReasoning])
 
   const hasUnsavedChanges = useMemo(
     () => promptDraft.trim() !== savedPrompt.trim(),
@@ -80,6 +91,7 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
     }
 
     setSaveHint(null)
+    setShowReasoning(true)
     void analyze(resumeId, nextPrompt)
   }
 
@@ -127,20 +139,20 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-5">
-        <AutoResizeTextarea
-          minRows={12}
+    <div className="flex min-h-full flex-col gap-6">
+      <div className="flex min-h-[calc(100dvh-10rem)] flex-col rounded-xl border border-gray-200 bg-white p-5">
+        <textarea
+          rows={7}
           value={promptDraft}
           onChange={(event) => {
             setPromptDraft(event.target.value)
             setSaveHint(null)
           }}
-          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-7 text-gray-700 outline-none transition focus:border-primary-300 focus:ring-4 focus:ring-primary-100"
+          className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-7 text-gray-700 outline-none transition focus:border-primary-300 focus:ring-4 focus:ring-primary-100"
           placeholder="在这里编写你的简历分析提示词"
         />
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button type="button" onClick={handleSavePrompt}>
             保存提示词
           </Button>
@@ -161,17 +173,58 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
         </div>
 
         {saveHint && (
-          <div className="rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-700">
+          <div className="mt-4 rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-700">
             {saveHint}
           </div>
         )}
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
       </div>
+
+      {(isAnalyzing || analysisReasoning || analysisStatus) && (
+        <Section
+          title={isAnalyzing ? '分析过程' : '本次分析过程'}
+          description={analysisStatus || 'AI 正在逐步整理分析重点。'}
+        >
+          <div className="rounded-2xl border border-primary-100 bg-[linear-gradient(180deg,_rgba(239,246,255,0.92)_0%,_rgba(255,255,255,0.96)_100%)] p-4 shadow-[0_18px_50px_-28px_rgba(37,99,235,0.28)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className={`inline-flex h-2.5 w-2.5 rounded-full ${isAnalyzing ? 'animate-pulse bg-primary-500' : 'bg-emerald-500'}`} />
+                <span className="text-sm font-medium text-gray-700">
+                  {analysisStatus || (isAnalyzing ? 'AI 正在分析...' : '已完成')}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReasoning((current) => !current)}
+                className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-primary-200 hover:text-primary-700"
+              >
+                {showReasoning ? '收起过程' : '显示过程'}
+              </button>
+            </div>
+
+            {showReasoning && (
+              <div
+                ref={reasoningViewportRef}
+                className="mt-4 max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-slate-950 px-4 py-3 text-sm leading-6 text-slate-100"
+              >
+                {analysisReasoning ? (
+                  <pre className="whitespace-pre-wrap break-words font-sans">{analysisReasoning}</pre>
+                ) : (
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-primary-300" />
+                    <span>AI 已开始工作，思考过程输出后会显示在这里。</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
 
       {analysisResult && (
         <>

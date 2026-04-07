@@ -38,7 +38,7 @@ export function ModuleSidebar({
         <nav className="space-y-1">
           {ALL_MODULE_TYPES.map((type) => {
             const exists = existingTypes.has(type)
-            const isActive = activeModuleType === type
+            const isActive = !analysisActive && activeModuleType === type
             const count = modules.filter((m) => m.moduleType === type).length
 
             return (

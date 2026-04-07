@@ -68,9 +68,28 @@ export interface AiFieldOptimizeStreamEvent {
   data: Record<string, unknown>
 }
 
+export type ResumeAnalysisStreamEventName =
+  | 'connected'
+  | 'status'
+  | 'reasoning_delta'
+  | 'content_delta'
+  | 'result'
+  | 'error'
+  | 'done'
+
+export interface ResumeAnalysisStreamEvent {
+  event: ResumeAnalysisStreamEventName
+  data: Record<string, unknown>
+}
+
 interface AiFieldOptimizeStreamOptions {
   signal?: AbortSignal
   onEvent?: (event: AiFieldOptimizeStreamEvent) => void
+}
+
+interface ResumeAnalysisStreamOptions {
+  signal?: AbortSignal
+  onEvent?: (event: ResumeAnalysisStreamEvent) => void
 }
 
 export interface ResumeOptimizationSkill {
@@ -422,6 +441,105 @@ export const resumeApi = {
         timeout: 70000,
       })
     ),
+
+  analyzeStream: async (
+    resumeId: number,
+    data?: { prompt?: string },
+    options: ResumeAnalysisStreamOptions = {}
+  ) => {
+    const request = {
+      resumeId,
+      url: `/resumes/${resumeId}/analysis/stream`,
+      payload: data || {},
+    }
+    logAiRequest('resume-analysis-stream', request)
+
+    const token = localStorage.getItem('accessToken')
+    const response = await fetch(buildStreamApiUrl(request.url), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(data || {}),
+      signal: options.signal,
+    })
+
+    if (!response.ok) {
+      const message = await extractStreamErrorMessage(response)
+      logAiError('resume-analysis-stream', {
+        request,
+        error: message,
+      })
+      throw new Error(message)
+    }
+
+    if (!response.body) {
+      const message = '浏览器未返回可读取的简历分析流式响应'
+      logAiError('resume-analysis-stream', { request, error: message })
+      throw new Error(message)
+    }
+
+    let finalResult: AnalysisResult | null = null
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) {
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        const normalizedBuffer = buffer.replace(/\r\n/g, '\n')
+        const chunks = normalizedBuffer.split('\n\n')
+        buffer = chunks.pop() ?? ''
+
+        for (const chunk of chunks) {
+          const event = parseSseChunk(chunk) as ResumeAnalysisStreamEvent | null
+          if (!event) {
+            continue
+          }
+          options.onEvent?.(event)
+
+          if (event.event === 'result') {
+            finalResult = event.data as unknown as AnalysisResult
+            logAiResponse('resume-analysis-stream', {
+              request,
+              response: finalResult,
+            })
+            await reader.cancel()
+            return finalResult
+          }
+
+          if (event.event === 'error') {
+            const message = typeof event.data.message === 'string' && event.data.message.trim()
+              ? event.data.message
+              : 'AI 简历分析失败，请稍后重试'
+            throw new Error(message)
+          }
+        }
+      }
+    } catch (error) {
+      logAiError('resume-analysis-stream', {
+        request,
+        error: error instanceof Error ? error.message : error,
+      })
+      throw error
+    } finally {
+      reader.releaseLock()
+    }
+
+    if (!finalResult) {
+      const message = 'AI 简历分析未返回最终结果'
+      logAiError('resume-analysis-stream', { request, error: message })
+      throw new Error(message)
+    }
+    return finalResult
+  },
 
   getLatestAnalysis: (resumeId: number) =>
     withAiLogging(

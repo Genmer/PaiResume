@@ -740,6 +740,43 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
+    public ResumeAnalysisResultDTO streamAnalyzeResume(
+            String resumeTitle,
+            List<ResumeModule> modules,
+            String promptOverride,
+            Consumer<Map<String, Object>> eventConsumer
+    ) {
+        validateConfiguration();
+
+        var prompt = buildResumeAnalysisPrompt(resumeTitle, modules, promptOverride);
+        emitStreamEvent(eventConsumer, "status", Map.of("message", "AI 已连接，正在审阅整份简历。"));
+
+        try {
+            var streamResult = streamChatCompletion(
+                    analysisModel,
+                    "你是一位严格、专业、懂技术招聘的资深简历顾问。你需要基于候选人当前简历内容给出真实、克制、可执行的分析结果，并且必须严格输出 JSON。",
+                    prompt,
+                    0.3,
+                    1600,
+                    true,
+                    false,
+                    eventConsumer
+            );
+
+            var response = streamResult.content();
+            if (response == null || response.isBlank()) {
+                throw new BusinessException(ResultCode.AI_RESPONSE_INVALID.getCode(), "AI 思考已结束，但未返回最终分析结果，请重试");
+            }
+            return parseAnalysisResponse(response);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("AI resume analysis streaming failed", e);
+            throw new BusinessException(ResultCode.AI_SERVICE_BUSY);
+        }
+    }
+
+    @Override
     public SmartOnePagePreviewResponseDTO previewSmartOnePage(
             String resumeTitle,
             List<ResumeModule> modules,
@@ -1475,7 +1512,7 @@ public class AiServiceImpl implements AiService {
     private ResumeAnalysisResultDTO parseAnalysisResponse(String response) {
         try {
             var root = objectMapper.readTree(response);
-            var content = cleanJsonPayload(extractAssistantContent(root, false));
+            var content = resolveAnalysisPayload(root, response);
             var result = objectMapper.readValue(content, ResumeAnalysisResultDTO.class);
             normalizeAnalysisResult(result);
             return result;
@@ -1485,6 +1522,19 @@ public class AiServiceImpl implements AiService {
             log.error("Failed to parse analysis response: {} | raw: {}", e.getMessage(), truncateText(response, 1200));
             throw new BusinessException(ResultCode.AI_RESPONSE_INVALID);
         }
+    }
+
+    private String resolveAnalysisPayload(com.fasterxml.jackson.databind.JsonNode root, String rawResponse) {
+        var content = cleanJsonPayload(extractAssistantContent(root, false));
+        if (!content.isBlank()) {
+            return content;
+        }
+
+        if (root != null && root.isObject() && (root.has("score") || root.has("issues") || root.has("suggestions"))) {
+            return cleanJsonPayload(rawResponse);
+        }
+
+        return cleanJsonPayload(rawResponse);
     }
 
     private String extractAssistantContent(com.fasterxml.jackson.databind.JsonNode root, boolean allowReasoningFallback) {
