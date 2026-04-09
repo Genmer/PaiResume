@@ -18,11 +18,21 @@ import { AwardForm } from '../components/modules/AwardForm'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { MODULE_LABELS, SINGLETON_MODULES, type ModuleType } from '../types'
 import { normalizeJobIntentionContent } from '../utils/moduleContent'
-import { downloadResumePdf, type ResumePdfPageMode } from '../utils/resumePdf'
+import {
+  DEFAULT_RESUME_PDF_PREVIEW_CONFIG,
+  downloadResumePdf,
+  resolveResumePdfAccentPreset,
+  resolveResumePdfDensity,
+  resolveResumePdfHeadingStyle,
+  resolveResumePdfTemplateId,
+  type ResumePdfPageMode,
+  type ResumePdfPreviewConfig,
+} from '../utils/resumePdf'
 
-type EditorView = 'module' | 'analysis' | 'chrome-preview'
+type EditorView = 'module' | 'analysis' | 'template-selection'
 const AI_OPTIMIZABLE_MODULE_TYPES = new Set<ModuleType>(['research', 'skill'])
 const PREVIEW_PANEL_COLLAPSED_STORAGE_KEY = 'pai-resume.preview-panel-collapsed'
+const RESUME_PDF_PREVIEW_CONFIG_STORAGE_KEY_PREFIX = 'pai-resume.pdf-preview-config'
 
 interface DeleteDialogState {
   moduleId: number
@@ -42,14 +52,15 @@ export default function EditorPage() {
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null)
   const [deletingModuleId, setDeletingModuleId] = useState<number | null>(null)
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
+  const [pdfPreviewConfig, setPdfPreviewConfig] = useState<ResumePdfPreviewConfig>(DEFAULT_RESUME_PDF_PREVIEW_CONFIG)
 
   const resumeId = Number(id)
   const requestedModuleType = searchParams.get('moduleType')
   const requestedViewParam = searchParams.get('view')
   const requestedView: EditorView = requestedViewParam === 'analysis'
     ? 'analysis'
-    : requestedViewParam === 'chrome-preview'
-      ? 'chrome-preview'
+    : requestedViewParam === 'chrome-preview' || requestedViewParam === 'template-selection'
+      ? 'template-selection'
       : 'module'
   const initialModuleType = requestedModuleType && requestedModuleType in getDefaultContentMap()
     ? requestedModuleType as ModuleType
@@ -79,6 +90,46 @@ export default function EditorPage() {
 
     window.localStorage.setItem(PREVIEW_PANEL_COLLAPSED_STORAGE_KEY, String(previewCollapsed))
   }, [previewCollapsed])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !resumeId) {
+      return
+    }
+
+    const storedValue = window.localStorage.getItem(`${RESUME_PDF_PREVIEW_CONFIG_STORAGE_KEY_PREFIX}:${resumeId}`)
+    if (!storedValue) {
+      setPdfPreviewConfig(DEFAULT_RESUME_PDF_PREVIEW_CONFIG)
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(storedValue) as Partial<ResumePdfPreviewConfig>
+      const parsedTemplateId = resolveResumePdfTemplateId(parsed.templateId)
+      setPdfPreviewConfig({
+        templateId: parsedTemplateId === 'compact' ? 'default' : parsedTemplateId,
+        density: parsed.density
+          ? resolveResumePdfDensity(parsed.density)
+          : parsedTemplateId === 'compact'
+            ? 'compact'
+            : DEFAULT_RESUME_PDF_PREVIEW_CONFIG.density,
+        accentPreset: resolveResumePdfAccentPreset(parsed.accentPreset),
+        headingStyle: resolveResumePdfHeadingStyle(parsed.headingStyle),
+      })
+    } catch {
+      setPdfPreviewConfig(DEFAULT_RESUME_PDF_PREVIEW_CONFIG)
+    }
+  }, [resumeId])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !resumeId) {
+      return
+    }
+
+    window.localStorage.setItem(
+      `${RESUME_PDF_PREVIEW_CONFIG_STORAGE_KEY_PREFIX}:${resumeId}`,
+      JSON.stringify(pdfPreviewConfig)
+    )
+  }, [pdfPreviewConfig, resumeId])
 
   const updateEditorLocation = useCallback((nextView: EditorView, moduleType?: ModuleType | null) => {
     const nextParams = new URLSearchParams()
@@ -114,8 +165,8 @@ export default function EditorPage() {
     const currentQueryViewParam = searchParams.get('view')
     const currentQueryView: EditorView = currentQueryViewParam === 'analysis'
       ? 'analysis'
-      : currentQueryViewParam === 'chrome-preview'
-        ? 'chrome-preview'
+      : currentQueryViewParam === 'chrome-preview' || currentQueryViewParam === 'template-selection'
+        ? 'template-selection'
         : 'module'
     if (nextActiveModuleType && (currentQueryModuleType !== nextActiveModuleType || currentQueryView !== editorView)) {
       updateEditorLocation(editorView, nextActiveModuleType)
@@ -130,8 +181,8 @@ export default function EditorPage() {
     const currentQueryViewParam = searchParams.get('view')
     const currentQueryView: EditorView = currentQueryViewParam === 'analysis'
       ? 'analysis'
-      : currentQueryViewParam === 'chrome-preview'
-        ? 'chrome-preview'
+      : currentQueryViewParam === 'chrome-preview' || currentQueryViewParam === 'template-selection'
+        ? 'template-selection'
         : 'module'
     if (currentQueryView !== editorView) {
       updateEditorLocation(editorView)
@@ -150,10 +201,10 @@ export default function EditorPage() {
     updateEditorLocation('analysis')
   }, [updateEditorLocation])
 
-  const openChromePreviewView = useCallback(() => {
+  const openTemplateSelectionView = useCallback(() => {
     setAiModuleId(null)
-    setEditorView('chrome-preview')
-    updateEditorLocation('chrome-preview')
+    setEditorView('template-selection')
+    updateEditorLocation('template-selection')
   }, [updateEditorLocation])
 
   const handleAddModule = useCallback(
@@ -214,6 +265,10 @@ export default function EditorPage() {
     try {
       await downloadResumePdf(modules, resumeId, {
         pageMode,
+        templateId: pdfPreviewConfig.templateId,
+        density: pdfPreviewConfig.density,
+        accentPreset: pdfPreviewConfig.accentPreset,
+        headingStyle: pdfPreviewConfig.headingStyle,
         ...(pageMode === 'continuous' ? { fileNameSuffix: 'continuous' } : {}),
       })
     } catch (err: unknown) {
@@ -222,7 +277,7 @@ export default function EditorPage() {
     } finally {
       setExporting(false)
     }
-  }, [modules, resumeId])
+  }, [modules, pdfPreviewConfig.accentPreset, pdfPreviewConfig.density, pdfPreviewConfig.headingStyle, pdfPreviewConfig.templateId, resumeId])
 
   const renderModuleForm = (moduleId: number, content: Record<string, unknown>) => {
     if (!activeModuleType) return null
@@ -257,7 +312,7 @@ export default function EditorPage() {
         exporting={exporting}
       />
 
-      {editorView !== 'chrome-preview' && (
+      {editorView !== 'template-selection' && (
         <button
           type="button"
           onClick={() => setPreviewCollapsed((current) => !current)}
@@ -279,7 +334,7 @@ export default function EditorPage() {
         </button>
       )}
 
-      {editorView !== 'chrome-preview' && previewCollapsed && (
+      {editorView !== 'template-selection' && previewCollapsed && (
         <div className="fixed right-0 top-[65px] z-20 h-[calc(100vh-65px)] w-14 border-l border-gray-200 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),_transparent_45%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)]">
           <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
             <div className="flex flex-col gap-1.5">
@@ -302,8 +357,8 @@ export default function EditorPage() {
           onAddModule={handleAddModule}
           analysisActive={editorView === 'analysis'}
           onSelectAnalysis={openAnalysisView}
-          chromePreviewActive={editorView === 'chrome-preview'}
-          onSelectChromePreview={openChromePreviewView}
+          templateSelectionActive={editorView === 'template-selection'}
+          onSelectTemplateSelection={openTemplateSelectionView}
         />
 
         <main className="min-w-0 flex-1 p-6 xl:px-8">
@@ -317,8 +372,12 @@ export default function EditorPage() {
 
               <ResumeAnalysis resumeId={resumeId} />
             </div>
-          ) : editorView === 'chrome-preview' ? (
-            <ChromePreviewFrame resumeId={resumeId} />
+          ) : editorView === 'template-selection' ? (
+            <ChromePreviewFrame
+              resumeId={resumeId}
+              config={pdfPreviewConfig}
+              onConfigChange={setPdfPreviewConfig}
+            />
           ) : activeModuleType ? (
             <div className={moduleContainerClassName}>
               {exportError && (
@@ -402,7 +461,7 @@ export default function EditorPage() {
           )}
         </main>
 
-        {editorView !== 'chrome-preview' && (
+        {editorView !== 'template-selection' && (
           <aside
             className={`relative shrink-0 self-start border-l border-gray-200 bg-gray-50 transition-[width,min-width,max-width,padding] duration-300 ease-out ${
               previewCollapsed
@@ -412,7 +471,7 @@ export default function EditorPage() {
           >
             <div className="relative sticky top-[89px]">
               {!previewCollapsed && (
-                <PreviewPanel modules={modules} loading={loading} />
+                <PreviewPanel modules={modules} loading={loading} pdfConfig={pdfPreviewConfig} />
               )}
             </div>
           </aside>

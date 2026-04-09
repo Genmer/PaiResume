@@ -8,8 +8,8 @@ interface ModuleSidebarProps {
   onAddModule: (moduleType: ModuleType) => void
   analysisActive?: boolean
   onSelectAnalysis?: () => void
-  chromePreviewActive?: boolean
-  onSelectChromePreview?: () => void
+  templateSelectionActive?: boolean
+  onSelectTemplateSelection?: () => void
 }
 
 const ALL_MODULE_TYPES: ModuleType[] = [
@@ -30,11 +30,11 @@ export function ModuleSidebar({
   onAddModule,
   analysisActive = false,
   onSelectAnalysis,
-  chromePreviewActive = false,
-  onSelectChromePreview,
+  templateSelectionActive = false,
+  onSelectTemplateSelection,
 }: ModuleSidebarProps) {
   const existingTypes = new Set(modules.map((m) => m.moduleType as ModuleType))
-  const moduleViewActive = !analysisActive && !chromePreviewActive
+  const moduleViewActive = !analysisActive && !templateSelectionActive
 
   return (
     <aside className="sticky top-[65px] min-h-[calc(100vh-65px)] max-h-[calc(100vh-65px)] w-56 self-start overflow-y-auto border-r border-gray-200 bg-white">
@@ -97,16 +97,16 @@ export function ModuleSidebar({
           </button>
           <button
             type="button"
-            onClick={onSelectChromePreview}
+            onClick={onSelectTemplateSelection}
             className={`mt-1 w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-              chromePreviewActive
+              templateSelectionActive
                 ? 'bg-primary-50 font-medium text-primary-700'
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
             <span className="flex items-center gap-2.5">
               <span className="text-base">🌐</span>
-              <span className="flex-1">Chrome预览</span>
+              <span className="flex-1">选择模板</span>
             </span>
           </button>
         </div>

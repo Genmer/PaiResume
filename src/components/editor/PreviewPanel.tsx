@@ -16,13 +16,26 @@ import {
   normalizeResearchContent,
   normalizeSkillContent,
 } from '../../utils/moduleContent'
-import { generateResumePdfBlob, type ResumePdfPageMode } from '../../utils/resumePdf'
+import {
+  generateResumePdfBlob,
+  type ResumePdfAccentPreset,
+  type ResumePdfHeadingStyle,
+  type ResumePdfPageMode,
+  type ResumePdfTemplateId,
+  type ResumePdfDensity,
+} from '../../utils/resumePdf'
 
 interface PreviewPanelProps {
   modules: ResumeModule[]
   loading: boolean
   forcedMode?: PreviewMode
   hideHeader?: boolean
+  pdfConfig?: {
+    templateId: ResumePdfTemplateId
+    density: ResumePdfDensity
+    accentPreset: ResumePdfAccentPreset
+    headingStyle: ResumePdfHeadingStyle
+  }
 }
 
 type PreviewMode = 'live' | 'pdf-standard' | 'pdf-continuous'
@@ -101,7 +114,12 @@ const moduleCardMotion: Variants = {
   }),
 }
 
-function usePdfPreview(modules: ResumeModule[], pageMode: ResumePdfPageMode, enabled: boolean): PdfPreviewState {
+function usePdfPreview(
+  modules: ResumeModule[],
+  pageMode: ResumePdfPageMode,
+  enabled: boolean,
+  pdfConfig?: PreviewPanelProps['pdfConfig']
+): PdfPreviewState {
   const [url, setUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -127,7 +145,7 @@ function usePdfPreview(modules: ResumeModule[], pageMode: ResumePdfPageMode, ena
       return
     }
 
-    const nextSignature = JSON.stringify({ modules, pageMode })
+    const nextSignature = JSON.stringify({ modules, pageMode, pdfConfig })
     if (nextSignature === signatureRef.current && activeUrlRef.current) {
       setLoading(false)
       setError('')
@@ -140,7 +158,13 @@ function usePdfPreview(modules: ResumeModule[], pageMode: ResumePdfPageMode, ena
     setLoading(Boolean(activeUrlRef.current))
     setError('')
 
-    void generateResumePdfBlob(modules, { pageMode })
+    void generateResumePdfBlob(modules, {
+      pageMode,
+      templateId: pdfConfig?.templateId,
+      density: pdfConfig?.density,
+      accentPreset: pdfConfig?.accentPreset,
+      headingStyle: pdfConfig?.headingStyle,
+    })
       .then((blob) => {
         if (cancelled || requestId !== requestIdRef.current) {
           return
@@ -167,7 +191,7 @@ function usePdfPreview(modules: ResumeModule[], pageMode: ResumePdfPageMode, ena
     return () => {
       cancelled = true
     }
-  }, [enabled, modules, pageMode])
+  }, [enabled, modules, pageMode, pdfConfig])
 
   useEffect(() => () => {
     if (activeUrlRef.current) {
@@ -183,6 +207,7 @@ export function PreviewPanel({
   loading,
   forcedMode,
   hideHeader = false,
+  pdfConfig,
 }: PreviewPanelProps) {
   const shouldReduceMotion = useReducedMotion() ?? false
   const [previewMode, setPreviewMode] = useState<PreviewMode>(forcedMode ?? 'live')
@@ -209,8 +234,8 @@ export function PreviewPanel({
 
     return !(module.moduleType === 'award' && hasEducationModule)
   })
-  const standardPdfPreview = usePdfPreview(modules, 'standard', previewMode === 'pdf-standard')
-  const continuousPdfPreview = usePdfPreview(modules, 'continuous', previewMode === 'pdf-continuous')
+  const standardPdfPreview = usePdfPreview(modules, 'standard', previewMode === 'pdf-standard', pdfConfig)
+  const continuousPdfPreview = usePdfPreview(modules, 'continuous', previewMode === 'pdf-continuous', pdfConfig)
   const activePdfPreview = previewMode === 'pdf-continuous' ? continuousPdfPreview : standardPdfPreview
   const activePdfTitle = previewMode === 'pdf-continuous' ? '智能一页预览' : '标准 PDF 预览'
   const activePdfDescription = previewMode === 'pdf-continuous'

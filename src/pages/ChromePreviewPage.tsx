@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useResumeStore } from '../store/resumeStore'
-import { generateResumePdfBlob, resolveResumePdfTemplateId, type ResumePdfPageMode, type ResumePdfTemplateId } from '../utils/resumePdf'
+import {
+  generateResumePdfBlob,
+  resolveResumePdfAccentPreset,
+  resolveResumePdfDensity,
+  resolveResumePdfHeadingStyle,
+  resolveResumePdfTemplateId,
+  type ResumePdfAccentPreset,
+  type ResumePdfDensity,
+  type ResumePdfHeadingStyle,
+  type ResumePdfPageMode,
+  type ResumePdfTemplateId,
+} from '../utils/resumePdf'
 
 export default function ChromePreviewPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,6 +29,12 @@ export default function ChromePreviewPage() {
     ? 'continuous'
     : 'standard'
   const templateId: ResumePdfTemplateId = resolveResumePdfTemplateId(searchParams.get('templateId'))
+  const densityParam = searchParams.get('density')
+  const accentPresetParam = searchParams.get('accentPreset')
+  const headingStyleParam = searchParams.get('headingStyle')
+  const density: ResumePdfDensity | undefined = densityParam ? resolveResumePdfDensity(densityParam) : undefined
+  const accentPreset: ResumePdfAccentPreset | undefined = accentPresetParam ? resolveResumePdfAccentPreset(accentPresetParam) : undefined
+  const headingStyle: ResumePdfHeadingStyle | undefined = headingStyleParam ? resolveResumePdfHeadingStyle(headingStyleParam) : undefined
 
   useEffect(() => {
     if (!resumeId) {
@@ -45,7 +62,7 @@ export default function ChromePreviewPage() {
     setPdfLoading(true)
     setPdfError('')
 
-    void generateResumePdfBlob(modules, { pageMode, templateId })
+    void generateResumePdfBlob(modules, { pageMode, templateId, density, accentPreset, headingStyle })
       .then((blob) => {
         if (cancelled || requestId !== requestIdRef.current) {
           return
@@ -71,7 +88,7 @@ export default function ChromePreviewPage() {
     return () => {
       cancelled = true
     }
-  }, [modules, pageMode, refreshToken, templateId])
+  }, [accentPreset, density, headingStyle, modules, pageMode, refreshToken, templateId])
 
   useEffect(() => () => {
     if (activeUrlRef.current) {
@@ -80,7 +97,7 @@ export default function ChromePreviewPage() {
   }, [])
 
   const iframeTitle = useMemo(
-    () => (pageMode === 'continuous' ? 'Chrome Smart One Page PDF Preview' : 'Chrome Standard PDF Preview'),
+    () => (pageMode === 'continuous' ? '简历模板预览 - 智能一页' : '简历模板预览 - 标准 PDF'),
     [pageMode]
   )
 
@@ -105,7 +122,7 @@ export default function ChromePreviewPage() {
   if (!pdfUrl || pdfLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white text-gray-400">
-        正在生成 PDF 预览...
+        正在生成模板预览...
       </div>
     )
   }

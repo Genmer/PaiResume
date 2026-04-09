@@ -36,6 +36,9 @@ export interface ResumePdfOptions {
   pageMode?: 'standard' | 'continuous'
   fileNameSuffix?: string
   templateId?: ResumePdfTemplateId
+  density?: ResumePdfDensity
+  accentPreset?: ResumePdfAccentPreset
+  headingStyle?: ResumePdfHeadingStyle
 }
 
 export type ResumePdfPageMode = NonNullable<ResumePdfOptions['pageMode']>
@@ -48,6 +51,16 @@ export type ResumePdfTemplateId =
   | 'warm'
   | 'slate'
   | 'focus'
+export type ResumePdfDensity = 'normal' | 'compact'
+export type ResumePdfAccentPreset = 'auto' | 'blue' | 'slate' | 'warm' | 'emerald'
+export type ResumePdfHeadingStyle = 'auto' | 'underline' | 'filled' | 'bar'
+
+export interface ResumePdfPreviewConfig {
+  templateId: ResumePdfTemplateId
+  density: ResumePdfDensity
+  accentPreset: ResumePdfAccentPreset
+  headingStyle: ResumePdfHeadingStyle
+}
 
 export interface ResumePdfTemplateOption {
   id: ResumePdfTemplateId
@@ -134,13 +147,53 @@ export const RESUME_PDF_TEMPLATES: ResumePdfTemplateOption[] = [
   },
 ]
 
+export const DEFAULT_RESUME_PDF_PREVIEW_CONFIG: ResumePdfPreviewConfig = {
+  templateId: 'default',
+  density: 'normal',
+  accentPreset: 'auto',
+  headingStyle: 'auto',
+}
+
 const RESUME_PDF_TEMPLATE_IDS = new Set<ResumePdfTemplateId>(RESUME_PDF_TEMPLATES.map((template) => template.id))
+const RESUME_PDF_DENSITIES = new Set<ResumePdfDensity>(['normal', 'compact'])
+const RESUME_PDF_ACCENT_PRESETS = new Set<ResumePdfAccentPreset>(['auto', 'blue', 'slate', 'warm', 'emerald'])
+const RESUME_PDF_HEADING_STYLES = new Set<ResumePdfHeadingStyle>(['auto', 'underline', 'filled', 'bar'])
 
 export function resolveResumePdfTemplateId(value: string | null | undefined): ResumePdfTemplateId {
   if (value && RESUME_PDF_TEMPLATE_IDS.has(value as ResumePdfTemplateId)) {
     return value as ResumePdfTemplateId
   }
   return 'default'
+}
+
+export function resolveResumePdfDensity(value: string | null | undefined): ResumePdfDensity {
+  if (value && RESUME_PDF_DENSITIES.has(value as ResumePdfDensity)) {
+    return value as ResumePdfDensity
+  }
+  return 'normal'
+}
+
+export function resolveResumePdfAccentPreset(value: string | null | undefined): ResumePdfAccentPreset {
+  if (value && RESUME_PDF_ACCENT_PRESETS.has(value as ResumePdfAccentPreset)) {
+    return value as ResumePdfAccentPreset
+  }
+  return 'auto'
+}
+
+export function resolveResumePdfHeadingStyle(value: string | null | undefined): ResumePdfHeadingStyle {
+  if (value && RESUME_PDF_HEADING_STYLES.has(value as ResumePdfHeadingStyle)) {
+    return value as ResumePdfHeadingStyle
+  }
+  return 'auto'
+}
+
+type ResolvedResumePdfTemplateId = Exclude<ResumePdfTemplateId, 'compact'>
+
+interface ResolvedResumePdfThemeConfig {
+  templateId: ResolvedResumePdfTemplateId
+  density: ResumePdfDensity
+  accentPreset: ResumePdfAccentPreset
+  headingStyle: ResumePdfHeadingStyle
 }
 
 interface ResumePdfTheme {
@@ -180,7 +233,74 @@ interface ResumePdfTheme {
   chipVerticalPadding: number
 }
 
-function getResumePdfTheme(templateId: ResumePdfTemplateId): ResumePdfTheme {
+const COMPACT_DENSITY_BASELINE: Pick<
+  ResumePdfTheme,
+  | 'pagePadding'
+  | 'baseFontSize'
+  | 'titleSize'
+  | 'subtitleSize'
+  | 'lineHeight'
+  | 'headerBottom'
+  | 'headerRowGap'
+  | 'headerRowBottom'
+  | 'contactGap'
+  | 'sectionGap'
+  | 'itemGap'
+  | 'sectionTitleSize'
+  | 'sectionTitleBottom'
+  | 'sectionTitlePaddingBottom'
+  | 'paragraphTop'
+  | 'listItemTop'
+  | 'orderedIndent'
+  | 'inlineMetaRowGap'
+  | 'inlineMetaColumnGap'
+  | 'inlineMetaItemRight'
+  | 'inlineMetaItemBottom'
+  | 'chipGap'
+  | 'chipTop'
+  | 'chipFontSize'
+  | 'chipHorizontalPadding'
+  | 'chipVerticalPadding'
+> = {
+  pagePadding: 18,
+  baseFontSize: 9.8,
+  titleSize: 12,
+  subtitleSize: 11.1,
+  lineHeight: 1.28,
+  headerBottom: 8,
+  headerRowGap: 10,
+  headerRowBottom: 3,
+  contactGap: 6,
+  sectionGap: 7,
+  itemGap: 4,
+  sectionTitleSize: 11.8,
+  sectionTitleBottom: 4,
+  sectionTitlePaddingBottom: 2,
+  paragraphTop: 2,
+  listItemTop: 1,
+  orderedIndent: 10,
+  inlineMetaRowGap: 2,
+  inlineMetaColumnGap: 8,
+  inlineMetaItemRight: 8,
+  inlineMetaItemBottom: 2,
+  chipGap: 4,
+  chipTop: 2,
+  chipFontSize: 8,
+  chipHorizontalPadding: 4,
+  chipVerticalPadding: 1.5,
+}
+
+function getResolvedResumePdfThemeConfig(options?: Pick<ResumePdfOptions, 'templateId' | 'density' | 'accentPreset' | 'headingStyle'>): ResolvedResumePdfThemeConfig {
+  const rawTemplateId = options?.templateId ?? DEFAULT_RESUME_PDF_PREVIEW_CONFIG.templateId
+  return {
+    templateId: rawTemplateId === 'compact' ? 'default' : rawTemplateId,
+    density: options?.density ?? (rawTemplateId === 'compact' ? 'compact' : DEFAULT_RESUME_PDF_PREVIEW_CONFIG.density),
+    accentPreset: options?.accentPreset ?? DEFAULT_RESUME_PDF_PREVIEW_CONFIG.accentPreset,
+    headingStyle: options?.headingStyle ?? DEFAULT_RESUME_PDF_PREVIEW_CONFIG.headingStyle,
+  }
+}
+
+function getBaseResumePdfTheme(templateId: ResolvedResumePdfTemplateId): ResumePdfTheme {
   switch (templateId) {
     case 'minimal':
       return {
@@ -367,43 +487,6 @@ function getResumePdfTheme(templateId: ResumePdfTemplateId): ResumePdfTheme {
         chipHorizontalPadding: 6,
         chipVerticalPadding: 2,
       }
-    case 'compact':
-      return {
-        pagePadding: 18,
-        baseFontSize: 9.8,
-        titleSize: 12,
-        subtitleSize: 11.1,
-        lineHeight: 1.28,
-        headerBottom: 8,
-        headerRowGap: 10,
-        headerRowBottom: 3,
-        contactGap: 6,
-        sectionGap: 7,
-        itemGap: 4,
-        sectionTitleSize: 11.8,
-        sectionTitleBottom: 4,
-        sectionTitlePaddingBottom: 2,
-        sectionTitleColor: '#0f172a',
-        sectionTitleBorderColor: '#dbeafe',
-        labelColor: '#475569',
-        bodyColor: '#0f172a',
-        mutedColor: '#475569',
-        linkColor: '#1d4ed8',
-        chipTextColor: '#1d4ed8',
-        chipBackgroundColor: '#eff6ff',
-        paragraphTop: 2,
-        listItemTop: 1,
-        orderedIndent: 10,
-        inlineMetaRowGap: 2,
-        inlineMetaColumnGap: 8,
-        inlineMetaItemRight: 8,
-        inlineMetaItemBottom: 2,
-        chipGap: 4,
-        chipTop: 2,
-        chipFontSize: 8,
-        chipHorizontalPadding: 4,
-        chipVerticalPadding: 1.5,
-      }
     case 'accent':
       return {
         pagePadding: 28,
@@ -480,6 +563,89 @@ function getResumePdfTheme(templateId: ResumePdfTemplateId): ResumePdfTheme {
         chipVerticalPadding: 2,
       }
   }
+}
+
+function applyDensityToResumePdfTheme(theme: ResumePdfTheme, density: ResumePdfDensity): ResumePdfTheme {
+  if (density !== 'compact') {
+    return theme
+  }
+
+  return {
+    ...theme,
+    pagePadding: COMPACT_DENSITY_BASELINE.pagePadding,
+    baseFontSize: COMPACT_DENSITY_BASELINE.baseFontSize,
+    titleSize: COMPACT_DENSITY_BASELINE.titleSize,
+    subtitleSize: COMPACT_DENSITY_BASELINE.subtitleSize,
+    lineHeight: COMPACT_DENSITY_BASELINE.lineHeight,
+    headerBottom: COMPACT_DENSITY_BASELINE.headerBottom,
+    headerRowGap: COMPACT_DENSITY_BASELINE.headerRowGap,
+    headerRowBottom: COMPACT_DENSITY_BASELINE.headerRowBottom,
+    contactGap: COMPACT_DENSITY_BASELINE.contactGap,
+    sectionGap: COMPACT_DENSITY_BASELINE.sectionGap,
+    itemGap: COMPACT_DENSITY_BASELINE.itemGap,
+    sectionTitleSize: COMPACT_DENSITY_BASELINE.sectionTitleSize,
+    sectionTitleBottom: COMPACT_DENSITY_BASELINE.sectionTitleBottom,
+    sectionTitlePaddingBottom: COMPACT_DENSITY_BASELINE.sectionTitlePaddingBottom,
+    paragraphTop: COMPACT_DENSITY_BASELINE.paragraphTop,
+    listItemTop: COMPACT_DENSITY_BASELINE.listItemTop,
+    orderedIndent: COMPACT_DENSITY_BASELINE.orderedIndent,
+    inlineMetaRowGap: COMPACT_DENSITY_BASELINE.inlineMetaRowGap,
+    inlineMetaColumnGap: COMPACT_DENSITY_BASELINE.inlineMetaColumnGap,
+    inlineMetaItemRight: COMPACT_DENSITY_BASELINE.inlineMetaItemRight,
+    inlineMetaItemBottom: COMPACT_DENSITY_BASELINE.inlineMetaItemBottom,
+    chipGap: COMPACT_DENSITY_BASELINE.chipGap,
+    chipTop: COMPACT_DENSITY_BASELINE.chipTop,
+    chipFontSize: COMPACT_DENSITY_BASELINE.chipFontSize,
+    chipHorizontalPadding: COMPACT_DENSITY_BASELINE.chipHorizontalPadding,
+    chipVerticalPadding: COMPACT_DENSITY_BASELINE.chipVerticalPadding,
+  }
+}
+
+function applyAccentPresetToResumePdfTheme(theme: ResumePdfTheme, accentPreset: ResumePdfAccentPreset): ResumePdfTheme {
+  if (accentPreset === 'auto') {
+    return theme
+  }
+
+  const accentPalette = {
+    blue: {
+      accent: '#1d4ed8',
+      accentStrong: '#1e3a8a',
+      accentSoft: '#dbeafe',
+      accentBorder: '#bfdbfe',
+    },
+    slate: {
+      accent: '#475569',
+      accentStrong: '#334155',
+      accentSoft: '#e2e8f0',
+      accentBorder: '#cbd5e1',
+    },
+    warm: {
+      accent: '#b45309',
+      accentStrong: '#92400e',
+      accentSoft: '#ffedd5',
+      accentBorder: '#fed7aa',
+    },
+    emerald: {
+      accent: '#059669',
+      accentStrong: '#065f46',
+      accentSoft: '#d1fae5',
+      accentBorder: '#a7f3d0',
+    },
+  }[accentPreset]
+
+  return {
+    ...theme,
+    sectionTitleColor: accentPalette.accentStrong,
+    sectionTitleBorderColor: accentPalette.accentBorder,
+    linkColor: accentPalette.accent,
+    chipTextColor: accentPalette.accentStrong,
+    chipBackgroundColor: accentPalette.accentSoft,
+  }
+}
+
+function getResumePdfTheme(config: ResolvedResumePdfThemeConfig): ResumePdfTheme {
+  const baseTheme = getBaseResumePdfTheme(config.templateId)
+  return applyAccentPresetToResumePdfTheme(applyDensityToResumePdfTheme(baseTheme, config.density), config.accentPreset)
 }
 
 function createResumePdfStyles(theme: ResumePdfTheme) {
@@ -821,20 +987,54 @@ function buildFileName(modules: ResumeModule[], resumeId: number, options?: Resu
   return `${baseName}${suffix}.pdf`
 }
 
+function getResumePdfSectionHeadingVariant(
+  templateId: ResolvedResumePdfTemplateId,
+  headingStyle: ResumePdfHeadingStyle
+): Exclude<ResumePdfHeadingStyle, 'auto'> {
+  if (headingStyle !== 'auto') {
+    return headingStyle
+  }
+
+  switch (templateId) {
+    case 'executive':
+    case 'slate':
+      return 'filled'
+    case 'focus':
+      return 'bar'
+    case 'default':
+    case 'accent':
+    case 'minimal':
+    case 'warm':
+    default:
+      return 'underline'
+  }
+}
+
 function ResumePdfDocument({
   modules,
   pageSize = 'A4',
   templateId = 'default',
+  density = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.density,
+  accentPreset = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.accentPreset,
+  headingStyle = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.headingStyle,
 }: {
   modules: ResumeModule[]
   pageSize?: 'A4' | [number, number]
   templateId?: ResumePdfTemplateId
+  density?: ResumePdfDensity
+  accentPreset?: ResumePdfAccentPreset
+  headingStyle?: ResumePdfHeadingStyle
 }) {
-  const styles = createResumePdfStyles(getResumePdfTheme(templateId))
-  const isMinimal = templateId === 'minimal'
-  const isExecutive = templateId === 'executive'
-  const isSlate = templateId === 'slate'
-  const isFocus = templateId === 'focus'
+  const resolvedThemeConfig = getResolvedResumePdfThemeConfig({ templateId, density, accentPreset, headingStyle })
+  const theme = getResumePdfTheme(resolvedThemeConfig)
+  const styles = createResumePdfStyles(theme)
+  const isMinimal = resolvedThemeConfig.templateId === 'minimal'
+  const isExecutive = resolvedThemeConfig.templateId === 'executive'
+  const isSlate = resolvedThemeConfig.templateId === 'slate'
+  const sectionHeadingVariant = getResumePdfSectionHeadingVariant(
+    resolvedThemeConfig.templateId,
+    resolvedThemeConfig.headingStyle
+  )
   const sortedModules = sortModules(modules)
   const basicInfoModule = sortedModules.find((module) => module.moduleType === 'basic_info')
   const basicInfo = basicInfoModule ? normalizeBasicInfoContent(basicInfoModule.content) : null
@@ -848,7 +1048,7 @@ function ResumePdfDocument({
     .filter((award) => award.awardName || award.awardTime)
   const headerContainerStyle = [
     styles.header,
-    ...(isExecutive ? [{ backgroundColor: '#0f172a', padding: 14, marginBottom: 16 }] : []),
+    ...(isExecutive ? [{ backgroundColor: theme.sectionTitleColor, padding: 14, marginBottom: 16 }] : []),
     ...(isMinimal ? [{ marginBottom: 18 }] : []),
   ]
   const headerTitleStyle = [
@@ -861,7 +1061,7 @@ function ResumePdfDocument({
   ]
   const headerLabelStyle = [
     styles.label,
-    ...(isExecutive ? [{ color: '#bfdbfe' }] : []),
+    ...(isExecutive ? [{ color: theme.sectionTitleBorderColor }] : []),
   ]
   const headerContactStyle = [
     styles.contactRow,
@@ -873,15 +1073,31 @@ function ResumePdfDocument({
   ]
   const sectionStyle = [
     styles.section,
-    ...(isSlate ? [{ backgroundColor: '#f8fafc', padding: 8 }] : []),
-    ...(isFocus ? [{ borderLeftWidth: 3, borderLeftColor: '#2563eb', paddingLeft: 10 }] : []),
+    ...(isSlate && resolvedThemeConfig.headingStyle === 'auto' ? [{ backgroundColor: '#f8fafc', padding: 8 }] : []),
+    ...(sectionHeadingVariant === 'bar' ? [{ borderLeftWidth: 3, borderLeftColor: theme.linkColor, paddingLeft: 10 }] : []),
   ]
   const sectionTitleStyle = [
     styles.sectionTitle,
-    ...(isMinimal ? [{ borderBottomWidth: 0, paddingBottom: 0, marginBottom: 4, color: '#111827' }] : []),
-    ...(isExecutive ? [{ backgroundColor: '#0f172a', color: '#f8fafc', paddingHorizontal: 8, paddingVertical: 4, borderBottomWidth: 0, marginBottom: 8 }] : []),
-    ...(isSlate ? [{ backgroundColor: '#e2e8f0', color: '#334155', paddingHorizontal: 7, paddingVertical: 3, borderBottomWidth: 0, marginBottom: 6 }] : []),
-    ...(isFocus ? [{ color: '#1d4ed8', borderBottomWidth: 0, paddingBottom: 0, marginBottom: 6 }] : []),
+    ...(sectionHeadingVariant === 'underline' && isMinimal && resolvedThemeConfig.headingStyle === 'auto'
+      ? [{ borderBottomWidth: 0, paddingBottom: 0, marginBottom: 4, color: '#111827' }]
+      : []),
+    ...(sectionHeadingVariant === 'filled'
+      ? [{
+          backgroundColor: resolvedThemeConfig.templateId === 'slate' && resolvedThemeConfig.headingStyle === 'auto'
+            ? theme.chipBackgroundColor
+            : theme.sectionTitleColor,
+          color: resolvedThemeConfig.templateId === 'slate' && resolvedThemeConfig.headingStyle === 'auto'
+            ? theme.sectionTitleColor
+            : '#f8fafc',
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          borderBottomWidth: 0,
+          marginBottom: 8,
+        }]
+      : []),
+    ...(sectionHeadingVariant === 'bar'
+      ? [{ color: theme.linkColor, borderBottomWidth: 0, paddingBottom: 0, marginBottom: 6 }]
+      : []),
   ]
 
   return (
@@ -1166,6 +1382,9 @@ export async function generateResumePdfBlob(modules: ResumeModule[], options?: R
       modules={modules}
       pageSize={pageSize}
       templateId={options?.templateId ?? 'default'}
+      density={options?.density}
+      accentPreset={options?.accentPreset}
+      headingStyle={options?.headingStyle}
     />
   )
 
