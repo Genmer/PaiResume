@@ -1433,7 +1433,9 @@ function buildResumePdfPreviewMeta(
   const layoutPages = Array.isArray(rootNode?.children) ? rootNode.children : []
   const pageHeights = layoutPages
     .map((page) => {
-      const pageHeight = page?.box?.height
+      const pageHeight = options?.pageMode === 'continuous'
+        ? getContinuousPageContentHeight(page, options)
+        : page?.box?.height
       return typeof pageHeight === 'number' && Number.isFinite(pageHeight) && pageHeight > 0
         ? pageHeight
         : fallbackHeight
@@ -1457,10 +1459,55 @@ function buildResumePdfPreviewMeta(
   }
 }
 
-export async function generateResumePdfPreviewAsset(modules: ResumeModule[], options?: ResumePdfOptions) {
-  const pageSize = options?.pageMode === 'continuous'
-    ? [A4_WIDTH, estimateContinuousPageHeight(modules)] as [number, number]
-    : 'A4'
+function getNodeBottomBoundary(node: unknown): number {
+  if (!node || typeof node !== 'object') {
+    return 0
+  }
+
+  const typedNode = node as {
+    box?: { top?: number; height?: number }
+    children?: unknown[]
+  }
+  const ownBottom = (typedNode.box?.top ?? 0) + (typedNode.box?.height ?? 0)
+  const childBottom = Array.isArray(typedNode.children)
+    ? typedNode.children.reduce<number>((maxBottom, child) => Math.max(maxBottom, getNodeBottomBoundary(child)), 0)
+    : 0
+
+  return Math.max(ownBottom, childBottom)
+}
+
+function getContinuousPageContentHeight(
+  page: { box?: { height?: number }; children?: unknown[] } | undefined,
+  options?: ResumePdfOptions
+) {
+  if (!page) {
+    return undefined
+  }
+
+  const resolvedThemeConfig = getResolvedResumePdfThemeConfig({
+    templateId: options?.templateId,
+    density: options?.density,
+    accentPreset: options?.accentPreset,
+    headingStyle: options?.headingStyle,
+  })
+  const theme = getResumePdfTheme(resolvedThemeConfig)
+  const contentBottom = Array.isArray(page.children)
+    ? page.children.reduce<number>((maxBottom, child) => Math.max(maxBottom, getNodeBottomBoundary(child)), 0)
+    : 0
+  const contentHeight = contentBottom + theme.pagePadding + 8
+
+  if (contentHeight <= 0) {
+    return page.box?.height
+  }
+
+  return Math.min(page.box?.height ?? contentHeight, contentHeight)
+}
+
+async function renderResumePdfAsset(
+  modules: ResumeModule[],
+  pageSize: 'A4' | [number, number],
+  options?: ResumePdfOptions
+) {
   let previewMeta: ResumePdfPreviewMeta | null = null
   const document = (
     <ResumePdfDocument
@@ -1485,6 +1532,25 @@ export async function generateResumePdfPreviewAsset(modules: ResumeModule[], opt
     blob,
     previewMeta: previewMeta ?? buildResumePdfPreviewMeta(undefined, modules, options),
   }
+}
+
+export async function generateResumePdfPreviewAsset(modules: ResumeModule[], options?: ResumePdfOptions) {
+  if (options?.pageMode === 'continuous') {
+    const estimatedHeight = estimateContinuousPageHeight(modules)
+    const firstPass = await renderResumePdfAsset(modules, [A4_WIDTH, estimatedHeight], options)
+    const actualHeight = firstPass.previewMeta.pageHeights[0]
+    const normalizedHeight = actualHeight && Number.isFinite(actualHeight) && actualHeight > 0
+      ? Math.ceil(actualHeight)
+      : estimatedHeight
+
+    if (Math.abs(normalizedHeight - estimatedHeight) > 6) {
+      return renderResumePdfAsset(modules, [A4_WIDTH, normalizedHeight], options)
+    }
+
+    return firstPass
+  }
+
+  return renderResumePdfAsset(modules, 'A4', options)
 }
 
 export async function generateResumePdfBlob(modules: ResumeModule[], options?: ResumePdfOptions) {
