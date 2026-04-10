@@ -17,6 +17,7 @@ import {
 
 const CHROME_PREVIEW_RESIZE_MESSAGE_TYPE = 'pai-resume:chrome-preview-resize'
 const STANDARD_PAGE_GAP_PX = 24
+const PDF_VIEWER_TOOLBAR_HEIGHT_PX = 64
 const PREVIEW_VERTICAL_BUFFER_PX = 32
 const FALLBACK_STANDARD_PREVIEW_HEIGHT_PX = 1160
 const FALLBACK_CONTINUOUS_PREVIEW_HEIGHT_PX = 760
@@ -163,7 +164,7 @@ export default function ChromePreviewPage() {
       ? STANDARD_PAGE_GAP_PX * (previewMeta.pageCount - 1)
       : 0
 
-    return Math.ceil(totalPageHeight + pageGap + PREVIEW_VERTICAL_BUFFER_PX)
+    return Math.ceil(totalPageHeight + pageGap + PREVIEW_VERTICAL_BUFFER_PX + PDF_VIEWER_TOOLBAR_HEIGHT_PX)
   }, [containerWidth, pageMode, previewMeta])
 
   useEffect(() => {
