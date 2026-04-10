@@ -1028,6 +1028,7 @@ function ResumePdfDocument({
   const resolvedThemeConfig = getResolvedResumePdfThemeConfig({ templateId, density, accentPreset, headingStyle })
   const theme = getResumePdfTheme(resolvedThemeConfig)
   const styles = createResumePdfStyles(theme)
+  const isCompactDensity = resolvedThemeConfig.density === 'compact'
   const isMinimal = resolvedThemeConfig.templateId === 'minimal'
   const isExecutive = resolvedThemeConfig.templateId === 'executive'
   const isSlate = resolvedThemeConfig.templateId === 'slate'
@@ -1042,6 +1043,7 @@ function ResumePdfDocument({
   const jobIntention = jobIntentionModule ? normalizeJobIntentionContent(jobIntentionModule.content) : null
   const displayJobIntention = basicInfo?.jobIntention || jobIntention?.targetPosition || ''
   const hasEducationModule = sortedModules.some((module) => module.moduleType === 'education')
+  const educationModules = sortedModules.filter((module) => module.moduleType === 'education')
   const awardModules = sortedModules
     .filter((module) => module.moduleType === 'award')
     .map((module) => normalizeAwardContent(module.content))
@@ -1149,66 +1151,102 @@ function ResumePdfDocument({
           </View>
         )}
 
-        {sortedModules.map((module) => {
-          switch (module.moduleType) {
-            case 'basic_info':
-              return null
-            case 'education': {
-              const content = normalizeEducationContent(module.content)
-              const awards = awardModules
+        {educationModules.length > 0 ? (
+          <View style={sectionStyle}>
+            <Text style={sectionTitleStyle}>教育背景</Text>
+            {educationModules.map((educationModule) => {
+              const content = normalizeEducationContent(educationModule.content)
               const schoolTags = [
                 content.is985 ? '985' : '',
                 content.is211 ? '211' : '',
                 content.isDoubleFirst ? '双一流' : '',
               ].filter(Boolean)
+              const departmentMajor = [
+                content.department ? `${content.department}` : '',
+                content.major ? `（${content.major}）` : '',
+              ].join('')
               const firstRowItems = [
-                content.degree ? `学历：${content.degree}` : '',
+                content.degree || '',
                 formatMonthRange(content.startDate, content.endDate),
               ].filter(Boolean)
               const secondRowItems = [
                 content.department ? `院系：${content.department}` : '',
                 content.major ? `专业：${content.major}` : '',
               ].filter(Boolean)
+
               return (
-                <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>教育背景</Text>
-                  <View style={styles.item}>
+                <View
+                  key={educationModule.id}
+                  style={[
+                    styles.item,
+                    ...(educationModule.id !== educationModules[educationModules.length - 1]?.id
+                      ? [{ paddingBottom: 6 }]
+                      : []),
+                  ]}
+                >
+                  {isCompactDensity ? (
                     <View style={styles.rowBetween}>
                       <View style={styles.inlineMeta}>
                         <Text style={styles.inlineMetaItem}>
-                          <Text style={styles.label}>学校：</Text>
                           <Text style={styles.strong}>{content.school || '未填写'}</Text>
+                          {departmentMajor ? <Text style={styles.muted}>{` ${departmentMajor}`}</Text> : null}
                         </Text>
                         {!isMinimal && schoolTags.map((tag) => (
                           <Text key={tag} style={styles.chip}>{tag}</Text>
                         ))}
                       </View>
-                      <View style={styles.inlineMeta}>
-                        {firstRowItems.map((item) => (
-                          <Text key={item} style={[styles.inlineMetaItem, styles.muted]}>{item}</Text>
-                        ))}
-                      </View>
-                    </View>
-                    <View style={styles.inlineMeta}>
-                      {secondRowItems.map((item) => (
-                        <Text key={item} style={styles.inlineMetaItem}>{item}</Text>
-                      ))}
-                    </View>
-                    {awards.length > 0 ? (
-                      <View style={{ marginTop: 4 }}>
-                        {awards.map((award, index) => (
-                          <Text key={`${award.awardName}-${index}`} style={styles.paragraph}>
-                            <Text style={styles.label}>奖项：</Text>
-                            {award.awardName}
-                            {award.awardTime ? `（${formatAwardDisplayTime(award.awardTime)}）` : ''}
+                      {content.startDate || content.endDate ? (
+                        <View style={styles.inlineMeta}>
+                          <Text style={[styles.inlineMetaItem, styles.muted]}>
+                            {formatMonthRange(content.startDate, content.endDate)}
                           </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : (
+                    <>
+                      <View style={styles.rowBetween}>
+                        <View style={styles.inlineMeta}>
+                          <Text style={[styles.inlineMetaItem, styles.strong]}>{content.school || '未填写'}</Text>
+                          {!isMinimal && schoolTags.map((tag) => (
+                            <Text key={tag} style={styles.chip}>{tag}</Text>
+                          ))}
+                        </View>
+                        <View style={styles.inlineMeta}>
+                          {firstRowItems.map((item) => (
+                            <Text key={item} style={[styles.inlineMetaItem, styles.muted]}>{item}</Text>
+                          ))}
+                        </View>
+                      </View>
+                      <View style={styles.inlineMeta}>
+                        {secondRowItems.map((item) => (
+                          <Text key={item} style={styles.inlineMetaItem}>{item}</Text>
                         ))}
                       </View>
-                    ) : null}
-                  </View>
+                    </>
+                  )}
                 </View>
               )
-            }
+            })}
+            {awardModules.length > 0 ? (
+              <View style={{ marginTop: 4 }}>
+                {awardModules.map((award, index) => (
+                  <Text key={`${award.awardName}-${index}`} style={styles.paragraph}>
+                    <Text style={styles.label}>奖项：</Text>
+                    {award.awardName}
+                    {award.awardTime ? `（${formatAwardDisplayTime(award.awardTime)}）` : ''}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {sortedModules.map((module) => {
+          switch (module.moduleType) {
+            case 'basic_info':
+            case 'education':
+              return null
             case 'internship': {
               const content = normalizeInternshipContent(module.content)
               const titleLine = [content.company, content.position, content.projectName].filter(Boolean).join(' - ')

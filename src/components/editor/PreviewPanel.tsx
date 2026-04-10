@@ -41,7 +41,7 @@ interface PreviewPanelProps {
 type PreviewMode = 'live' | 'pdf-standard' | 'pdf-continuous'
 
 interface PdfPreviewState {
-  url: string | null
+  blob: Blob | null
   loading: boolean
   error: string
 }
@@ -120,10 +120,9 @@ function usePdfPreview(
   enabled: boolean,
   pdfConfig?: PreviewPanelProps['pdfConfig']
 ): PdfPreviewState {
-  const [url, setUrl] = useState<string | null>(null)
+  const [blob, setBlob] = useState<Blob | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const activeUrlRef = useRef<string | null>(null)
   const requestIdRef = useRef(0)
   const signatureRef = useRef('')
 
@@ -131,13 +130,9 @@ function usePdfPreview(
     if (modules.length === 0) {
       requestIdRef.current += 1
       signatureRef.current = ''
-      setUrl(null)
+      setBlob(null)
       setLoading(false)
       setError('')
-      if (activeUrlRef.current) {
-        URL.revokeObjectURL(activeUrlRef.current)
-        activeUrlRef.current = null
-      }
       return
     }
 
@@ -146,7 +141,7 @@ function usePdfPreview(
     }
 
     const nextSignature = JSON.stringify({ modules, pageMode, pdfConfig })
-    if (nextSignature === signatureRef.current && activeUrlRef.current) {
+    if (nextSignature === signatureRef.current && blob) {
       setLoading(false)
       setError('')
       return
@@ -155,7 +150,7 @@ function usePdfPreview(
     let cancelled = false
     const requestId = requestIdRef.current + 1
     requestIdRef.current = requestId
-    setLoading(Boolean(activeUrlRef.current))
+    setLoading(Boolean(blob))
     setError('')
 
     void generateResumePdfBlob(modules, {
@@ -170,13 +165,8 @@ function usePdfPreview(
           return
         }
 
-        const nextUrl = URL.createObjectURL(blob)
         signatureRef.current = nextSignature
-        if (activeUrlRef.current) {
-          URL.revokeObjectURL(activeUrlRef.current)
-        }
-        activeUrlRef.current = nextUrl
-        setUrl(nextUrl)
+        setBlob(blob)
         setLoading(false)
       })
       .catch((reason: unknown) => {
@@ -191,15 +181,9 @@ function usePdfPreview(
     return () => {
       cancelled = true
     }
-  }, [enabled, modules, pageMode, pdfConfig])
+  }, [blob, enabled, modules, pageMode, pdfConfig])
 
-  useEffect(() => () => {
-    if (activeUrlRef.current) {
-      URL.revokeObjectURL(activeUrlRef.current)
-    }
-  }, [])
-
-  return { url, loading, error }
+  return { blob, loading, error }
 }
 
 export function PreviewPanel({
@@ -211,6 +195,7 @@ export function PreviewPanel({
 }: PreviewPanelProps) {
   const shouldReduceMotion = useReducedMotion() ?? false
   const [previewMode, setPreviewMode] = useState<PreviewMode>(forcedMode ?? 'live')
+  const isCompactDensity = pdfConfig?.density === 'compact'
   const sortedModules = [...modules].sort((a, b) => {
     if (a.sortOrder === b.sortOrder) {
       return a.id - b.id
@@ -219,9 +204,15 @@ export function PreviewPanel({
     return a.sortOrder - b.sortOrder
   })
   const hasEducationModule = sortedModules.some((module) => module.moduleType === 'education')
+  const educationModules = sortedModules.filter((module) => module.moduleType === 'education')
+  const firstEducationModuleId = educationModules[0]?.id ?? null
   const visibleModules = sortedModules.filter((module) => {
     if (module.moduleType === 'job_intention') {
       return false
+    }
+
+    if (module.moduleType === 'education') {
+      return module.id === firstEducationModuleId
     }
 
     if (module.moduleType === 'paper') {
@@ -336,6 +327,7 @@ export function PreviewPanel({
                     module={module}
                     modules={sortedModules}
                     index={index}
+                    compactEducation={isCompactDensity}
                     shouldReduceMotion={shouldReduceMotion}
                   />
                 ))}
@@ -383,26 +375,21 @@ function PdfPreviewCard({
   }, [])
 
   useEffect(() => {
-    if (!preview.url || containerWidth <= 0) {
+    if (!preview.blob || containerWidth <= 0) {
       setPages([])
       setRenderError('')
       setRendering(false)
       return
     }
 
-    const previewUrl = preview.url
+    const previewBlob = preview.blob
     let cancelled = false
     setRendering(true)
     setRenderError('')
 
     void (async () => {
       try {
-        const arrayBuffer = await fetch(previewUrl).then(async (response) => {
-          if (!response.ok) {
-            throw new Error('PDF 预览加载失败')
-          }
-          return response.arrayBuffer()
-        })
+        const arrayBuffer = await previewBlob.arrayBuffer()
 
         const pdf = await PDFJS.getDocument({ data: arrayBuffer }).promise
         const renderedPages: RenderedPdfPage[] = []
@@ -459,7 +446,7 @@ function PdfPreviewCard({
     return () => {
       cancelled = true
     }
-  }, [containerWidth, preview.url])
+  }, [containerWidth, preview.blob])
 
   return (
     <section
@@ -470,7 +457,7 @@ function PdfPreviewCard({
         <div className="flex h-[70vh] min-h-[520px] items-center justify-center px-6 text-sm text-red-500">
           {preview.error || renderError}
         </div>
-      ) : preview.url ? (
+      ) : preview.blob ? (
         <div className="relative">
           <div className="space-y-8">
             {pages.map((page) => (
@@ -590,11 +577,13 @@ function ModulePreviewSection({
   module,
   modules,
   index,
+  compactEducation,
   shouldReduceMotion,
 }: {
   module: ResumeModule
   modules: ResumeModule[]
   index: number
+  compactEducation: boolean
   shouldReduceMotion: boolean
 }) {
   const label = MODULE_LABELS[module.moduleType as ModuleType] || module.moduleType
@@ -645,50 +634,89 @@ function ModulePreviewSection({
         )
       }
       case 'education': {
-        const content = normalizeEducationContent(module.content)
         const awards = awardModules
           .map((item) => normalizeAwardContent(item.content))
           .filter((item) => item.awardName || item.awardTime)
-        const schoolTags = [
-          content.is985 ? '985' : '',
-          content.is211 ? '211' : '',
-          content.isDoubleFirst ? '双一流' : '',
-        ].filter(Boolean)
-        const firstRowItems = [
-          content.degree ? `学历：${content.degree}` : '',
-          formatMonthRange(content.startDate as string, content.endDate as string),
-        ].filter(Boolean)
-        const secondRowItems = [
-          content.department ? `院系：${content.department}` : '',
-          content.major ? `专业：${content.major}` : '',
-        ].filter(Boolean)
 
         return (
-          <div className="mb-4 space-y-1.5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-                <span>{renderLabeledText('学校', (content.school as string) || '未填写', true)}</span>
-                {schoolTags.map((tag) => (
-                  <span key={tag} className="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-600">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              {firstRowItems.length > 0 && (
-                <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm text-gray-600">
-                  {firstRowItems.map((item) => (
-                    <span key={item}>{item}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-            {secondRowItems.length > 0 && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
-                {secondRowItems.map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
-              </div>
-            )}
+          <div className="mb-4 space-y-4">
+            {modules
+              .filter((item) => item.moduleType === 'education')
+              .map((educationModule) => {
+                const content = normalizeEducationContent(educationModule.content)
+                const schoolTags = [
+                  content.is985 ? '985' : '',
+                  content.is211 ? '211' : '',
+                  content.isDoubleFirst ? '双一流' : '',
+                ].filter(Boolean)
+                const departmentMajor = [
+                  content.department ? `${content.department}` : '',
+                  content.major ? `（${content.major}）` : '',
+                ].join('')
+                const firstRowItems = [
+                  content.degree || '',
+                  formatMonthRange(content.startDate as string, content.endDate as string),
+                ].filter(Boolean)
+                const secondRowItems = [
+                  content.department ? `院系：${content.department}` : '',
+                  content.major ? `专业：${content.major}` : '',
+                ].filter(Boolean)
+
+                return (
+                  <div
+                    key={educationModule.id}
+                    className="space-y-1.5 pb-3 last:pb-0"
+                  >
+                    {compactEducation ? (
+                      <div className="flex items-start justify-between gap-4 text-sm text-gray-700">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-gray-900">
+                            {(content.school as string) || '未填写'}
+                            {departmentMajor ? <span className="ml-2 font-normal text-gray-600">{departmentMajor}</span> : null}
+                          </span>
+                          {schoolTags.map((tag) => (
+                            <span key={tag} className="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-600">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        {content.startDate || content.endDate ? (
+                          <div className="shrink-0 text-sm text-gray-500">
+                            {formatMonthRange(content.startDate as string, content.endDate as string)}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+                            <span className="font-semibold text-gray-900">{(content.school as string) || '未填写'}</span>
+                            {schoolTags.map((tag) => (
+                              <span key={tag} className="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-600">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                          {firstRowItems.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm text-gray-600">
+                              {firstRowItems.map((item) => (
+                                <span key={item}>{item}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {secondRowItems.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
+                            {secondRowItems.map((item) => (
+                              <span key={item}>{item}</span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )
+              })}
             {awards.length > 0 && (
               <div className="space-y-1 pt-1">
                 {awards.map((award, index) => (
