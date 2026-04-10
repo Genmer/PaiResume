@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useResumeStore } from '../store/resumeStore'
 import {
-  generateResumePdfBlob,
+  generateResumePdfPreviewAsset,
+  type ResumePdfPreviewMeta,
   resolveResumePdfAccentPreset,
   resolveResumePdfDensity,
   resolveResumePdfHeadingStyle,
@@ -14,16 +15,26 @@ import {
   type ResumePdfTemplateId,
 } from '../utils/resumePdf'
 
+const CHROME_PREVIEW_RESIZE_MESSAGE_TYPE = 'pai-resume:chrome-preview-resize'
+const STANDARD_PAGE_GAP_PX = 24
+const PREVIEW_VERTICAL_BUFFER_PX = 32
+const FALLBACK_STANDARD_PREVIEW_HEIGHT_PX = 1160
+const FALLBACK_CONTINUOUS_PREVIEW_HEIGHT_PX = 760
+
 export default function ChromePreviewPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const resumeId = Number(id)
   const { modules, loading, fetchModules } = useResumeStore()
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [previewMeta, setPreviewMeta] = useState<ResumePdfPreviewMeta | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [pdfError, setPdfError] = useState('')
+  const [containerWidth, setContainerWidth] = useState(0)
   const activeUrlRef = useRef<string | null>(null)
   const requestIdRef = useRef(0)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const reportedHeightRef = useRef(0)
   const refreshToken = searchParams.get('refresh') ?? ''
   const pageMode: ResumePdfPageMode = searchParams.get('pageMode') === 'continuous'
     ? 'continuous'
@@ -47,6 +58,7 @@ export default function ChromePreviewPage() {
   useEffect(() => {
     if (modules.length === 0) {
       setPdfUrl(null)
+      setPreviewMeta(null)
       setPdfLoading(false)
       setPdfError('')
       if (activeUrlRef.current) {
@@ -62,8 +74,8 @@ export default function ChromePreviewPage() {
     setPdfLoading(true)
     setPdfError('')
 
-    void generateResumePdfBlob(modules, { pageMode, templateId, density, accentPreset, headingStyle })
-      .then((blob) => {
+    void generateResumePdfPreviewAsset(modules, { pageMode, templateId, density, accentPreset, headingStyle })
+      .then(({ blob, previewMeta }) => {
         if (cancelled || requestId !== requestIdRef.current) {
           return
         }
@@ -74,6 +86,7 @@ export default function ChromePreviewPage() {
         }
         activeUrlRef.current = nextUrl
         setPdfUrl(nextUrl)
+        setPreviewMeta(previewMeta)
         setPdfLoading(false)
       })
       .catch((error: unknown) => {
@@ -81,6 +94,7 @@ export default function ChromePreviewPage() {
           return
         }
 
+        setPreviewMeta(null)
         setPdfLoading(false)
         setPdfError(error instanceof Error ? error.message : 'PDF 预览生成失败')
       })
@@ -96,10 +110,79 @@ export default function ChromePreviewPage() {
     }
   }, [])
 
+  useEffect(() => {
+    const element = containerRef.current
+    if (!element || typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) {
+        return
+      }
+
+      setContainerWidth(Math.floor(entry.contentRect.width))
+    })
+
+    observer.observe(element)
+    setContainerWidth(Math.floor(element.getBoundingClientRect().width))
+
+    return () => observer.disconnect()
+  }, [])
+
   const iframeTitle = useMemo(
     () => (pageMode === 'continuous' ? '简历模板预览 - 智能一页' : '简历模板预览 - 标准 PDF'),
     [pageMode]
   )
+  const previewPath = useMemo(
+    () => `${window.location.pathname}${window.location.search}`,
+    []
+  )
+  const pdfViewerUrl = useMemo(() => {
+    if (!pdfUrl) {
+      return null
+    }
+
+    return `${pdfUrl}#view=FitH`
+  }, [pdfUrl])
+  const previewHeight = useMemo(() => {
+    if (!previewMeta) {
+      return pageMode === 'standard'
+        ? FALLBACK_STANDARD_PREVIEW_HEIGHT_PX
+        : FALLBACK_CONTINUOUS_PREVIEW_HEIGHT_PX
+    }
+
+    const effectiveContainerWidth = containerWidth > 0 ? containerWidth : window.innerWidth
+    const effectivePageWidth = previewMeta.pageWidth > 0 ? previewMeta.pageWidth : 595.28
+    const scaledPageHeights = previewMeta.pageHeights.map((pageHeight) => (
+      effectiveContainerWidth * pageHeight / effectivePageWidth
+    ))
+    const totalPageHeight = scaledPageHeights.reduce((sum, pageHeight) => sum + pageHeight, 0)
+    const pageGap = pageMode === 'standard' && previewMeta.pageCount > 1
+      ? STANDARD_PAGE_GAP_PX * (previewMeta.pageCount - 1)
+      : 0
+
+    return Math.ceil(totalPageHeight + pageGap + PREVIEW_VERTICAL_BUFFER_PX)
+  }, [containerWidth, pageMode, previewMeta])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent === window) {
+      return
+    }
+
+    const nextHeight = Math.max(previewHeight, 520)
+    if (reportedHeightRef.current === nextHeight) {
+      return
+    }
+
+    reportedHeightRef.current = nextHeight
+    window.parent.postMessage({
+      type: CHROME_PREVIEW_RESIZE_MESSAGE_TYPE,
+      previewPath,
+      height: nextHeight,
+    }, window.location.origin)
+  }, [previewHeight, previewPath])
 
   if (loading && modules.length === 0) {
     return (
@@ -128,10 +211,14 @@ export default function ChromePreviewPage() {
   }
 
   return (
-    <iframe
-      title={iframeTitle}
-      src={pdfUrl}
-      className="min-h-screen w-full border-0 bg-white"
-    />
+    <div ref={containerRef} className="w-full overflow-hidden bg-white">
+      <iframe
+        title={iframeTitle}
+        src={pdfViewerUrl ?? undefined}
+        scrolling="no"
+        className="block w-full border-0 bg-white"
+        style={{ height: `${previewHeight}px` }}
+      />
+    </div>
   )
 }

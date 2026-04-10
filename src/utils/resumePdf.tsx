@@ -72,6 +72,12 @@ export interface ResumePdfTemplateOption {
   previewHighlights: string[]
 }
 
+export interface ResumePdfPreviewMeta {
+  pageCount: number
+  pageWidth: number
+  pageHeights: number[]
+}
+
 export const RESUME_PDF_TEMPLATES: ResumePdfTemplateOption[] = [
   {
     id: 'default',
@@ -1017,6 +1023,7 @@ function ResumePdfDocument({
   density = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.density,
   accentPreset = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.accentPreset,
   headingStyle = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.headingStyle,
+  onRender,
 }: {
   modules: ResumeModule[]
   pageSize?: 'A4' | [number, number]
@@ -1024,6 +1031,7 @@ function ResumePdfDocument({
   density?: ResumePdfDensity
   accentPreset?: ResumePdfAccentPreset
   headingStyle?: ResumePdfHeadingStyle
+  onRender?: (props: unknown) => void
 }) {
   const resolvedThemeConfig = getResolvedResumePdfThemeConfig({ templateId, density, accentPreset, headingStyle })
   const theme = getResumePdfTheme(resolvedThemeConfig)
@@ -1103,7 +1111,7 @@ function ResumePdfDocument({
   ]
 
   return (
-    <Document>
+    <Document onRender={onRender}>
       <Page size={pageSize} style={styles.page}>
         {basicInfo && (
           <View style={headerContainerStyle}>
@@ -1411,10 +1419,49 @@ export async function downloadResumePdf(modules: ResumeModule[], resumeId: numbe
   URL.revokeObjectURL(objectUrl)
 }
 
-export async function generateResumePdfBlob(modules: ResumeModule[], options?: ResumePdfOptions) {
+function buildResumePdfPreviewMeta(
+  layout: unknown,
+  modules: ResumeModule[],
+  options?: ResumePdfOptions
+): ResumePdfPreviewMeta {
+  const fallbackHeight = options?.pageMode === 'continuous'
+    ? estimateContinuousPageHeight(modules)
+    : A4_HEIGHT
+  const rootNode = layout && typeof layout === 'object'
+    ? layout as { children?: Array<{ box?: { width?: number; height?: number } }> }
+    : null
+  const layoutPages = Array.isArray(rootNode?.children) ? rootNode.children : []
+  const pageHeights = layoutPages
+    .map((page) => {
+      const pageHeight = page?.box?.height
+      return typeof pageHeight === 'number' && Number.isFinite(pageHeight) && pageHeight > 0
+        ? pageHeight
+        : fallbackHeight
+    })
+  const firstPageWidth = layoutPages
+    .map((page) => page?.box?.width)
+    .find((pageWidth) => typeof pageWidth === 'number' && Number.isFinite(pageWidth) && pageWidth > 0)
+
+  if (pageHeights.length === 0) {
+    return {
+      pageCount: 1,
+      pageWidth: A4_WIDTH,
+      pageHeights: [fallbackHeight],
+    }
+  }
+
+  return {
+    pageCount: pageHeights.length,
+    pageWidth: firstPageWidth ?? A4_WIDTH,
+    pageHeights,
+  }
+}
+
+export async function generateResumePdfPreviewAsset(modules: ResumeModule[], options?: ResumePdfOptions) {
   const pageSize = options?.pageMode === 'continuous'
     ? [A4_WIDTH, estimateContinuousPageHeight(modules)] as [number, number]
     : 'A4'
+  let previewMeta: ResumePdfPreviewMeta | null = null
   const document = (
     <ResumePdfDocument
       modules={modules}
@@ -1423,8 +1470,24 @@ export async function generateResumePdfBlob(modules: ResumeModule[], options?: R
       density={options?.density}
       accentPreset={options?.accentPreset}
       headingStyle={options?.headingStyle}
+      onRender={(props) => {
+        const layout = props && typeof props === 'object'
+          ? (props as { _INTERNAL__LAYOUT__DATA_?: unknown })._INTERNAL__LAYOUT__DATA_
+          : undefined
+        previewMeta = buildResumePdfPreviewMeta(layout, modules, options)
+      }}
     />
   )
 
-  return pdf(document).toBlob()
+  const blob = await pdf(document).toBlob()
+
+  return {
+    blob,
+    previewMeta: previewMeta ?? buildResumePdfPreviewMeta(undefined, modules, options),
+  }
+}
+
+export async function generateResumePdfBlob(modules: ResumeModule[], options?: ResumePdfOptions) {
+  const { blob } = await generateResumePdfPreviewAsset(modules, options)
+  return blob
 }

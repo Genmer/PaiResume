@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   RESUME_PDF_TEMPLATES,
   type ResumePdfAccentPreset,
@@ -30,6 +30,9 @@ const headingStyleOptions: Array<{ value: ResumePdfHeadingStyle; label: string }
   { value: 'filled', label: '色块标题' },
   { value: 'bar', label: '侧边强调' },
 ]
+const CHROME_PREVIEW_RESIZE_MESSAGE_TYPE = 'pai-resume:chrome-preview-resize'
+const DEFAULT_STANDARD_PREVIEW_HEIGHT = 1160
+const DEFAULT_CONTINUOUS_PREVIEW_HEIGHT = 760
 
 function InlineOptionGroup<T extends string>({
   label,
@@ -71,9 +74,8 @@ function InlineOptionGroup<T extends string>({
 export function ChromePreviewFrame({ resumeId, config, onConfigChange }: ChromePreviewFrameProps) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [pageMode, setPageMode] = useState<ResumePdfPageMode>('standard')
-  const previewFrameHeight = pageMode === 'standard'
-    ? 'clamp(1160px, calc(100dvh - 2rem), 1380px)'
-    : 'max(760px, calc(100dvh - 12rem))'
+  const [previewHeight, setPreviewHeight] = useState<number | null>(null)
+  const previewIframeRef = useRef<HTMLIFrameElement | null>(null)
   const previewPath = useMemo(() => {
     const params = new URLSearchParams({
       pageMode,
@@ -93,12 +95,132 @@ export function ChromePreviewFrame({ resumeId, config, onConfigChange }: ChromeP
 
     return new URL(previewPath, window.location.origin).toString()
   }, [previewPath])
+  const effectivePreviewHeight = previewHeight ?? (
+    pageMode === 'standard' ? DEFAULT_STANDARD_PREVIEW_HEIGHT : DEFAULT_CONTINUOUS_PREVIEW_HEIGHT
+  )
   const updateConfig = (patch: Partial<ResumePdfPreviewConfig>) => {
     onConfigChange({
       ...config,
       ...patch,
     })
   }
+
+  useEffect(() => {
+    setPreviewHeight(null)
+  }, [previewPath])
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) {
+        return
+      }
+
+      const payload = event.data as {
+        type?: string
+        previewPath?: string
+        height?: number
+      } | null
+      if (!payload || payload.type !== CHROME_PREVIEW_RESIZE_MESSAGE_TYPE || payload.previewPath !== previewPath) {
+        return
+      }
+
+      if (typeof payload.height === 'number' && Number.isFinite(payload.height) && payload.height > 0) {
+        setPreviewHeight(Math.ceil(payload.height))
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [previewPath])
+
+  useEffect(() => {
+    const iframe = previewIframeRef.current
+    if (!iframe) {
+      return
+    }
+
+    let frameResizeObserver: ResizeObserver | null = null
+    let nestedResizeObserver: ResizeObserver | null = null
+    let mutationObserver: MutationObserver | null = null
+
+    const updateHeightFromFrame = () => {
+      const frameDocument = iframe.contentDocument
+      if (!frameDocument) {
+        return
+      }
+
+      const nextHeight = Math.max(
+        frameDocument.body?.scrollHeight ?? 0,
+        frameDocument.documentElement?.scrollHeight ?? 0
+      )
+      if (nextHeight > 0) {
+        setPreviewHeight(nextHeight)
+      }
+    }
+
+    const attachNestedObserver = () => {
+      nestedResizeObserver?.disconnect()
+      const nestedFrame = iframe.contentDocument?.querySelector('iframe')
+      if (!nestedFrame || typeof ResizeObserver === 'undefined') {
+        return
+      }
+
+      nestedResizeObserver = new ResizeObserver(() => {
+        updateHeightFromFrame()
+      })
+      nestedResizeObserver.observe(nestedFrame)
+    }
+
+    const bindFrameObservers = () => {
+      const frameDocument = iframe.contentDocument
+      if (!frameDocument) {
+        return
+      }
+
+      updateHeightFromFrame()
+      attachNestedObserver()
+
+      if (typeof ResizeObserver !== 'undefined') {
+        frameResizeObserver?.disconnect()
+        frameResizeObserver = new ResizeObserver(() => {
+          updateHeightFromFrame()
+          attachNestedObserver()
+        })
+
+        if (frameDocument.body) {
+          frameResizeObserver.observe(frameDocument.body)
+        }
+        if (frameDocument.documentElement) {
+          frameResizeObserver.observe(frameDocument.documentElement)
+        }
+      }
+
+      mutationObserver?.disconnect()
+      mutationObserver = new MutationObserver(() => {
+        updateHeightFromFrame()
+        attachNestedObserver()
+      })
+      mutationObserver.observe(frameDocument, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      })
+    }
+
+    const handleLoad = () => {
+      bindFrameObservers()
+    }
+
+    iframe.addEventListener('load', handleLoad)
+    bindFrameObservers()
+
+    return () => {
+      iframe.removeEventListener('load', handleLoad)
+      frameResizeObserver?.disconnect()
+      nestedResizeObserver?.disconnect()
+      mutationObserver?.disconnect()
+    }
+  }, [previewPath])
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -188,7 +310,7 @@ export function ChromePreviewFrame({ resumeId, config, onConfigChange }: ChromeP
         </div>
         <div
           className="grid grid-cols-[300px_minmax(0,1fr)] bg-[#eef3f9]"
-          style={{ minHeight: previewFrameHeight }}
+          style={{ minHeight: `${effectivePreviewHeight}px` }}
         >
           <aside className="border-r border-slate-200 bg-white/82 backdrop-blur">
             <div className="flex min-h-full flex-col">
@@ -252,10 +374,12 @@ export function ChromePreviewFrame({ resumeId, config, onConfigChange }: ChromeP
             <div className="overflow-hidden border border-slate-300 bg-white shadow-[0_20px_48px_-36px_rgba(15,23,42,0.26)]">
               <iframe
                 key={previewPath}
+                ref={previewIframeRef}
                 title="简历模板预览"
                 src={previewPath}
-                className="w-full bg-white"
-                style={{ height: previewFrameHeight }}
+                scrolling="no"
+                className="block w-full border-0 bg-white"
+                style={{ height: `${effectivePreviewHeight}px` }}
               />
             </div>
           </div>
