@@ -235,15 +235,10 @@ export function PreviewPanel({
     return !(module.moduleType === 'award' && hasEducationModule)
   })
   const standardPdfPreview = usePdfPreview(modules, 'standard', previewMode === 'pdf-standard', pdfConfig)
-  const continuousPdfPreview = usePdfPreview(modules, 'continuous', previewMode === 'pdf-continuous', pdfConfig)
-  const activePdfPreview = previewMode === 'pdf-continuous' ? continuousPdfPreview : standardPdfPreview
-  const activePdfTitle = previewMode === 'pdf-continuous' ? '智能一页预览' : '标准 PDF 预览'
-  const activePdfDescription = previewMode === 'pdf-continuous'
-    ? '自动压缩为单张一页。'
-    : '标准 A4 分页预览。'
-  const activePdfIframeTitle = previewMode === 'pdf-continuous'
-    ? 'Resume Continuous PDF Preview'
-    : 'Resume Standard PDF Preview'
+  const activePdfPreview = standardPdfPreview
+  const activePdfTitle = 'PDF预览'
+  const activePdfDescription = '当前模板和样式参数下的标准 A4 分页预览。'
+  const activePdfIframeTitle = 'Resume Standard PDF Preview'
 
   useEffect(() => {
     if (forcedMode) {
@@ -310,18 +305,7 @@ export function PreviewPanel({
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                标准 PDF
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreviewMode('pdf-continuous')}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  previewMode === 'pdf-continuous'
-                    ? 'bg-primary-700 text-white'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                智能一页
+                PDF预览
               </button>
             </div>
           </div>
@@ -488,7 +472,7 @@ function PdfPreviewCard({
         </div>
       ) : preview.url ? (
         <div className="relative">
-          <div className="space-y-8 px-4 py-5 md:px-6 md:py-6">
+          <div className="space-y-8">
             {pages.map((page) => (
               <div key={page.pageNumber} className="relative">
                 <figure className="mx-auto overflow-hidden bg-white shadow-[0_24px_60px_-42px_rgba(15,23,42,0.32)]">

@@ -471,7 +471,11 @@ export default function EditorPage() {
           >
             <div className="relative sticky top-[89px]">
               {!previewCollapsed && (
-                <PreviewPanel modules={modules} loading={loading} pdfConfig={pdfPreviewConfig} />
+                <PreviewPanel
+                  modules={modules}
+                  loading={loading}
+                  pdfConfig={pdfPreviewConfig}
+                />
               )}
             </div>
           </aside>
