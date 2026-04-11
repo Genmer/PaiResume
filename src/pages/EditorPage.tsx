@@ -308,8 +308,6 @@ export default function EditorPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header
-        onExportPdf={(pageMode) => void handleExportPdf(pageMode)}
-        exporting={exporting}
       />
 
       {editorView !== 'template-selection' && (
@@ -377,6 +375,9 @@ export default function EditorPage() {
               resumeId={resumeId}
               config={pdfPreviewConfig}
               onConfigChange={setPdfPreviewConfig}
+              onExportPdf={(pageMode) => void handleExportPdf(pageMode)}
+              exporting={exporting}
+              exportError={exportError}
             />
           ) : activeModuleType ? (
             <div className={moduleContainerClassName}>

@@ -95,10 +95,14 @@ export function ModuleSidebar({
               <span className="flex-1">简历分析</span>
             </span>
           </button>
+        </div>
+
+        <div className="mt-6 border-t border-gray-100 pt-4">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-400">导出</h2>
           <button
             type="button"
             onClick={onSelectTemplateSelection}
-            className={`mt-1 w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+            className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
               templateSelectionActive
                 ? 'bg-primary-50 font-medium text-primary-700'
                 : 'text-gray-600 hover:bg-gray-50'
@@ -106,7 +110,7 @@ export function ModuleSidebar({
           >
             <span className="flex items-center gap-2.5">
               <span className="text-base">🌐</span>
-              <span className="flex-1">选择模板</span>
+              <span className="flex-1">模板选择</span>
             </span>
           </button>
         </div>

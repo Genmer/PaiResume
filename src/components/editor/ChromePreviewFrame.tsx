@@ -6,12 +6,16 @@ import {
   type ResumePdfPageMode,
   type ResumePdfPreviewConfig,
 } from '../../utils/resumePdf'
+import { Button } from '../ui/Button'
 import { Select } from '../ui/Select'
 
 interface ChromePreviewFrameProps {
   resumeId: number
   config: ResumePdfPreviewConfig
   onConfigChange: (nextConfig: ResumePdfPreviewConfig) => void
+  onExportPdf?: (pageMode: ResumePdfPageMode) => void
+  exporting?: boolean
+  exportError?: string
 }
 
 const visibleTemplates = RESUME_PDF_TEMPLATES.filter((template) => template.id !== 'compact')
@@ -71,7 +75,14 @@ function InlineOptionGroup<T extends string>({
   )
 }
 
-export function ChromePreviewFrame({ resumeId, config, onConfigChange }: ChromePreviewFrameProps) {
+export function ChromePreviewFrame({
+  resumeId,
+  config,
+  onConfigChange,
+  onExportPdf,
+  exporting = false,
+  exportError = '',
+}: ChromePreviewFrameProps) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [pageMode, setPageMode] = useState<ResumePdfPageMode>('standard')
   const [previewHeight, setPreviewHeight] = useState<number | null>(null)
@@ -257,6 +268,16 @@ export function ChromePreviewFrame({ resumeId, config, onConfigChange }: ChromeP
               <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500">
                 <span className="block truncate">{previewUrl}</span>
               </div>
+              {onExportPdf && (
+                <Button
+                  type="button"
+                  onClick={() => onExportPdf(pageMode)}
+                  loading={exporting}
+                  className="shrink-0"
+                >
+                  导出 PDF
+                </Button>
+              )}
               <button
                 type="button"
                 onClick={() => setRefreshKey((current) => current + 1)}
@@ -274,6 +295,11 @@ export function ChromePreviewFrame({ resumeId, config, onConfigChange }: ChromeP
               </a>
             </div>
           </div>
+          {exportError && (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {exportError}
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3">
             <InlineOptionGroup
               label="密度"
