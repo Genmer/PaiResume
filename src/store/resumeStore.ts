@@ -30,7 +30,7 @@ interface ResumeState {
   deleteResume: (id: number) => Promise<void>
   fetchModules: (resumeId: number) => Promise<void>
   updateModuleContent: (resumeId: number, moduleId: number, content: Record<string, unknown>) => Promise<void>
-  addModule: (resumeId: number, moduleType: string, content: Record<string, unknown>) => Promise<void>
+  addModule: (resumeId: number, moduleType: string, content: Record<string, unknown>, sortOrder?: number) => Promise<void>
   deleteModule: (resumeId: number, moduleId: number) => Promise<void>
   setCurrentResumeId: (id: number | null) => void
 }
@@ -114,8 +114,8 @@ export const useResumeStore = create<ResumeState>((set) => ({
     }))
   },
 
-  addModule: async (resumeId, moduleType, content) => {
-    const { data: res } = await resumeApi.addModule(resumeId, { moduleType, content })
+  addModule: async (resumeId, moduleType, content, sortOrder) => {
+    const { data: res } = await resumeApi.addModule(resumeId, { moduleType, content, sortOrder })
     set((state) => ({
       modules: state.currentResumeId === resumeId
         ? [...state.modules, res.data]

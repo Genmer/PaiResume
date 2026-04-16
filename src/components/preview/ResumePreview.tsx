@@ -8,6 +8,9 @@ interface ResumePreviewProps {
 export function ResumePreview({ resume }: ResumePreviewProps) {
   const { basicInfo, educations, skills, experiences } = resume
   const photoSource = normalizePhotoSource(basicInfo.photo)
+  const photoFrameClassName = basicInfo.photoBorder
+    ? 'border border-gray-200 bg-slate-50'
+    : 'bg-slate-50'
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-4xl mx-auto">
@@ -81,7 +84,7 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
           </div>
           {photoSource ? (
             <div className="flex justify-end">
-              <div className="aspect-[3/4] w-32 overflow-hidden border border-gray-200 bg-slate-50 shadow-[0_12px_24px_-18px_rgba(15,23,42,0.45)]">
+              <div className={`aspect-[3/4] w-32 overflow-hidden shadow-[0_12px_24px_-18px_rgba(15,23,42,0.45)] ${photoFrameClassName}`}>
                 <img src={photoSource} alt="简历照片" className="h-full w-full object-cover" />
               </div>
             </div>

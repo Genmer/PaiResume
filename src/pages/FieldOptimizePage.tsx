@@ -25,7 +25,7 @@ interface FieldContext {
   original: string
   multiCandidate: boolean
   request: AiFieldOptimizeRequest
-  moduleType: 'internship' | 'project'
+  moduleType: 'internship' | 'work_experience' | 'project'
 }
 
 const EMPTY_PROMPT_CONFIG: FieldOptimizePromptConfig = {
@@ -126,7 +126,7 @@ function deriveFieldContext(module: ResumeModule | undefined, fieldType: string 
     return null
   }
 
-  if (module.moduleType === 'internship') {
+  if (module.moduleType === 'internship' || module.moduleType === 'work_experience') {
     const content = normalizeInternshipContent(module.content)
     if (fieldType === 'project_description') {
       return {
@@ -134,7 +134,7 @@ function deriveFieldContext(module: ResumeModule | undefined, fieldType: string 
         original: content.projectDescription.trim(),
         multiCandidate: true,
         request: { fieldType: 'project_description' },
-        moduleType: 'internship',
+        moduleType: module.moduleType,
       }
     }
     if (fieldType === 'responsibility' && index !== null) {
@@ -143,7 +143,7 @@ function deriveFieldContext(module: ResumeModule | undefined, fieldType: string 
         original: content.responsibilities[index]?.trim() || '',
         multiCandidate: true,
         request: { fieldType: 'responsibility', index },
-        moduleType: 'internship',
+        moduleType: module.moduleType,
       }
     }
     return null
@@ -190,7 +190,7 @@ function derivePromptVariables(
     }
   }
 
-  if (module.moduleType === 'internship') {
+  if (module.moduleType === 'internship' || module.moduleType === 'work_experience') {
     const content = normalizeInternshipContent(module.content)
     return {
       company: content.company,
@@ -244,7 +244,7 @@ function migrateStoredPromptTemplate(template: string, fieldContext: FieldContex
     )
   }
 
-  if (fieldContext.moduleType === 'internship') {
+  if (fieldContext.moduleType === 'internship' || fieldContext.moduleType === 'work_experience') {
     return template
       .replace(/- 公司：.*$/m, '- 公司：{{company}}')
       .replace(/- 岗位：.*$/m, '- 岗位：{{position}}')
@@ -267,7 +267,7 @@ function migrateStoredPromptTemplate(template: string, fieldContext: FieldContex
 }
 
 function applyOptimizedText(module: ResumeModule, fieldType: string, optimizedText: string, index: number | null) {
-  if (module.moduleType === 'internship') {
+  if (module.moduleType === 'internship' || module.moduleType === 'work_experience') {
     const content = normalizeInternshipContent(module.content)
     if (fieldType === 'project_description') {
       return { ...content, projectDescription: optimizedText }

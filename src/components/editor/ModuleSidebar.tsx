@@ -7,6 +7,7 @@ interface ModuleSidebarProps {
   activeModuleType: ModuleType | null
   onSelect: (moduleType: ModuleType) => void
   onAddModule: (moduleType: ModuleType) => void
+  onRemoveModuleType: (moduleType: ModuleType) => void
   analysisActive?: boolean
   onSelectAnalysis?: () => void
   templateSelectionActive?: boolean
@@ -17,18 +18,21 @@ const ALL_MODULE_TYPES: ModuleType[] = [
   'basic_info',
   'education',
   'internship',
+  'work_experience',
   'project',
   'skill',
   'paper',
   'research',
   'award',
 ]
+const NON_REMOVABLE_MODULE_TYPES = new Set<ModuleType>(['basic_info'])
 
 export function ModuleSidebar({
   modules,
   activeModuleType,
   onSelect,
   onAddModule,
+  onRemoveModuleType,
   analysisActive = false,
   onSelectAnalysis,
   templateSelectionActive = false,
@@ -47,36 +51,71 @@ export function ModuleSidebar({
             const exists = existingTypes.has(type)
             const isActive = moduleViewActive && activeModuleType === type
             const count = modules.filter((m) => m.moduleType === type).length
+            const canRemove = exists && !NON_REMOVABLE_MODULE_TYPES.has(type)
+            const moduleLabel = getModuleDisplayLabel(type, basicInfoContent)
 
             return (
-              <button
+              <div
                 key={type}
-                onClick={() => {
-                  if (exists) {
-                    onSelect(type)
-                  } else {
-                    onAddModule(type)
-                  }
-                }}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                className={`flex items-center gap-1 rounded-lg text-sm transition-colors ${
                   isActive
-                    ? 'bg-primary-50 text-primary-700 font-medium'
+                    ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                <span className="text-base">{MODULE_ICONS[type]}</span>
-                <span className="flex-1">{getModuleDisplayLabel(type, basicInfoContent)}</span>
-                {count > 1 && (
-                  <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
-                    {count}
-                  </span>
-                )}
-                {!exists && (
-                  <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (exists) {
+                      onSelect(type)
+                    } else {
+                      onAddModule(type)
+                    }
+                  }}
+                  className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-2 text-left ${
+                    isActive ? 'font-medium' : ''
+                  }`}
+                >
+                  <span className="text-base">{MODULE_ICONS[type]}</span>
+                  <span className="flex-1 truncate">{moduleLabel}</span>
+                  {count > 1 && (
+                    <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                      {count}
+                    </span>
+                  )}
+                </button>
+
+                {canRemove ? (
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      onRemoveModuleType(type)
+                    }}
+                    className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
+                    title={`删除${moduleLabel}`}
+                    aria-label={`删除${moduleLabel}`}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  </button>
+                ) : !exists ? (
+                  <button
+                    type="button"
+                    onClick={() => onAddModule(type)}
+                    className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-300 transition-colors hover:bg-primary-50 hover:text-primary-600"
+                    title={`添加${moduleLabel}`}
+                    aria-label={`添加${moduleLabel}`}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                ) : null}
+              </div>
             )
           })}
         </nav>

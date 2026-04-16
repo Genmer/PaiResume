@@ -67,7 +67,7 @@ export function buildAnalysisResume(modules: ResumeModule[]): Resume {
     .filter((item) => item.trim().length > 0)
 
   const experiences = modules.flatMap((module) => {
-    if (module.moduleType === 'internship') {
+    if (module.moduleType === 'internship' || module.moduleType === 'work_experience') {
       const content = normalizeInternshipContent(module.content)
       const description = [
         content.projectDescription ? `项目简介：${content.projectDescription}` : '',
@@ -117,6 +117,7 @@ export function buildAnalysisResume(modules: ResumeModule[]): Resume {
       website: basicInfoContent.blog,
       location: basicInfoContent.hometown,
       photo: basicInfoContent.photo,
+      photoBorder: basicInfoContent.photoBorder,
       summary: basicInfoContent.summary,
     },
     educations,

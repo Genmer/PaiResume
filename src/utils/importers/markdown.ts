@@ -24,14 +24,21 @@ const MAIN_SECTION_TITLES = [
   '基本信息',
   '教育背景',
   '实习经历',
+  '工作经历',
   '项目经历',
   '专业技能',
-  '论文发表',
+  '论文期刊',
   '科研经历',
   '获奖情况',
 ] as const
 
-const SECTION_TITLE_SET = new Set<string>(MAIN_SECTION_TITLES)
+const SECTION_TITLE_ALIASES: Record<string, string> = {
+  论文发表: '论文期刊',
+}
+const SECTION_TITLE_SET = new Set<string>([
+  ...MAIN_SECTION_TITLES,
+  ...Object.keys(SECTION_TITLE_ALIASES),
+])
 const DESCRIPTION_LABELS = ['项目简介', '项目介绍', '项目描述']
 const TECH_STACK_LABELS = ['技术栈']
 const RESPONSIBILITY_LABELS = ['核心职责', '主要成果', '职责']
@@ -62,9 +69,10 @@ function splitIntoSections(markdown: string): Map<string, string[]> {
   for (const line of normalizeMarkdown(markdown).split('\n')) {
     const heading = getHeadingTitle(line)
     if (heading && SECTION_TITLE_SET.has(heading)) {
-      currentSection = heading
-      if (!sections.has(heading)) {
-        sections.set(heading, [])
+      const normalizedHeading = SECTION_TITLE_ALIASES[heading] ?? heading
+      currentSection = normalizedHeading
+      if (!sections.has(normalizedHeading)) {
+        sections.set(normalizedHeading, [])
       }
       continue
     }
@@ -311,6 +319,7 @@ function parseBasicInfoSection(lines: string[]): Record<string, unknown> | null 
     wechat: values['微信'] || '',
     isPartyMember: /党员/u.test(values['政治面貌'] || ''),
     photo: '',
+    photoBorder: false,
     hometown: values['籍贯'] || values['所在地'] || '',
     blog: values['博客'] || values['个人博客'] || '',
     github: values['GitHub'] || values['Github'] || '',
@@ -389,7 +398,7 @@ function parseInternshipHeading(value: string): Record<string, string> {
   }
 }
 
-function parseInternshipSection(lines: string[]): ImportedResumeModule[] {
+function parseExperienceSection(moduleType: 'internship' | 'work_experience', lines: string[]): ImportedResumeModule[] {
   return splitSectionEntries(lines)
     .filter((entry) => entry.heading)
     .map((entry) => {
@@ -405,7 +414,7 @@ function parseInternshipSection(lines: string[]): ImportedResumeModule[] {
         : collectListItems(entry.lines, [], [], { requireMarkerStart: true })
 
       return {
-        moduleType: 'internship',
+        moduleType,
         content: {
           company: heading.company,
           projectName: heading.projectName,
@@ -463,7 +472,8 @@ export function parseMarkdownResume(markdown: string, fileName = '导入简历.m
   const modules: ImportedResumeModule[] = []
   const basicInfo = parseBasicInfoSection(sections.get('基本信息') || [])
   const education = parseEducationSection(sections.get('教育背景') || [])
-  const internships = parseInternshipSection(sections.get('实习经历') || [])
+  const internships = parseExperienceSection('internship', sections.get('实习经历') || [])
+  const workExperiences = parseExperienceSection('work_experience', sections.get('工作经历') || [])
   const projects = parseProjectSection(sections.get('项目经历') || [])
   const skills = parseSkillSection(sections.get('专业技能') || [])
 
@@ -473,6 +483,7 @@ export function parseMarkdownResume(markdown: string, fileName = '导入简历.m
 
   modules.push(...education.modules)
   modules.push(...internships)
+  modules.push(...workExperiences)
   modules.push(...projects)
   modules.push(...skills)
 

@@ -714,7 +714,6 @@ function createResumePdfStyles(theme: ResumePdfTheme) {
     },
     photoFrame: {
       overflow: 'hidden',
-      borderWidth: 1,
       backgroundColor: '#f8fafc',
     },
     photoImage: {
@@ -841,7 +840,7 @@ function estimateContinuousPageHeight(modules: ResumeModule[]) {
       continue
     }
 
-    if (module.moduleType === 'internship') {
+    if (module.moduleType === 'internship' || module.moduleType === 'work_experience') {
       const content = normalizeInternshipContent(module.content)
       textVolume += textLengthForPage([content.company, content.projectName, content.position, content.projectDescription, content.techStack, ...content.responsibilities])
       bulletCount += content.responsibilities.length
@@ -1105,12 +1104,16 @@ function ResumePdfDocument({
   const basicInfo = basicInfoModule ? normalizeBasicInfoContent(basicInfoModule.content) : null
   const photoSource = normalizePhotoSource(basicInfo?.photo)
   const hasPhoto = Boolean(photoSource)
+  const hasPhotoBorder = Boolean(basicInfo?.photoBorder)
   const jobIntentionModule = sortedModules.find((module) => module.moduleType === 'job_intention')
   const jobIntention = jobIntentionModule ? normalizeJobIntentionContent(jobIntentionModule.content) : null
   const displayJobIntention = basicInfo?.jobIntention || jobIntention?.targetPosition || ''
-  const internshipSectionTitle = getModuleDisplayLabel('internship', basicInfo)
+  const internshipSectionTitle = getModuleDisplayLabel('internship')
+  const workExperienceSectionTitle = getModuleDisplayLabel('work_experience')
   const hasEducationModule = sortedModules.some((module) => module.moduleType === 'education')
   const educationModules = sortedModules.filter((module) => module.moduleType === 'education')
+  const projectModules = sortedModules.filter((module) => module.moduleType === 'project')
+  const firstProjectModuleId = projectModules[0]?.id ?? null
   const awardModules = sortedModules
     .filter((module) => module.moduleType === 'award')
     .map((module) => normalizeAwardContent(module.content))
@@ -1178,8 +1181,13 @@ function ResumePdfDocument({
     {
       width: photoFrameWidth,
       height: photoFrameHeight,
-      borderColor: isExecutive ? '#cbd5e1' : '#dbeafe',
     },
+    ...(hasPhotoBorder
+      ? [{
+          borderWidth: 1,
+          borderColor: isExecutive ? '#cbd5e1' : '#dbeafe',
+        }]
+      : []),
   ]
 
   const renderHeaderBlock = (styleOverrides: Array<{ marginBottom?: number }> = []) => (
@@ -1323,6 +1331,36 @@ function ResumePdfDocument({
     ) : null
   )
 
+  const renderProjectItem = (projectModule: ResumeModule) => {
+    const content = normalizeProjectContent(projectModule.content)
+    const titleLine = [content.projectName, content.role].filter(Boolean).join(' - ')
+
+    return (
+      <View key={projectModule.id} style={styles.item}>
+        <View style={styles.rowBetween}>
+          <Text style={styles.strong}>{titleLine || '项目 - 角色'}</Text>
+          <Text style={styles.muted}>{formatMonthRange(content.startDate, content.endDate)}</Text>
+        </View>
+        {content.techStack ? <Text style={styles.paragraph}>技术栈：{content.techStack}</Text> : null}
+        {content.description ? (
+          <View style={styles.paragraph}>
+            {renderWrappedLabeledText(styles, '项目简介：', content.description, `project-summary-${projectModule.id}`)}
+          </View>
+        ) : null}
+        {content.achievements.length > 0 ? (
+          <View style={styles.paragraph}>
+            <Text><Text style={styles.label}>核心职责：</Text></Text>
+            {content.achievements.map((item, index) => (
+              <View key={`${index}-${item}`} style={styles.listItem}>
+                {renderOrderedItem(styles, item, index, `project-${projectModule.id}-${index}`)}
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
+    )
+  }
+
   return (
     <Document onRender={onRender}>
       <Page size={pageSize} style={styles.page}>
@@ -1352,12 +1390,15 @@ function ResumePdfDocument({
             case 'basic_info':
             case 'education':
               return null
-            case 'internship': {
+            case 'internship':
+            case 'work_experience': {
               const content = normalizeInternshipContent(module.content)
               const titleLine = [content.company, content.position, content.projectName].filter(Boolean).join(' - ')
               return (
                 <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>{internshipSectionTitle}</Text>
+                  <Text style={sectionTitleStyle}>
+                    {module.moduleType === 'work_experience' ? workExperienceSectionTitle : internshipSectionTitle}
+                  </Text>
                   <View style={styles.item}>
                     <View style={styles.rowBetween}>
                       <Text style={styles.strong}>{titleLine || '公司 - 职位 - 项目名'}</Text>
@@ -1384,33 +1425,14 @@ function ResumePdfDocument({
               )
             }
             case 'project': {
-              const content = normalizeProjectContent(module.content)
-              const titleLine = [content.projectName, content.role].filter(Boolean).join(' - ')
+              if (module.id !== firstProjectModuleId) {
+                return null
+              }
+
               return (
                 <View key={module.id} style={sectionStyle}>
                   <Text style={sectionTitleStyle}>项目经历</Text>
-                  <View style={styles.item}>
-                    <View style={styles.rowBetween}>
-                      <Text style={styles.strong}>{titleLine || '项目 - 角色'}</Text>
-                      <Text style={styles.muted}>{formatMonthRange(content.startDate, content.endDate)}</Text>
-                    </View>
-                    {content.techStack ? <Text style={styles.paragraph}>技术栈：{content.techStack}</Text> : null}
-                    {content.description ? (
-                      <View style={styles.paragraph}>
-                        {renderWrappedLabeledText(styles, '项目简介：', content.description, `project-summary-${module.id}`)}
-                      </View>
-                    ) : null}
-                    {content.achievements.length > 0 ? (
-                      <View style={styles.paragraph}>
-                        <Text><Text style={styles.label}>核心职责：</Text></Text>
-                        {content.achievements.map((item, index) => (
-                          <View key={`${index}-${item}`} style={styles.listItem}>
-                            {renderOrderedItem(styles, item, index, `project-${module.id}-${index}`)}
-                          </View>
-                        ))}
-                      </View>
-                    ) : null}
-                  </View>
+                  {projectModules.map(renderProjectItem)}
                 </View>
               )
             }
@@ -1459,7 +1481,7 @@ function ResumePdfDocument({
               }
               return (
                 <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>论文发表</Text>
+                  <Text style={sectionTitleStyle}>论文期刊</Text>
                   <Text style={styles.strong}>{content.journalName || '论文'}</Text>
                   <Text>{[content.journalType, content.publishTime].filter(Boolean).join(' / ')}</Text>
                   {content.content ? <Text style={styles.paragraph}>{content.content}</Text> : null}

@@ -10,6 +10,8 @@ const initialResume: Resume = {
     github: '',
     website: '',
     location: '',
+    photo: '',
+    photoBorder: false,
     summary: ''
   },
   educations: [],

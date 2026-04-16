@@ -107,6 +107,7 @@ export function normalizeBasicInfoContent(content: Record<string, unknown>): Bas
     wechat: toStringValue(record.wechat),
     isPartyMember: toBooleanValue(record.isPartyMember),
     photo: toStringValue(record.photo),
+    photoBorder: toBooleanValue(record.photoBorder),
     hometown: toStringValue(record.hometown),
     blog: toStringValue(record.blog),
     github: toStringValue(record.github),

@@ -11,6 +11,7 @@ export interface BasicInfoContent {
   wechat: string
   isPartyMember: boolean
   photo: string
+  photoBorder: boolean
   hometown: string
   blog: string
   github: string
@@ -93,6 +94,7 @@ export type ModuleType =
   | 'basic_info'
   | 'education'
   | 'internship'
+  | 'work_experience'
   | 'project'
   | 'skill'
   | 'paper'
@@ -104,9 +106,10 @@ export const MODULE_LABELS: Record<ModuleType, string> = {
   basic_info: '基本信息',
   education: '教育背景',
   internship: '实习经历',
+  work_experience: '工作经历',
   project: '项目经历',
   skill: '专业技能',
-  paper: '论文发表',
+  paper: '论文期刊',
   research: '科研经历',
   award: '获奖情况',
   job_intention: '求职意向',
@@ -116,6 +119,7 @@ export const MODULE_ICONS: Record<ModuleType, string> = {
   basic_info: '👤',
   education: '🎓',
   internship: '💼',
+  work_experience: '🏢',
   project: '🛠',
   skill: '⚡',
   paper: '📄',
@@ -130,6 +134,7 @@ export type ModuleContentMap = {
   basic_info: BasicInfoContent
   education: EducationContent
   internship: InternshipContent
+  work_experience: InternshipContent
   project: ProjectContent
   skill: SkillContent
   paper: PaperContent
@@ -151,6 +156,7 @@ export interface BasicInfo {
   website: string
   location: string
   photo?: string
+  photoBorder?: boolean
   summary: string
 }
 

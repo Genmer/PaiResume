@@ -54,11 +54,11 @@ public class AiServiceImpl implements AiService {
     private static final Pattern PLACEHOLDER_CANDIDATE_PATTERN = Pattern.compile("^(版本|方向|候选)\\s*[0-9一二三四五六七八九十]+\\s*[:：]?$");
     private static final Set<String> ALLOWED_ISSUE_TYPES = Set.of("missing", "weak", "format", "content");
     private static final Set<String> IGNORED_ANALYSIS_FIELDS = Set.of("basic_info.summary", "professional_summary", "skill", "专业技能");
-    private static final Set<String> OPTIMIZABLE_MODULE_TYPES = Set.of("internship", "project", "research", "skill");
+    private static final Set<String> OPTIMIZABLE_MODULE_TYPES = Set.of("internship", "work_experience", "project", "research", "skill");
     private static final String DEFAULT_ANALYSIS_INSTRUCTIONS = """
             请站在校招技术简历评审视角分析这份简历。
             重点要求：
-            1. 重点看项目经历、实习经历、专业技能，这三部分权重最高。
+            1. 重点看项目经历、工作经历、实习经历、专业技能，这几部分权重最高。
             2. 不要因为获奖较少、没有 AI 竞赛、没有 GPA、GitHub 没有额外包装，就明显拉低分数。
             3. 不要把“专业技能没有分类展示”当成问题，也不要要求把整句技能改成分类标签。
             4. 不要把“缺少个人简介 / 职业总结 / 自我评价”当成问题。
@@ -74,9 +74,10 @@ public class AiServiceImpl implements AiService {
             "basic_info", "基本信息",
             "education", "教育背景",
             "internship", "实习经历",
+            "work_experience", "工作经历",
             "project", "项目经历",
             "skill", "专业技能",
-            "paper", "论文发表",
+            "paper", "论文期刊",
             "research", "科研经历",
             "award", "获奖情况",
             "job_intention", "求职意向"
@@ -108,7 +109,7 @@ public class AiServiceImpl implements AiService {
             你是一位顶级的技术招聘官和简历优化专家，尤其擅长指导计算机领域的应届生和实习生。你的任务是优化下方提供的简历模块 JSON 内容，使其在求职（开发、测试、运维等岗位）时更具竞争力。
 
             **核心优化原则:**
-            *   **使用STAR法则**: 确保描述清晰地反映出项目/实习的背景（Situation）、你的任务（Task）、你采取的具体行动（Action）以及最终达成的可量化成果（Result）。
+            *   **使用STAR法则**: 确保描述清晰地反映出项目/工作/实习的背景（Situation）、你的任务（Task）、你采取的具体行动（Action）以及最终达成的可量化成果（Result）。
             *   **强化技术动词**: 使用如"实现"、"开发"、"重构"、"部署"、"自动化"、"优化"等具体的、有力的技术动词，避免使用"负责"、"参与"等模糊词汇。
             *   **量化成果**: 尽可能将工作成果量化，例如："将接口响应时间从500ms优化至100ms"、"通过自动化脚本将部署时间缩短了10分钟"、"将测试覆盖率从70%%提升至90%%"。
             *   **突出技术栈**: 在描述中自然地融入项目或经历中使用的关键技术、工具或框架。
@@ -141,7 +142,7 @@ public class AiServiceImpl implements AiService {
             - candidates 中的每一项都必须是完整可用的简历文案，严禁返回“版本1”“版本2”这类占位词
             """;
     private static final String INTERNSHIP_RESPONSIBILITY_PROMPT = """
-            你是一位技术简历专家，请只优化“实习经历”中的一条核心职责。
+            你是一位技术简历专家，请只优化“工作经历 / 实习经历”中的一条核心职责。
 
             优化要求：
             1. 用了什么技术栈，解决了什么问题，实现了什么业务或能力。
@@ -468,13 +469,13 @@ public class AiServiceImpl implements AiService {
         }
 
         return switch (moduleType) {
-            case "internship" -> buildInternshipFieldOptimizePlan(content, request);
+            case "internship", "work_experience" -> buildExperienceFieldOptimizePlan(moduleType, content, request);
             case "project" -> buildProjectFieldOptimizePlan(content, request);
             default -> throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "当前模块暂不支持字段级 AI 优化");
         };
     }
 
-    private FieldOptimizePlan buildInternshipFieldOptimizePlan(Map<String, Object> content, AiFieldOptimizeRequestDTO request) {
+    private FieldOptimizePlan buildExperienceFieldOptimizePlan(String moduleType, Map<String, Object> content, AiFieldOptimizeRequestDTO request) {
         var company = getStringValue(content.get("company"));
         var position = getStringValue(content.get("position"));
         var projectName = getStringValue(content.get("projectName"));
@@ -488,7 +489,7 @@ public class AiServiceImpl implements AiService {
                     throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "项目简介为空，暂时无法优化");
                 }
                 yield new FieldOptimizePlan(
-                        "internship",
+                        moduleType,
                         "project_description",
                         projectDescription,
                         resolveFieldPrompt(
@@ -511,7 +512,7 @@ public class AiServiceImpl implements AiService {
                     throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "当前这条核心职责为空，暂时无法优化");
                 }
                 yield new FieldOptimizePlan(
-                        "internship",
+                        moduleType,
                         "responsibility",
                         originalText,
                         resolveFieldPrompt(
@@ -1075,7 +1076,7 @@ public class AiServiceImpl implements AiService {
 
     private String defaultModuleRule(String moduleType) {
         return switch (moduleType) {
-            case "internship" -> "把项目简介压缩到 1 句，技术栈保留核心词，职责优先保留 2-3 条最能体现动作和结果的表达。";
+            case "internship", "work_experience" -> "把项目简介压缩到 1 句，技术栈保留核心词，职责优先保留 2-3 条最能体现动作和结果的表达。";
             case "project" -> "把项目背景压到 1 句，职责优先保留最强的 2-3 条，突出结果导向和关键技术。";
             case "research" -> "压缩背景铺垫，保留研究主题、个人工作和最终成果。";
             case "skill" -> "优先去重和归并重复技能表达，避免堆砌关键词。";
@@ -2130,11 +2131,11 @@ public class AiServiceImpl implements AiService {
                 ## 分析要求
                 1. 基于当前真实内容分析，不要臆造候选人未填写的信息。
                 2. 重点关注完整性、内容质量、表达专业度、岗位匹配度、竞争力。
-                3. 实习经历和项目经历都很重要，不要因为名称不同而区别对待。
+                3. 工作经历、实习经历和项目经历都很重要，不要因为名称不同而区别对待。
                 4. 专业技能可能是整句能力描述，不要机械地要求必须是技术名词列表。
                 5. 不要把“专业技能没有分类展示”当成问题，也不要建议按类别重写专业技能。
                 6. 不要把“缺少个人简介/职业总结/自我评价”当成问题，也不要建议补这一项。
-                7. 对校招技术简历，项目经历、实习经历、专业技能是核心权重；不要因为获奖较少、没有 AI 竞赛、没有 GPA、GitHub 链接缺少补充说明而明显拉低总分。
+                7. 对校招技术简历，项目经历、工作经历、实习经历、专业技能是核心权重；不要因为获奖较少、没有 AI 竞赛、没有 GPA、GitHub 链接缺少补充说明而明显拉低总分。
                 8. 获奖、GPA、GitHub 包装度只能作为轻微加分项或轻微提示，不应作为主要扣分依据。
                 9. 只有在确实存在明显问题时才输出 issues，避免泛泛而谈。
                 10. suggestion 必须具体、可执行，避免空话。

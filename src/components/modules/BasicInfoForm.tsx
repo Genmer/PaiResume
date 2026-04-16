@@ -113,8 +113,8 @@ export function BasicInfoForm({ resumeId, moduleId, initialContent }: Props) {
             </button>
           </div>
 
-          <div className="grid gap-4 rounded-xl border border-gray-200 bg-white/90 p-4 lg:grid-cols-[minmax(0,1fr)_128px]">
-            <div className="space-y-3">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_148px] lg:items-start">
+            <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-gray-700">照片</p>
@@ -163,6 +163,36 @@ export function BasicInfoForm({ resumeId, moduleId, initialContent }: Props) {
                 ) : null}
               </div>
 
+              <div>
+                <span className="mb-1 block text-sm font-medium text-gray-700">照片边框</span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: '无边框', value: false },
+                    { label: '有边框', value: true },
+                  ].map((option) => {
+                    const active = content.photoBorder === option.value
+                    const disabled = !content.photo
+
+                    return (
+                      <button
+                        key={option.label}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => update('photoBorder', option.value)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                          active
+                            ? 'bg-white text-primary-700 shadow-sm ring-1 ring-primary-100'
+                            : 'bg-transparent text-gray-500 hover:bg-white/80 hover:text-gray-700'
+                        } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                      >
+                        {option.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">只影响照片外框，不影响照片裁切比例。</p>
+              </div>
+
               {photoError ? (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                   {photoError}
@@ -170,8 +200,12 @@ export function BasicInfoForm({ resumeId, moduleId, initialContent }: Props) {
               ) : null}
             </div>
 
-            <div className="flex items-start justify-center lg:justify-end">
-              <div className="aspect-[3/4] w-28 overflow-hidden border border-gray-200 bg-gradient-to-b from-slate-50 to-slate-100 shadow-sm">
+            <div className="flex items-start justify-center lg:justify-end lg:pl-4">
+              <div className={`aspect-[3/4] w-28 overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100 shadow-sm ${
+                normalizedPhotoSource
+                  ? (content.photoBorder ? 'border border-gray-200' : '')
+                  : 'border border-dashed border-gray-200'
+              }`}>
                 {normalizedPhotoSource ? (
                   <img
                     src={normalizedPhotoSource}

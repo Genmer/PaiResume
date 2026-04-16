@@ -14,7 +14,7 @@ public class ResumeModule {
 
     private Long resumeId;
 
-    /** 模块类型: basic_info/education/internship/project/skill/paper/research/award/job_intention */
+    /** 模块类型: basic_info/education/internship/work_experience/project/skill/paper/research/award/job_intention */
     private String moduleType;
 
     @TableField(typeHandler = JacksonTypeHandler.class)

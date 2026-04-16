@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `resume` (
 CREATE TABLE IF NOT EXISTS `resume_module` (
     `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
     `resume_id`   BIGINT       NOT NULL COMMENT '简历 ID',
-    `module_type` VARCHAR(32)  NOT NULL COMMENT '模块类型: basic_info/education/internship/project/skill/paper/research/award/job_intention',
+    `module_type` VARCHAR(32)  NOT NULL COMMENT '模块类型: basic_info/education/internship/work_experience/project/skill/paper/research/award/job_intention',
     `content`     JSON         NOT NULL COMMENT '模块内容 JSON',
     `sort_order`  INT          NOT NULL DEFAULT 0 COMMENT '排序序号',
     `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

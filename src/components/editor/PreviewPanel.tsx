@@ -5,8 +5,6 @@ import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer
 import type { ResumeModule } from '../../api/resume'
 import type { ModuleType } from '../../types'
 import {
-  hasPaperContent,
-  hasResearchContent,
   normalizeAwardContent,
   normalizeBasicInfoContent,
   normalizeEducationContent,
@@ -209,6 +207,8 @@ export function PreviewPanel({
   const hasEducationModule = sortedModules.some((module) => module.moduleType === 'education')
   const educationModules = sortedModules.filter((module) => module.moduleType === 'education')
   const firstEducationModuleId = educationModules[0]?.id ?? null
+  const projectModules = sortedModules.filter((module) => module.moduleType === 'project')
+  const firstProjectModuleId = projectModules[0]?.id ?? null
   const basicInfoContent = findBasicInfoContent(sortedModules)
   const visibleModules = sortedModules.filter((module) => {
     if (module.moduleType === 'job_intention') {
@@ -219,12 +219,8 @@ export function PreviewPanel({
       return module.id === firstEducationModuleId
     }
 
-    if (module.moduleType === 'paper') {
-      return hasPaperContent(normalizePaperContent(module.content))
-    }
-
-    if (module.moduleType === 'research') {
-      return hasResearchContent(normalizeResearchContent(module.content))
+    if (module.moduleType === 'project') {
+      return module.id === firstProjectModuleId
     }
 
     return !(module.moduleType === 'award' && hasEducationModule)
@@ -330,6 +326,7 @@ export function PreviewPanel({
                     key={module.id}
                     module={module}
                   modules={sortedModules}
+                  projectModules={projectModules}
                   index={index}
                   basicInfoContent={basicInfoContent}
                   compactEducation={isCompactDensity}
@@ -589,6 +586,7 @@ function getModuleSurfaceTone(moduleType: string, index: number) {
 function ModulePreviewSection({
   module,
   modules,
+  projectModules,
   index,
   basicInfoContent,
   compactEducation,
@@ -596,6 +594,7 @@ function ModulePreviewSection({
 }: {
   module: ResumeModule
   modules: ResumeModule[]
+  projectModules: ResumeModule[]
   index: number
   basicInfoContent: ReturnType<typeof findBasicInfoContent>
   compactEducation: boolean
@@ -605,11 +604,52 @@ function ModulePreviewSection({
   const awardModules = modules.filter((item) => item.moduleType === 'award')
   const surfaceTone = getModuleSurfaceTone(module.moduleType, index)
 
+  const renderProjectEntry = (projectModule: ResumeModule) => {
+    const content = normalizeProjectContent(projectModule.content)
+    const titleLine = [content.projectName, content.role].filter(Boolean).join(' - ')
+
+    return (
+      <div key={projectModule.id} className="mb-4 space-y-1.5 last:mb-0">
+        <div className="flex justify-between items-start">
+          <div className="font-semibold text-gray-800">{titleLine || '项目 - 角色'}</div>
+          <span className="text-sm text-gray-400">
+            {formatMonthRange(content.startDate, content.endDate)}
+          </span>
+        </div>
+        {content.description && (
+          <p className="text-sm text-gray-600">
+            <span className="text-gray-500">项目简介：</span>
+            {content.description}
+          </p>
+        )}
+        {content.techStack && (
+          <p className="text-sm text-gray-500">技术栈：{content.techStack}</p>
+        )}
+        {content.achievements.length > 0 && (
+          <div className="text-sm text-gray-600">
+            <p className="text-gray-500">核心职责：</p>
+            <div className="mt-1 space-y-1 pl-4">
+              {content.achievements.map((a, i) => (
+                <div key={`${i}-${a}`} className="flex gap-2">
+                  <span className="text-gray-400">•</span>
+                  <p className="flex-1 leading-6 whitespace-pre-wrap">{renderInlineMarkdownText(a)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const renderContent = () => {
     switch (module.moduleType) {
       case 'basic_info': {
         const content = normalizeBasicInfoContent(module.content)
         const photoSource = normalizePhotoSource(content.photo)
+        const photoFrameClassName = content.photoBorder
+          ? 'border border-primary-100 bg-slate-50'
+          : 'bg-slate-50'
         const contactItems = [
           ['邮箱', content.email as string],
           ['手机号', content.phone as string],
@@ -646,7 +686,7 @@ function ModulePreviewSection({
               </div>
               {photoSource ? (
                 <div className="flex justify-end">
-                  <div className="aspect-[3/4] w-[108px] overflow-hidden border border-primary-100 bg-slate-50 shadow-[0_10px_25px_-18px_rgba(15,23,42,0.4)]">
+                  <div className={`aspect-[3/4] w-[108px] overflow-hidden shadow-[0_10px_25px_-18px_rgba(15,23,42,0.4)] ${photoFrameClassName}`}>
                     <img src={photoSource} alt="简历照片" className="h-full w-full object-cover" />
                   </div>
                 </div>
@@ -753,7 +793,8 @@ function ModulePreviewSection({
           </div>
         )
       }
-      case 'internship': {
+      case 'internship':
+      case 'work_experience': {
         const content = normalizeInternshipContent(module.content)
         const titleLine = [content.company, content.position, content.projectName].filter(Boolean).join(' - ')
         return (
@@ -790,40 +831,7 @@ function ModulePreviewSection({
         )
       }
       case 'project': {
-        const content = normalizeProjectContent(module.content)
-        const titleLine = [content.projectName, content.role].filter(Boolean).join(' - ')
-        return (
-          <div className="mb-4 space-y-1.5">
-            <div className="flex justify-between items-start">
-              <div className="font-semibold text-gray-800">{titleLine || '项目 - 角色'}</div>
-              <span className="text-sm text-gray-400">
-                {formatMonthRange(content.startDate, content.endDate)}
-              </span>
-            </div>
-            {content.description && (
-              <p className="text-sm text-gray-600">
-                <span className="text-gray-500">项目简介：</span>
-                {content.description}
-              </p>
-            )}
-            {content.techStack && (
-              <p className="text-sm text-gray-500">技术栈：{content.techStack}</p>
-            )}
-            {content.achievements.length > 0 && (
-              <div className="text-sm text-gray-600">
-                <p className="text-gray-500">核心职责：</p>
-                <div className="mt-1 space-y-1 pl-4">
-                  {content.achievements.map((a, i) => (
-                    <div key={`${i}-${a}`} className="flex gap-2">
-                      <span className="text-gray-400">•</span>
-                      <p className="flex-1 leading-6 whitespace-pre-wrap">{renderInlineMarkdownText(a)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )
+        return <div>{projectModules.map(renderProjectEntry)}</div>
       }
       case 'skill': {
         const content = normalizeSkillContent(module.content)
@@ -870,9 +878,9 @@ function ModulePreviewSection({
         return (
           <div className="mb-3">
             <p>
-              <span className="font-semibold">{content.journalName}</span>
-              <span className="text-gray-500 ml-2">({content.journalType})</span>
-              <span className="text-gray-400 ml-2">{content.publishTime}</span>
+              <span className="font-semibold">{content.journalName || '论文'}</span>
+              {content.journalType && <span className="text-gray-500 ml-2">({content.journalType})</span>}
+              {content.publishTime && <span className="text-gray-400 ml-2">{content.publishTime}</span>}
             </p>
             {content.content && <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{content.content}</p>}
           </div>

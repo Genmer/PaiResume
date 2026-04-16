@@ -7,23 +7,10 @@ export function findBasicInfoContent(modules: ResumeModule[]): BasicInfoContent 
   return basicInfoModule ? normalizeBasicInfoContent(basicInfoModule.content) : null
 }
 
-export function hasWorkYears(value: string | null | undefined): boolean {
-  const normalizedValue = value?.trim()
-  if (!normalizedValue) {
-    return false
-  }
-
-  return /[\d一二两三四五六七八九十半]/.test(normalizedValue)
-}
-
 export function getModuleDisplayLabel(
   moduleType: ModuleType,
-  basicInfoContent?: Pick<BasicInfoContent, 'workYears'> | null
+  _basicInfoContent?: Pick<BasicInfoContent, 'workYears'> | null
 ): string {
-  if (moduleType === 'internship' && hasWorkYears(basicInfoContent?.workYears)) {
-    return '工作经历'
-  }
-
   return MODULE_LABELS[moduleType]
 }
 

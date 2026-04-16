@@ -12,6 +12,7 @@ import { ResumeAnalysis } from '../components/analysis/ResumeAnalysis'
 import { BasicInfoForm } from '../components/modules/BasicInfoForm'
 import { EducationForm } from '../components/modules/EducationForm'
 import { InternshipForm } from '../components/modules/InternshipForm'
+import { WorkExperienceForm } from '../components/modules/WorkExperienceForm'
 import { ProjectForm } from '../components/modules/ProjectForm'
 import { SkillForm } from '../components/modules/SkillForm'
 import { PaperForm } from '../components/modules/PaperForm'
@@ -34,11 +35,12 @@ import {
 
 type EditorView = 'module' | 'analysis' | 'template-selection'
 const AI_OPTIMIZABLE_MODULE_TYPES = new Set<ModuleType>(['research', 'skill'])
+const NON_REMOVABLE_MODULE_TYPES = new Set<ModuleType>(['basic_info'])
 const PREVIEW_PANEL_COLLAPSED_STORAGE_KEY = 'pai-resume.preview-panel-collapsed'
 const RESUME_PDF_PREVIEW_CONFIG_STORAGE_KEY_PREFIX = 'pai-resume.pdf-preview-config'
 
 interface DeleteDialogState {
-  moduleId: number
+  moduleIds: number[]
   moduleLabel: string
   itemLabel: string
 }
@@ -56,6 +58,8 @@ export default function EditorPage() {
   const [membershipModalOpen, setMembershipModalOpen] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(null)
   const [deletingModuleId, setDeletingModuleId] = useState<number | null>(null)
+  const [initializingBasicInfo, setInitializingBasicInfo] = useState(false)
+  const [modulesLoaded, setModulesLoaded] = useState(false)
   const [previewCollapsed, setPreviewCollapsed] = useState(false)
   const [pdfPreviewConfig, setPdfPreviewConfig] = useState<ResumePdfPreviewConfig>(DEFAULT_RESUME_PDF_PREVIEW_CONFIG)
 
@@ -75,10 +79,21 @@ export default function EditorPage() {
 
   useEffect(() => {
     if (resumeId) {
+      let cancelled = false
       setActiveModuleType(initialModuleType)
       setAiModuleId(null)
       setEditorView(requestedView)
-      void fetchModules(resumeId)
+      setInitializingBasicInfo(false)
+      setModulesLoaded(false)
+      void fetchModules(resumeId).finally(() => {
+        if (!cancelled) {
+          setModulesLoaded(true)
+        }
+      })
+
+      return () => {
+        cancelled = true
+      }
     }
   }, [resumeId, fetchModules, initialModuleType, requestedView])
 
@@ -204,6 +219,37 @@ export default function EditorPage() {
     }
   }, [editorView, modules.length, searchParams, updateEditorLocation])
 
+  useEffect(() => {
+    if (
+      !resumeId
+      || !modulesLoaded
+      || loading
+      || initializingBasicInfo
+      || modules.some((module) => module.moduleType === 'basic_info')
+    ) {
+      return
+    }
+
+    let cancelled = false
+    setInitializingBasicInfo(true)
+
+    void addModule(resumeId, 'basic_info', getDefaultContent('basic_info'), 0)
+      .catch((error) => {
+        if (!cancelled) {
+          console.error('初始化基本信息模块失败:', error)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setInitializingBasicInfo(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [resumeId, modulesLoaded, loading, initializingBasicInfo, modules, addModule])
+
   const openModuleView = useCallback((moduleType: ModuleType) => {
     setActiveModuleType(moduleType)
     setEditorView('module')
@@ -239,9 +285,11 @@ export default function EditorPage() {
         return
       }
 
-      setDeletingModuleId(deleteDialog.moduleId)
+      setDeletingModuleId(deleteDialog.moduleIds[0] ?? null)
       try {
-        await deleteModule(resumeId, deleteDialog.moduleId)
+        for (const moduleId of deleteDialog.moduleIds) {
+          await deleteModule(resumeId, moduleId)
+        }
         setDeleteDialog(null)
       } finally {
         setDeletingModuleId(null)
@@ -249,6 +297,18 @@ export default function EditorPage() {
     },
     [deleteDialog, resumeId, deleteModule]
   )
+
+  const openDeleteDialog = useCallback((moduleIds: number[], moduleType: ModuleType, itemLabel: string) => {
+    if (moduleIds.length === 0) {
+      return
+    }
+
+    setDeleteDialog({
+      moduleIds,
+      moduleLabel: getModuleDisplayLabelFromModules(moduleType, modules),
+      itemLabel,
+    })
+  }, [modules])
 
   const handleAddInstanceOfType = useCallback(
     async (moduleType: ModuleType) => {
@@ -263,6 +323,7 @@ export default function EditorPage() {
   const activeModules = modules.filter((m) => m.moduleType === activeModuleType)
   const canAddAnotherInstance = activeModuleType ? !SINGLETON_MODULES.includes(activeModuleType) : false
   const canOptimizeActiveModule = activeModuleType ? AI_OPTIMIZABLE_MODULE_TYPES.has(activeModuleType) : false
+  const canDeleteActiveModule = activeModuleType ? !NON_REMOVABLE_MODULE_TYPES.has(activeModuleType) : false
   const analysisContainerClassName = previewCollapsed ? 'mx-auto max-w-6xl' : 'mx-auto max-w-4xl'
   const moduleContainerClassName = previewCollapsed ? 'mx-auto max-w-5xl' : 'mx-auto max-w-3xl'
   const previewToggleRight = previewCollapsed
@@ -326,6 +387,7 @@ export default function EditorPage() {
       case 'basic_info': return <BasicInfoForm {...props} />
       case 'education': return <EducationForm {...props} />
       case 'internship': return <InternshipForm {...props} />
+      case 'work_experience': return <WorkExperienceForm {...props} />
       case 'project': return <ProjectForm {...props} />
       case 'skill': return <SkillForm {...props} />
       case 'paper': return <PaperForm {...props} />
@@ -383,6 +445,12 @@ export default function EditorPage() {
           activeModuleType={activeModuleType}
           onSelect={openModuleView}
           onAddModule={handleAddModule}
+          onRemoveModuleType={(moduleType) => {
+            const moduleIds = modules
+              .filter((module) => module.moduleType === moduleType)
+              .map((module) => module.id)
+            openDeleteDialog(moduleIds, moduleType, moduleIds.length > 1 ? '全部内容' : '当前内容')
+          }}
           analysisActive={editorView === 'analysis'}
           onSelectAnalysis={openAnalysisView}
           templateSelectionActive={editorView === 'template-selection'}
@@ -450,11 +518,9 @@ export default function EditorPage() {
                               </button>
                             )}
                             <button
-                              onClick={() => setDeleteDialog({
-                                moduleId: mod.id,
-                                moduleLabel: getModuleDisplayLabelFromModules(activeModuleType, modules),
-                                itemLabel: `第 ${index + 1} 条`,
-                              })}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => openDeleteDialog([mod.id], activeModuleType, `第 ${index + 1} 条`)}
                               className="text-xs text-gray-400 hover:text-red-500"
                             >
                               删除
@@ -462,22 +528,38 @@ export default function EditorPage() {
                           </div>
                         </div>
                       )}
-                      {activeModules.length === 1 && canOptimizeActiveModule && (
-                        <div className="flex justify-end mb-3">
-                          <button
-                            onClick={() => setAiModuleId(mod.id)}
-                            className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            AI 优化
-                          </button>
+                      {activeModules.length === 1 && (canOptimizeActiveModule || canDeleteActiveModule) && (
+                        <div className="mb-3 flex justify-end gap-2">
+                          {canOptimizeActiveModule && (
+                            <button
+                              onClick={() => setAiModuleId(mod.id)}
+                              className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              AI 优化
+                            </button>
+                          )}
+                          {canDeleteActiveModule && (
+                            <button
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => openDeleteDialog([mod.id], activeModuleType, '当前内容')}
+                              className="text-xs text-gray-400 hover:text-red-500"
+                            >
+                              删除
+                            </button>
+                          )}
                         </div>
                       )}
                       {renderModuleForm(mod.id, mod.content)}
                     </div>
                   ))}
+                </div>
+              ) : activeModuleType === 'basic_info' && initializingBasicInfo ? (
+                <div className="text-center py-12 text-gray-400">
+                  正在初始化基本信息...
                 </div>
               ) : (
                 <div className="text-center py-12 text-gray-400">
@@ -530,7 +612,7 @@ export default function EditorPage() {
         confirmText="确认删除"
         cancelText="先保留"
         tone="danger"
-        loading={deleteDialog !== null && deletingModuleId === deleteDialog.moduleId}
+        loading={deleteDialog !== null && deletingModuleId !== null}
         onConfirm={handleDeleteModule}
         onCancel={() => {
           if (deletingModuleId !== null) {
@@ -552,7 +634,7 @@ function getDefaultContentMap(): Record<ModuleType, Record<string, unknown>> {
   return {
     basic_info: {
       name: '', email: '', jobIntention: '', targetCity: '', salaryRange: '', expectedEntryDate: '', phone: '', wechat: '', isPartyMember: false,
-      photo: '', hometown: '', blog: '', github: '', leetcode: '', workYears: '',
+      photo: '', photoBorder: false, hometown: '', blog: '', github: '', leetcode: '', workYears: '',
       summary: '',
     },
     education: {
@@ -560,6 +642,10 @@ function getDefaultContentMap(): Record<ModuleType, Record<string, unknown>> {
       startDate: '', endDate: '', is985: false, is211: false, isDoubleFirst: false,
     },
     internship: {
+      company: '', projectName: '', position: '', startDate: '', endDate: '',
+      techStack: '', projectDescription: '', responsibilities: [],
+    },
+    work_experience: {
       company: '', projectName: '', position: '', startDate: '', endDate: '',
       techStack: '', projectDescription: '', responsibilities: [],
     },
