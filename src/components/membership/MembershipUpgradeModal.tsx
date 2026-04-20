@@ -60,7 +60,7 @@ export function MembershipUpgradeModal({ open, onClose }: Props) {
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">开通会员后可导出 PDF</h2>
+            <h2 className="text-xl font-semibold text-gray-900">限时福利，免费导出</h2>
             <p className="mt-2 text-sm leading-6 text-gray-500">
               当前版本还没有接入在线支付。你可以先输入优惠码查看最终价格，再联系管理员人工开通。
             </p>

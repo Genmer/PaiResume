@@ -151,7 +151,9 @@ function parseSkills(text: string, result: ParsedResume) {
   const foundSkills = new Set<string>()
 
   for (const keyword of techKeywords) {
-    const regex = new RegExp(`\\b${keyword}\\b`, 'gi')
+    // Escape regex metacharacters (e.g., C++ → C\+\+, C# → C\#, Node.js → Node\.js)
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`\\b${escaped}\\b`, 'gi')
     if (regex.test(text)) {
       foundSkills.add(keyword)
     }

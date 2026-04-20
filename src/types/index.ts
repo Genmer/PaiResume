@@ -206,3 +206,61 @@ export interface AnalysisResult {
   issues: AnalysisIssue[]
   suggestions: string[]
 }
+
+// ==================== PDF Parsing Types ====================
+
+export interface ParsedResume {
+  basicInfo?: Partial<BasicInfo>
+  educations?: Array<Partial<Education>>
+  skills?: string[]
+  experiences?: Array<Partial<Experience>>
+}
+
+export interface ParsedResumeDTO {
+  basicInfo?: BasicInfoDTO
+  educations?: EducationDTO[]
+  skills?: string[]
+  experiences?: ExperienceDTO[]
+  projects?: ProjectDTO[]
+}
+
+export interface BasicInfoDTO {
+  name?: string
+  email?: string
+  phone?: string
+  github?: string
+  website?: string
+  location?: string
+  summary?: string
+}
+
+export interface EducationDTO {
+  id?: string
+  school?: string
+  degree?: string
+  major?: string
+  startDate?: string
+  endDate?: string
+  description?: string
+}
+
+export interface ExperienceDTO {
+  id?: string
+  company?: string
+  position?: string
+  startDate?: string
+  endDate?: string
+  description?: string
+  achievements?: string[]
+}
+
+export interface ProjectDTO {
+  id?: string
+  projectName?: string
+  role?: string
+  startDate?: string
+  endDate?: string
+  techStack?: string
+  description?: string
+  achievements?: string[]
+}

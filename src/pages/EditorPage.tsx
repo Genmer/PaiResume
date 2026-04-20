@@ -1,7 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { resumeApi } from '../api/resume'
-import { useAuthStore } from '../store/authStore'
 import { useResumeStore } from '../store/resumeStore'
 import { Header } from '../components/layout/Header'
 import { ModuleSidebar } from '../components/editor/ModuleSidebar'
@@ -29,6 +27,7 @@ import {
   resolveResumePdfDensity,
   resolveResumePdfHeadingStyle,
   resolveResumePdfTemplateId,
+  generateResumePdfBlob,
   type ResumePdfPageMode,
   type ResumePdfPreviewConfig,
 } from '../utils/resumePdf'
@@ -48,7 +47,6 @@ interface DeleteDialogState {
 export default function EditorPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
-  const user = useAuthStore((state) => state.user)
   const { modules, loading, fetchModules, addModule, deleteModule } = useResumeStore()
   const [activeModuleType, setActiveModuleType] = useState<ModuleType | null>(null)
   const [aiModuleId, setAiModuleId] = useState<number | null>(null)
@@ -330,22 +328,17 @@ export default function EditorPage() {
     ? '42px'
     : 'calc(clamp(500px, 42vw, 540px) - 16px)'
 
-  const handleExportPdf = useCallback(async (pageMode: ResumePdfPageMode) => {
+  const handleExportPdf = useCallback(async (_pageMode: ResumePdfPageMode) => {
     if (modules.length === 0) {
       setExportError('请先完善简历内容后再导出 PDF')
-      return
-    }
-
-    if (user?.membershipStatus !== 'ACTIVE') {
-      setMembershipModalOpen(true)
       return
     }
 
     setExporting(true)
     setExportError('')
     try {
-      const { blob, fileName } = await resumeApi.exportPdf(resumeId, {
-        pageMode,
+      // 使用客户端 PDF 生成，无需后端 API
+      const blob = await generateResumePdfBlob(modules, {
         templateId: pdfPreviewConfig.templateId,
         density: pdfPreviewConfig.density,
         accentPreset: pdfPreviewConfig.accentPreset,
@@ -354,21 +347,18 @@ export default function EditorPage() {
       const objectUrl = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = objectUrl
-      link.download = fileName
+      link.download = 'resume.pdf'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(objectUrl)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '导出 PDF 失败，请稍后重试'
-      if (message.includes('会员')) {
-        setMembershipModalOpen(true)
-      }
       setExportError(message)
     } finally {
       setExporting(false)
     }
-  }, [modules.length, pdfPreviewConfig.accentPreset, pdfPreviewConfig.density, pdfPreviewConfig.headingStyle, pdfPreviewConfig.templateId, resumeId, user?.membershipStatus])
+  }, [modules, pdfPreviewConfig.accentPreset, pdfPreviewConfig.density, pdfPreviewConfig.headingStyle, pdfPreviewConfig.templateId])
 
   const renderModuleForm = (moduleId: number, content: Record<string, unknown>) => {
     if (!activeModuleType) return null
