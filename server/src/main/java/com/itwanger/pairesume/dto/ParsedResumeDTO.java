@@ -38,6 +38,8 @@ public class ParsedResumeDTO {
         private String github;
         private String website;
         private String location;
+        private String jobIntention;
+        private String workYears;
         private String summary;
     }
 
@@ -79,7 +81,7 @@ public class ParsedResumeDTO {
         private String role;
         private String startDate;
         private String endDate;
-        private String techStack;
+        private List<String> techStack;
         private String description;
         private List<String> achievements;
     }

@@ -25,6 +25,7 @@ import {
   normalizeSkillContent,
 } from './moduleContent'
 import { parseInlineMarkdownSegments } from './inlineMarkdown'
+import { buildResumeExportFileName } from './exportFileName'
 import { normalizePhotoSource } from './resumePhoto'
 import { getModuleDisplayLabel } from './resumeDisplay'
 
@@ -1027,25 +1028,11 @@ function normalizeExternalUrl(value: string) {
   return /^https?:\/\//i.test(value) ? value : `https://${value}`
 }
 
-function buildFileName(modules: ResumeModule[], resumeId: number, options?: ResumePdfOptions) {
-  const basicInfoModule = modules.find((module) => module.moduleType === 'basic_info')
-  const educationModule = modules.find((module) => module.moduleType === 'education')
-  const jobIntentionModule = modules.find((module) => module.moduleType === 'job_intention')
-  const basicInfo = basicInfoModule ? normalizeBasicInfoContent(basicInfoModule.content) : null
-  const education = educationModule ? normalizeEducationContent(educationModule.content) : null
-  const jobIntention = jobIntentionModule ? normalizeJobIntentionContent(jobIntentionModule.content) : null
-
-  const segments = [
-    basicInfo?.name.trim() || '',
-    education?.school.trim() || '',
-    basicInfo?.jobIntention.trim() || jobIntention?.targetPosition.trim() || '',
-  ]
-    .filter(Boolean)
-    .map((part) => part.replace(/[\\/:*?"<>|]/g, '-').trim())
-
-  const baseName = segments.join('-') || `resume-${resumeId}`
-  const suffix = options?.fileNameSuffix ? `-${options.fileNameSuffix}` : ''
-  return `${baseName}${suffix}.pdf`
+function buildFileName(modules: ResumeModule[], options?: ResumePdfOptions) {
+  const suffix = options?.fileNameSuffix?.trim()
+  const baseName = buildResumeExportFileName(modules, '').trim()
+  const finalBaseName = suffix ? `${baseName}-${suffix}` : baseName
+  return `${finalBaseName}.pdf`
 }
 
 function getResumePdfSectionHeadingVariant(
@@ -1530,12 +1517,12 @@ function ResumePdfDocument({
   )
 }
 
-export async function downloadResumePdf(modules: ResumeModule[], resumeId: number, options?: ResumePdfOptions) {
+export async function downloadResumePdf(modules: ResumeModule[], _resumeId: number, options?: ResumePdfOptions) {
   const blob = await generateResumePdfBlob(modules, options)
   const objectUrl = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = objectUrl
-  link.download = buildFileName(modules, resumeId, options)
+  link.download = buildFileName(modules, options)
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

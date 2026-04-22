@@ -231,6 +231,8 @@ export interface BasicInfoDTO {
   github?: string
   website?: string
   location?: string
+  jobIntention?: string
+  workYears?: string
   summary?: string
 }
 
@@ -260,7 +262,7 @@ export interface ProjectDTO {
   role?: string
   startDate?: string
   endDate?: string
-  techStack?: string
+  techStack?: string[]
   description?: string
   achievements?: string[]
 }

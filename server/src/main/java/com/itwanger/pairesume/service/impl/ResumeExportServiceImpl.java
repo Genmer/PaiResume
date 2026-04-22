@@ -20,6 +20,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -46,8 +48,9 @@ public class ResumeExportServiceImpl implements ResumeExportService {
             throw new BusinessException(ResultCode.MEMBERSHIP_REQUIRED);
         }
 
-        var resume = resumeService.getByIdAndUserId(resumeId, userId);
         var modules = resumeModuleService.listByResumeId(resumeId, userId);
+        log.info("[PDF Export] resumeId={}, modules={}, moduleTypes={}", resumeId, modules.size(),
+                modules.stream().map(m -> m.getModuleType() + "(" + (m.getContent() != null && !m.getContent().isEmpty() ? m.getContent().keySet() : "empty") + ")").toList());
 
         Path tempFile = null;
         try {
@@ -86,7 +89,7 @@ public class ResumeExportServiceImpl implements ResumeExportService {
             }
 
             byte[] content = Files.readAllBytes(tempFile);
-            return new ExportedResumeFile(content, sanitizeFileName(resume.getTitle()) + ".pdf");
+            return new ExportedResumeFile(content, buildExportFileName(modules));
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -132,9 +135,58 @@ public class ResumeExportServiceImpl implements ResumeExportService {
 
     private String sanitizeFileName(String title) {
         if (title == null || title.isBlank()) {
-            return "resume";
+            return "简历导出";
         }
-        return title.trim().replaceAll("[\\\\/:*?\"<>|]", "-");
+        String sanitized = title.trim()
+                .replaceAll("[\\\\/:*?\"<>|]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^[-\\s]+|[-\\s]+$", "");
+        return sanitized.isBlank() ? "简历导出" : sanitized;
+    }
+
+    private String buildExportFileName(List<com.itwanger.pairesume.entity.ResumeModule> modules) {
+        List<String> parts = new ArrayList<>();
+        String name = "";
+        String jobIntention = "";
+        String workYears = "";
+
+        for (com.itwanger.pairesume.entity.ResumeModule module : modules) {
+            if (module.getContent() == null) {
+                continue;
+            }
+
+            if ("basic_info".equals(module.getModuleType())) {
+                name = firstNonBlank(name, stringValue(module.getContent().get("name")));
+                jobIntention = firstNonBlank(jobIntention, stringValue(module.getContent().get("jobIntention")));
+                workYears = firstNonBlank(workYears, stringValue(module.getContent().get("workYears")));
+            } else if ("job_intention".equals(module.getModuleType())) {
+                jobIntention = firstNonBlank(jobIntention, stringValue(module.getContent().get("targetPosition")));
+            }
+        }
+
+        if (!name.isBlank()) {
+            parts.add(name);
+        }
+        if (!jobIntention.isBlank()) {
+            parts.add(jobIntention);
+        }
+        if (!workYears.isBlank()) {
+            parts.add(workYears);
+        }
+
+        if (name.isBlank()) {
+            return sanitizeFileName("简历导出") + ".pdf";
+        }
+
+        return sanitizeFileName(String.join("-", parts)) + ".pdf";
+    }
+
+    private String firstNonBlank(String current, String candidate) {
+        return current.isBlank() && !candidate.isBlank() ? candidate : current;
+    }
+
+    private String stringValue(Object value) {
+        return value instanceof String string ? string.trim() : "";
     }
 
     private String blankToNull(String value) {

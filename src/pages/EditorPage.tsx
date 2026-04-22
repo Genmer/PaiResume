@@ -20,6 +20,7 @@ import { MembershipUpgradeModal } from '../components/membership/MembershipUpgra
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { SINGLETON_MODULES, type ModuleType } from '../types'
 import { normalizeJobIntentionContent } from '../utils/moduleContent'
+import { buildResumeExportFileName } from '../utils/exportFileName'
 import { getModuleDisplayLabelFromModules } from '../utils/resumeDisplay'
 import {
   DEFAULT_RESUME_PDF_PREVIEW_CONFIG,
@@ -347,7 +348,7 @@ export default function EditorPage() {
       const objectUrl = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = objectUrl
-      link.download = 'resume.pdf'
+      link.download = buildResumeExportFileName(modules, 'pdf')
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)

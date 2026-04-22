@@ -1,5 +1,6 @@
 import client, { type ApiEnvelope } from './client'
 import type { AnalysisResult } from '../types'
+import { getDefaultResumeExportFileName } from '../utils/exportFileName'
 
 export interface ResumeListItem {
   id: number
@@ -267,7 +268,7 @@ async function withAiLogging<T>(
 
 function parseFileName(disposition: string | undefined) {
   if (!disposition) {
-    return 'resume.pdf'
+    return getDefaultResumeExportFileName('pdf')
   }
 
   const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i)
@@ -280,7 +281,7 @@ function parseFileName(disposition: string | undefined) {
     return standardMatch[1]
   }
 
-  return 'resume.pdf'
+  return getDefaultResumeExportFileName('pdf')
 }
 
 export const resumeApi = {

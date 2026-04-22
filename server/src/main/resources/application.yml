@@ -16,6 +16,8 @@ app:
   prompts:
     field-optimize:
       config-file: ${FIELD_OPTIMIZE_PROMPTS_FILE:config/field-optimize-prompts.yml}
+    resume-parse:
+      config-file: ${RESUME_PARSE_PROMPT_FILE:${RESUME_PARSE_PROMPTS_FILE:config/resume-parse-prompt.yml}}
 
 spring:
   devtools:
@@ -66,7 +68,7 @@ ai:
   base-url: ${AI_BASE_URL:${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}}
   model: ${AI_MODEL:${DEEPSEEK_MODEL:deepseek-chat}}
   analysis-model: ${AI_ANALYSIS_MODEL:${DEEPSEEK_ANALYSIS_MODEL:${AI_MODEL:${DEEPSEEK_MODEL:deepseek-chat}}}}
-  timeout: 60
+  timeout: 300
 
 springdoc:
   swagger-ui:
@@ -76,3 +78,13 @@ springdoc:
 
 knife4j:
   enable: true
+
+resume:
+  parser:
+    line-gap-threshold: 15.0
+    name-area-ratio: 0.35
+    header-ratio: 0.15
+    footer-ratio: 0.10
+    min-name-length: 2
+    max-name-length: 10
+    min-font-size: 10.0

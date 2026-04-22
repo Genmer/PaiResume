@@ -17,7 +17,7 @@ export async function parseResumePdf(file: File): Promise<ParsedResumeDTO> {
   // 创建独立的 axios 实例用于文件上传
   const uploadClient = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 60000, // PDF 解析可能需要更长时间
+    timeout: 300000, // PDF 解析可能需要更长时间（5 分钟）
     headers: {
       'Content-Type': 'multipart/form-data',
     },

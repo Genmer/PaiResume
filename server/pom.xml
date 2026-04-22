@@ -23,7 +23,6 @@
         <jjwt.version>0.12.6</jjwt.version>
         <knife4j.version>4.5.0</knife4j.version>
         <pdfbox.version>3.0.3</pdfbox.version>
-        <hanlp.version>portable-1.8.6</hanlp.version>
     </properties>
 
     <dependencies>
@@ -118,18 +117,11 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Apache PDFBox 3.x for PDF spatial analysis -->
+        <!-- Apache PDFBox 3.x for PDF text extraction -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>${pdfbox.version}</version>
-        </dependency>
-
-        <!-- HanLP for offline Chinese NLP/NER -->
-        <dependency>
-            <groupId>com.hankcs</groupId>
-            <artifactId>hanlp</artifactId>
-            <version>${hanlp.version}</version>
         </dependency>
 
         <!-- Test -->

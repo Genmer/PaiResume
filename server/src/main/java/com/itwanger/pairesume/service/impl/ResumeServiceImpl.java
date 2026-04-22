@@ -84,9 +84,8 @@ public class ResumeServiceImpl implements ResumeService {
 
     @Override
     public void delete(Long userId, Long resumeId) {
-        var resume = getAndVerifyOwnership(resumeId, userId);
-        resume.setStatus(0);
-        resumeMapper.updateById(resume);
+        getAndVerifyOwnership(resumeId, userId);
+        resumeMapper.deleteById(resumeId);
     }
 
     @Override
