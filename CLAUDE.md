@@ -43,7 +43,7 @@ Both frontend and backend read a single `.env` at the repo root (copy from `.env
 
 Database schema is applied from `server/src/main/resources/schema.sql` on startup — there is no Flyway migration pipeline, so schema changes go into that file directly.
 
-In development the email verification code is not actually sent via SMTP; it is printed to the backend log. The AI flows live behind the backend — `VITE_AI_*` variables are legacy/compat shims and should not be relied on.
+Email verification codes are sent via SMTP with HTML templates (see `MailTemplate.java`). When `MAIL_USERNAME` / `MAIL_PASSWORD` are not configured, development mode falls back to logging the code to the backend console. The AI flows live behind the backend — `VITE_AI_*` variables are legacy/compat shims and should not be relied on.
 
 ## Architecture
 

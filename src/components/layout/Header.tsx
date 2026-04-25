@@ -274,7 +274,7 @@ export function Header() {
           <div className="flex min-h-16 items-center justify-between gap-4 py-3">
             <Link to="/dashboard" className="flex items-center gap-3">
               <LogoMark className="h-9 w-9" />
-              <span className="text-xl font-bold text-gray-900">派简历</span>
+              <span className="text-xl font-bold text-gray-900">咕咕嘎嘎简历</span>
             </Link>
 
             {isAuthenticated && (

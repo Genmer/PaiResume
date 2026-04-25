@@ -1,5 +1,6 @@
 import { parseMarkdownResume, type ImportedResumeData, type ImportedResumeModule } from './markdown'
 import { parseResumePdf } from '../../api/pdfParser'
+import { parseResumeWord } from '../../api/wordParser'
 import { convertParsedResumeToImported } from './pdf'
 
 export type ResumeImportType = 'markdown' | 'word' | 'pdf'
@@ -31,6 +32,21 @@ async function parsePdfResume(file: File): Promise<ImportedResumeData> {
   }
 }
 
+/**
+ * 解析 Word 简历（调用后端 API）
+ */
+async function parseWordResume(file: File): Promise<ImportedResumeData> {
+  try {
+    const result = await parseResumeWord(file)
+    return convertParsedResumeToImported(result, file.name)
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Word 解析失败: ${error.message}`)
+    }
+    throw new Error('Word 解析失败: 未知错误')
+  }
+}
+
 export const resumeImporters: ResumeImporter[] = [
   {
     type: 'markdown',
@@ -44,8 +60,9 @@ export const resumeImporters: ResumeImporter[] = [
     type: 'word',
     label: 'Word',
     accept: '.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    enabled: false,
-    description: '即将支持 DOC / DOCX 导入',
+    enabled: true,
+    description: '导入 Word (.doc / .docx) 格式简历',
+    parse: parseWordResume,
   },
   {
     type: 'pdf',

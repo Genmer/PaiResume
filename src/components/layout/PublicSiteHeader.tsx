@@ -17,7 +17,7 @@ export function PublicSiteHeader() {
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-3">
           <LogoMark className="h-9 w-9" />
-          <span className="text-xl font-bold text-gray-900">派简历</span>
+          <span className="text-xl font-bold text-gray-900">咕咕嘎嘎简历</span>
         </Link>
 
         <nav className="flex items-center gap-4 text-sm">

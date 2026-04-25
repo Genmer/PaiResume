@@ -8,11 +8,22 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.poifs.filesystem.FileMagic;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -262,6 +273,102 @@ public class ResumeParserServiceImpl implements ResumeParserService {
         }
 
         return builder.toString().trim();
+    }
+
+    private String extractTextFromWord(InputStream wordInputStream) throws IOException {
+        byte[] bytes = wordInputStream.readAllBytes();
+
+        FileMagic fm = FileMagic.valueOf(bytes);
+
+        if (fm == FileMagic.OOXML) {
+            try (XWPFDocument doc = new XWPFDocument(new ByteArrayInputStream(bytes))) {
+                StringBuilder text = new StringBuilder();
+
+                for (XWPFParagraph paragraph : doc.getParagraphs()) {
+                    for (XWPFRun run : paragraph.getRuns()) {
+                        String runText = run.text();
+                        if (!runText.isBlank()) {
+                            text.append(runText).append(" ");
+                        }
+                    }
+                    text.append("\n");
+                }
+
+                for (XWPFTable table : doc.getTables()) {
+                    for (XWPFTableRow row : table.getRows()) {
+                        for (XWPFTableCell cell : row.getTableCells()) {
+                            for (XWPFParagraph paragraph : cell.getParagraphs()) {
+                                for (XWPFRun run : paragraph.getRuns()) {
+                                    String runText = run.text();
+                                    if (!runText.isBlank()) {
+                                        text.append(runText).append(" ");
+                                    }
+                                }
+                                text.append("\n");
+                            }
+                            text.append("\t");
+                        }
+                        text.append("\n");
+                    }
+                    text.append("\n");
+                }
+
+                return text.toString();
+            }
+        } else if (fm == FileMagic.OLE2) {
+            try (HWPFDocument doc = new HWPFDocument(new ByteArrayInputStream(bytes));
+                 WordExtractor extractor = new WordExtractor(doc)) {
+                return extractor.getText();
+            }
+        }
+
+        throw new IOException("Unsupported Word format or invalid file");
+    }
+
+    @Override
+    public ParsedResumeDTO parseWord(InputStream wordInputStream, String fileName) {
+        log.info("Starting AI-based Word parse for file: {}", fileName);
+
+        try {
+            String resumeText = extractTextFromWord(wordInputStream);
+            log.debug("Extracted text length: {} characters", resumeText.length());
+            log.info("[Resume Parse][Word Text] preview: {}", resumeText.substring(0, Math.min(50, resumeText.length())));
+
+            String cleanedResumeText = cleanExtractedText(resumeText);
+            log.debug("Cleaned text length: {} characters", cleanedResumeText.length());
+
+            if (cleanedResumeText.trim().isEmpty()) {
+                throw new ResumeParseException("Word 文件内容为空，无法解析");
+            }
+
+            PromptConfig promptConfig = loadPromptConfig();
+            String userPrompt = promptConfig.parsePrompt.replace("{{resumeText}}", cleanedResumeText);
+
+            String aiResponse = invokeAiChat(promptConfig.systemPrompt, userPrompt);
+            log.debug("AI response received: {} characters", aiResponse.length());
+
+            String cleanedJson = cleanJsonPayload(aiResponse);
+            log.debug("Cleaned JSON: {}", cleanedJson.substring(0, Math.min(200, cleanedJson.length())));
+
+            ParsedResumeDTO result = objectMapper.readValue(cleanedJson, ParsedResumeDTO.class);
+            log.info("Word parse complete. Name: {}, Educations: {}, Experiences: {}, Projects: {}, Skills: {}",
+                    result.getBasicInfo() != null ? result.getBasicInfo().getName() : "N/A",
+                    result.getEducations() != null ? result.getEducations().size() : 0,
+                    result.getExperiences() != null ? result.getExperiences().size() : 0,
+                    result.getProjects() != null ? result.getProjects().size() : 0,
+                    result.getSkills() != null ? result.getSkills().size() : 0);
+
+            return result;
+
+        } catch (IOException e) {
+            log.error("Failed to read Word file: {}", fileName, e);
+            throw new ResumeParseException("Word 文件读取失败: " + e.getMessage(), e);
+        } catch (ResumeParseException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("AI Word parse failed for file: {}", fileName, e);
+            throw new ResumeParseException("简历解析失败: " + e.getMessage(), e);
+        }
     }
 
     private record PromptConfig(String systemPrompt, String parsePrompt) {}

@@ -11,6 +11,7 @@ import EditorPage from './pages/EditorPage'
 import ChromePreviewPage from './pages/ChromePreviewPage'
 import FieldOptimizePage from './pages/FieldOptimizePage'
 import AdminPage from './pages/AdminPage'
+import { FloatingWebmDecorations } from './components/decorations/FloatingWebmDecorations'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, initialized } = useAuthStore()
@@ -40,6 +41,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <FloatingWebmDecorations />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/showcases/:slug" element={<ShowcasePage />} />

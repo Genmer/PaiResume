@@ -3,11 +3,13 @@ package com.itwanger.pairesume.service.impl;
 import com.itwanger.pairesume.common.BusinessException;
 import com.itwanger.pairesume.common.ResultCode;
 import com.itwanger.pairesume.service.MailService;
+import com.itwanger.pairesume.util.MailTemplate;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -28,10 +30,11 @@ public class MailServiceImpl implements MailService {
 
     @Override
     public void sendVerificationCode(String email, String code) {
-        sendMail(
+        String html = MailTemplate.verificationCode(code);
+        sendHtmlMail(
                 email,
                 "派简历注册验证码",
-                "你的派简历验证码是 " + code + "，5 分钟内有效。如非本人操作，请忽略这封邮件。",
+                html,
                 "verification code " + code + " for " + email
         );
     }
@@ -39,26 +42,28 @@ public class MailServiceImpl implements MailService {
     @Override
     public void sendCouponCode(String email, String couponCode, int amountCents) {
         String amountText = formatCents(amountCents);
-        sendMail(
+        String html = MailTemplate.couponCode(couponCode, amountText);
+        sendHtmlMail(
                 email,
                 "派简历优惠码",
-                "感谢你提交派简历问卷。你的优惠码是 " + couponCode + "，可减免 " + amountText + "。支付功能上线前，如需开通会员，请联系管理员人工处理。",
+                html,
                 "coupon " + couponCode + " (" + amountText + ") for " + email
         );
     }
 
-    private void sendMail(String email, String subject, String text, String fallbackLogText) {
+    private void sendHtmlMail(String to, String subject, String htmlContent, String fallbackLogText) {
         if (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(mailPassword)) {
             fallbackOrThrow(fallbackLogText, null);
             return;
         }
 
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(mailUsername);
-            message.setTo(email);
-            message.setSubject(subject);
-            message.setText(text);
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(mailUsername);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
             javaMailSender.send(message);
         } catch (Exception e) {
             fallbackOrThrow(fallbackLogText, e);

@@ -76,7 +76,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <LogoMark className="mx-auto mb-4 h-14 w-14" />
-          <h1 className="text-2xl font-bold text-gray-900">派简历</h1>
+          <h1 className="text-2xl font-bold text-gray-900">咕咕嘎嘎简历</h1>
           <p className="text-gray-500 mt-1">创建新账号</p>
         </div>
 

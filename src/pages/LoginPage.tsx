@@ -73,7 +73,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-center gap-3">
           <LogoMark className="h-12 w-12 shrink-0" />
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">派简历</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">咕咕嘎嘎简历</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">

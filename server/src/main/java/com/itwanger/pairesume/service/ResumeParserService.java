@@ -5,7 +5,7 @@ import com.itwanger.pairesume.dto.ParsedResumeDTO;
 import java.io.InputStream;
 
 /**
- * 简历 PDF 解析服务接口
+ * 简历解析服务接口
  */
 public interface ResumeParserService {
 
@@ -17,4 +17,13 @@ public interface ResumeParserService {
      * @return 解析结果 DTO
      */
     ParsedResumeDTO parsePdf(InputStream pdfInputStream, String fileName);
+
+    /**
+     * 解析 Word 文件（.doc 或 .docx），提取简历结构化信息
+     *
+     * @param wordInputStream Word 文件输入流
+     * @param fileName        文件名（用于日志）
+     * @return 解析结果 DTO
+     */
+    ParsedResumeDTO parseWord(InputStream wordInputStream, String fileName);
 }
