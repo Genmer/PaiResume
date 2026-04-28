@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS `user` (
     `avatar`     VARCHAR(512) DEFAULT '' COMMENT '头像 URL',
     `role`       TINYINT      NOT NULL DEFAULT 0 COMMENT '角色: 0=普通用户, 1=管理员',
     `status`     TINYINT      NOT NULL DEFAULT 1 COMMENT '状态: 0=禁用, 1=正常',
-    `membership_status` VARCHAR(16) NOT NULL DEFAULT 'FREE' COMMENT '会员状态: FREE/ACTIVE',
+    `membership_status` VARCHAR(16) NOT NULL DEFAULT 'FREE' COMMENT '会员状态: FREE/LITE/PRO/MAX',
     `membership_granted_at` DATETIME NULL COMMENT '会员开通时间',
     `membership_source` VARCHAR(32) NULL COMMENT '会员来源: ADMIN_GRANTED/PAYMENT',
     `membership_expires_at` DATETIME NULL COMMENT '会员到期时间，永久会员为空',
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `resume` (
     `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
     `user_id`     BIGINT       NOT NULL COMMENT '所属用户 ID',
     `title`       VARCHAR(128) NOT NULL DEFAULT '未命名简历' COMMENT '简历标题',
-    `template_id` VARCHAR(64)  DEFAULT 'default' COMMENT '模板标识',
+    `template_id` VARCHAR(64)  DEFAULT 'classic' COMMENT '模板标识',
     `status`      TINYINT      NOT NULL DEFAULT 1 COMMENT '状态: 0=已删除, 1=正常',
     `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -185,3 +185,66 @@ CREATE TABLE IF NOT EXISTS `resume_analysis_record` (
     KEY `idx_user_created_at` (`user_id`, `created_at`),
     KEY `idx_resume_status_created` (`resume_id`, `record_status`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='整份简历 AI 分析记录表';
+
+-- 简历模板表
+CREATE TABLE IF NOT EXISTS `resume_template` (
+    `id`            VARCHAR(32)  NOT NULL COMMENT '模板唯一标识',
+    `name`          VARCHAR(64)  NOT NULL COMMENT '模板名称',
+    `description`   TEXT         NULL COMMENT '模板描述',
+    `layout_type`   VARCHAR(32)  NOT NULL COMMENT '布局类型: classic/sidebar/modern',
+    `thumbnail_url` VARCHAR(256) NULL COMMENT '缩略图 URL',
+    `is_premium`    TINYINT      NOT NULL DEFAULT 0 COMMENT '是否付费模板: 0=免费, 1=付费',
+    `sort_order`    INT          NOT NULL DEFAULT 0 COMMENT '排序序号',
+    `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_template_sort` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='简历模板表';
+
+INSERT IGNORE INTO `resume_template` (`id`, `name`, `description`, `layout_type`, `is_premium`, `sort_order`) VALUES
+('classic', '经典单栏', '传统单栏布局，适合所有行业', 'classic', 0, 1),
+('sidebar', '侧边栏双栏', '现代双栏布局，左侧边栏放基本信息和技能', 'sidebar', 1, 2),
+('modern', '现代头图', '时尚头图布局，顶部大标题区域', 'modern', 1, 3);
+
+-- 激活码表
+CREATE TABLE IF NOT EXISTS `activation_code` (
+    `id`              BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `code`            VARCHAR(64)  NOT NULL COMMENT '兑换码',
+    `tier`            VARCHAR(16)  NOT NULL COMMENT '会员等级: LITE/PRO/MAX',
+    `duration_days`   INT          NOT NULL COMMENT '有效天数: 30/90/365/0(永久)',
+    `batch_id`        VARCHAR(64)  NULL COMMENT '批次ID',
+    `status`          VARCHAR(16)  NOT NULL DEFAULT 'UNUSED' COMMENT '状态: UNUSED/USED/DISABLED',
+    `used_by_user_id` BIGINT       NULL COMMENT '使用人用户ID',
+    `used_at`         DATETIME     NULL COMMENT '使用时间',
+    `created_by`      BIGINT       NULL COMMENT '创建者admin用户ID',
+    `expires_at`      DATETIME     NULL COMMENT '码过期时间',
+    `created_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_activation_code` (`code`),
+    KEY `idx_activation_code_status` (`status`),
+    KEY `idx_activation_code_batch_id` (`batch_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='激活码表';
+
+-- 活动配置表（单行配置）
+CREATE TABLE IF NOT EXISTS `activity_config` (
+    `id`                     BIGINT       NOT NULL DEFAULT 1 COMMENT '固定单行主键',
+    `activity_tier`          VARCHAR(16)  NULL COMMENT '活动会员等级: LITE/PRO/MAX或NULL',
+    `activity_duration_days` INT          NOT NULL DEFAULT 30 COMMENT '活动有效天数',
+    `activity_enabled`       TINYINT      NOT NULL DEFAULT 0 COMMENT '活动是否启用: 0=禁用, 1=启用',
+    `activity_start_at`      DATETIME     NULL COMMENT '活动开始时间',
+    `activity_end_at`        DATETIME     NULL COMMENT '活动结束时间',
+    `activity_label`         VARCHAR(128) NULL COMMENT '活动标签',
+    `updated_by`             BIGINT       NULL COMMENT '最后更新人',
+    `created_at`             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='活动配置表';
+
+INSERT INTO `activity_config` (`id`, `activity_tier`, `activity_duration_days`, `activity_enabled`)
+VALUES (1, NULL, 30, 0)
+ON DUPLICATE KEY UPDATE `id` = `id`;
+
+-- Data migration: ACTIVE → LITE (one-time, safe to re-run)
+-- Uncomment and run manually when ready to migrate legacy ACTIVE statuses to LITE tier:
+-- UPDATE `user` SET `membership_status` = 'LITE' WHERE `membership_status` = 'ACTIVE';
+

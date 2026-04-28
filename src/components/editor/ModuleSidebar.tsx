@@ -12,6 +12,12 @@ interface ModuleSidebarProps {
   onSelectAnalysis?: () => void
   templateSelectionActive?: boolean
   onSelectTemplateSelection?: () => void
+  jdParseActive?: boolean
+  onSelectJdParse?: () => void
+  errorCheckActive?: boolean
+  onSelectErrorCheck?: () => void
+  atsCheckActive?: boolean
+  onSelectAtsCheck?: () => void
 }
 
 const ALL_MODULE_TYPES: ModuleType[] = [
@@ -37,9 +43,16 @@ export function ModuleSidebar({
   onSelectAnalysis,
   templateSelectionActive = false,
   onSelectTemplateSelection,
+  jdParseActive = false,
+  onSelectJdParse,
+  errorCheckActive = false,
+  onSelectErrorCheck,
+  atsCheckActive = false,
+  onSelectAtsCheck,
 }: ModuleSidebarProps) {
   const existingTypes = new Set(modules.map((m) => m.moduleType as ModuleType))
-  const moduleViewActive = !analysisActive && !templateSelectionActive
+  const toolsActive = analysisActive || templateSelectionActive || jdParseActive || errorCheckActive || atsCheckActive
+  const moduleViewActive = !toolsActive
   const basicInfoContent = findBasicInfoContent(modules)
 
   return (
@@ -154,6 +167,54 @@ export function ModuleSidebar({
               <span className="flex-1">预览与导出</span>
             </span>
           </button>
+        </div>
+
+        <div className="mt-6 border-t border-gray-100 pt-4">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-400">工具</h2>
+          <nav className="space-y-1">
+            <button
+              type="button"
+              onClick={onSelectJdParse}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                jdParseActive
+                  ? 'bg-primary-50 font-medium text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="text-base">📋</span>
+                <span className="flex-1">JD 解析</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onSelectErrorCheck}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                errorCheckActive
+                  ? 'bg-primary-50 font-medium text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="text-base">🔍</span>
+                <span className="flex-1">简历纠错</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onSelectAtsCheck}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                atsCheckActive
+                  ? 'bg-primary-50 font-medium text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="text-base">🤖</span>
+                <span className="flex-1">ATS 检测</span>
+              </span>
+            </button>
+          </nav>
         </div>
       </div>
     </aside>

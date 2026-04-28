@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { publicApi, type ShowcaseDetail } from '../api/public'
-import { PublicSiteHeader } from '../components/layout/PublicSiteHeader'
+import { Header } from '../components/layout/Header'
 import { ResumePreview } from '../components/preview/ResumePreview'
 import { buildAnalysisResume } from '../utils/resumeAnalysisAdapter'
 
@@ -37,7 +37,7 @@ export default function ShowcasePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PublicSiteHeader />
+      <Header />
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <Link to="/" className="text-sm text-primary-700 transition-colors hover:text-primary-800">

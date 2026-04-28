@@ -10,7 +10,7 @@ public interface MembershipService {
 
     List<UserAdminDTO> listUsers();
 
-    UserAdminDTO grantMembership(Long userId, Long adminUserId);
+    UserAdminDTO grantMembership(Long userId, Long adminUserId, String tier, int durationDays);
 
     UserAdminDTO revokeMembership(Long userId, Long adminUserId);
 }

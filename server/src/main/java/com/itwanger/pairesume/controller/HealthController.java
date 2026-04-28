@@ -1,5 +1,6 @@
 package com.itwanger.pairesume.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,9 @@ public class HealthController {
     private final JdbcTemplate jdbcTemplate;
     private final StringRedisTemplate redisTemplate;
 
+    @Value("${app.mode:DEV}")
+    private String appMode;
+
     public HealthController(JdbcTemplate jdbcTemplate, StringRedisTemplate redisTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         this.redisTemplate = redisTemplate;
@@ -24,7 +28,7 @@ public class HealthController {
 
     @GetMapping("/health")
     public Map<String, Object> health() {
-        return Map.of("status", "UP");
+        return Map.of("status", "UP", "appMode", appMode);
     }
 
     @GetMapping("/ready")

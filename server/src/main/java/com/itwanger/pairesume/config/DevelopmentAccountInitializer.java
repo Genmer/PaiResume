@@ -68,7 +68,7 @@ public class DevelopmentAccountInitializer implements ApplicationRunner {
         user.setAvatar("");
         user.setRole(role);
         user.setStatus(1);
-        user.setMembershipStatus(role == 1 ? "ACTIVE" : "FREE");
+        user.setMembershipStatus("FREE");
         userMapper.insert(user);
 
         UserAuthIdentity identity = new UserAuthIdentity();

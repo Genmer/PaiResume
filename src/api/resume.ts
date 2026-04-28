@@ -111,6 +111,39 @@ export interface ResumeReferenceTemplate {
   intendedUse: string
 }
 
+export interface ResumeCheckIssue {
+  category: string
+  severity: string
+  field: string
+  message: string
+  suggestion: string
+}
+
+export interface ResumeCheckResult {
+  score: number
+  issues: ResumeCheckIssue[]
+  detailed: boolean
+}
+
+export interface JdParseResult {
+  jobTitle: string
+  company: string
+  requiredSkills: string[]
+  preferredSkills: string[]
+  responsibilities: string[]
+}
+
+export interface AtsCheckCategory {
+  name: string
+  score: number
+  issues: string[]
+}
+
+export interface AtsCheckResult {
+  overallScore: number
+  categories: AtsCheckCategory[]
+}
+
 export interface SmartOnePagePreviewRequest {
   mode: 'layout_only' | 'optimize_and_layout'
   promptMode: 'skill' | 'custom'
@@ -602,6 +635,15 @@ export const resumeApi = {
       },
       () => client.get<ApiEnvelope<AnalysisResult | null>>(`/resumes/${resumeId}/analysis/latest`)
     ),
+
+  errorCheck: (resumeId: number) =>
+    client.post<ApiEnvelope<ResumeCheckResult>>(`/resumes/${resumeId}/error-check`, {}, { timeout: 70000 }),
+
+  atsCheck: (resumeId: number) =>
+    client.post<ApiEnvelope<AtsCheckResult>>(`/resumes/${resumeId}/ats-check`, {}, { timeout: 70000 }),
+
+  jdParse: (resumeId: number, jdText: string) =>
+    client.post<ApiEnvelope<JdParseResult>>(`/resumes/${resumeId}/jd-parse`, { jdText }, { timeout: 70000 }),
 
   smartOnePagePreview: (resumeId: number, data: SmartOnePagePreviewRequest) =>
     withAiLogging(

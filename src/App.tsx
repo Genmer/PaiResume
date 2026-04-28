@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import HomePage from './pages/HomePage'
+import PricingPage from './pages/PricingPage'
 import ShowcasePage from './pages/ShowcasePage'
 import SurveyPage from './pages/SurveyPage'
 import LoginPage from './pages/LoginPage'
@@ -10,7 +11,9 @@ import DashboardPage from './pages/DashboardPage'
 import EditorPage from './pages/EditorPage'
 import ChromePreviewPage from './pages/ChromePreviewPage'
 import FieldOptimizePage from './pages/FieldOptimizePage'
+import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
+import AnalyticsPage from './pages/AnalyticsPage'
 import { FloatingWebmDecorations } from './components/decorations/FloatingWebmDecorations'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -44,6 +47,7 @@ function App() {
       <FloatingWebmDecorations />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/showcases/:slug" element={<ShowcasePage />} />
         <Route path="/survey" element={<SurveyPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -81,10 +85,26 @@ function App() {
           }
         />
         <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin"
           element={
             <AdminRoute>
               <AdminPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/analytics"
+          element={
+            <AdminRoute>
+              <AnalyticsPage />
             </AdminRoute>
           }
         />

@@ -12,4 +12,8 @@ public final class DateTimeUtils {
     public static String format(LocalDateTime value) {
         return value == null ? null : value.format(FORMATTER);
     }
+
+    public static LocalDateTime parse(String value) {
+        return value == null ? null : LocalDateTime.parse(value, FORMATTER);
+    }
 }

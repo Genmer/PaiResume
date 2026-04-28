@@ -12,4 +12,8 @@ public class UserAdminDTO {
     private String membershipGrantedAt;
     private String membershipSource;
     private String createdAt;
+    private String membershipExpiresAt;
+    private String membershipTier;
+    private Integer remainingDays;
+    private boolean permanent;
 }

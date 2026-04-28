@@ -1,4 +1,16 @@
 import client, { type ApiEnvelope } from './client'
+import type {
+  ActivationCode,
+  ActivationCodeStats,
+  ActivityConfig,
+  CodeStatsDetailed,
+  ConversionFunnel,
+  AverageRemainingDays,
+  RegistrationTrend,
+  SubscriptionTrend,
+  TierDistribution,
+  GrantMembershipRequest,
+} from '../types/membership'
 
 export interface PlatformConfig {
   membershipPriceCents: number
@@ -43,8 +55,12 @@ export interface UserAdmin {
   nickname: string
   role: string
   membershipStatus: string
+  membershipTier: string
+  membershipExpiresAt: string | null
   membershipGrantedAt: string | null
   membershipSource: string | null
+  remainingDays: number | null
+  isPermanent: boolean
   createdAt: string
 }
 
@@ -116,4 +132,47 @@ export const adminApi = {
 
   updateShowcase: (id: number, payload: ResumeShowcasePayload) =>
     client.put<ApiEnvelope<ResumeShowcaseAdmin>>(`/admin/showcases/${id}`, payload),
+
+  // Activation codes
+  createActivationCodes: (payload: { tier: string; durationDays: number; quantity: number; batchId?: string }) =>
+    client.post<ApiEnvelope<ActivationCode[]>>('/admin/activation-codes', payload),
+
+  listActivationCodes: (status?: string, batchId?: string) =>
+    client.get<ApiEnvelope<ActivationCode[]>>('/admin/activation-codes', { params: { status, batchId } }),
+
+  disableActivationCode: (id: number) =>
+    client.patch<ApiEnvelope<void>>(`/admin/activation-codes/${id}/disable`),
+
+  getActivationCodeStats: () =>
+    client.get<ApiEnvelope<ActivationCodeStats>>('/admin/activation-codes/stats'),
+
+  // Activity config
+  getActivityConfig: () =>
+    client.get<ApiEnvelope<ActivityConfig>>('/admin/activity-config'),
+
+  updateActivityConfig: (payload: Partial<ActivityConfig>) =>
+    client.put<ApiEnvelope<ActivityConfig>>('/admin/activity-config', payload),
+
+  // Grant membership with tier
+  grantMembershipWithTier: (id: number, payload: GrantMembershipRequest) =>
+    client.post<ApiEnvelope<UserAdmin>>(`/admin/users/${id}/membership/grant`, payload),
+
+  // Analytics
+  getTierDistribution: () =>
+    client.get<ApiEnvelope<TierDistribution[]>>('/admin/analytics/tier-distribution'),
+
+  getSubscriptionTrends: (days?: number) =>
+    client.get<ApiEnvelope<SubscriptionTrend[]>>('/admin/analytics/subscription-trends', { params: { days } }),
+
+  getConversionFunnel: () =>
+    client.get<ApiEnvelope<ConversionFunnel[]>>('/admin/analytics/conversion-funnel'),
+
+  getAnalyticsCodeStats: () =>
+    client.get<ApiEnvelope<CodeStatsDetailed>>('/admin/analytics/code-stats'),
+
+  getAverageRemainingDays: () =>
+    client.get<ApiEnvelope<AverageRemainingDays[]>>('/admin/analytics/average-remaining-days'),
+
+  getRegistrationTrends: (days?: number) =>
+    client.get<ApiEnvelope<RegistrationTrend[]>>('/admin/analytics/registration-trends', { params: { days } }),
 }

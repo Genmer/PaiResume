@@ -9,9 +9,68 @@ import {
 } from '../api/admin'
 import { resumeApi, type ResumeListItem } from '../api/resume'
 import { Header } from '../components/layout/Header'
+import { ActivationCodesTab } from '../components/admin/ActivationCodesTab'
+import { ActivityConfigTab } from '../components/admin/ActivityConfigTab'
+
+type AdminTab = 'config' | 'feedback' | 'coupons' | 'activation-codes' | 'activity' | 'users' | 'showcases'
+
+const TAB_LABELS: { key: AdminTab; label: string }[] = [
+  { key: 'config', label: '平台配置' },
+  { key: 'feedback', label: '问卷反馈' },
+  { key: 'coupons', label: '优惠码' },
+  { key: 'activation-codes', label: '激活码' },
+  { key: 'activity', label: '活动配置' },
+  { key: 'users', label: '用户管理' },
+  { key: 'showcases', label: '样例管理' },
+]
 
 function formatCents(value: number) {
   return `¥${(value / 100).toFixed(2)}`
+}
+
+interface GrantTierFormProps {
+  userId: number
+  onGrant: (userId: number, action: 'grant' | 'revoke', tier?: string, durationDays?: number) => Promise<void>
+}
+
+function GrantTierForm({ userId, onGrant }: GrantTierFormProps) {
+  const [tier, setTier] = useState('PRO')
+  const [durationDays, setDurationDays] = useState(0)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    void onGrant(userId, 'grant', tier, durationDays)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex items-center gap-1">
+      <select
+        value={tier}
+        onChange={(e) => setTier(e.target.value)}
+        className="rounded border border-gray-300 px-1 py-0.5 text-xs focus:border-primary-500 focus:outline-none"
+      >
+        <option value="LITE">LITE</option>
+        <option value="PRO">PRO</option>
+        <option value="MAX">MAX</option>
+      </select>
+      <select
+        value={durationDays}
+        onChange={(e) => setDurationDays(Number(e.target.value))}
+        className="rounded border border-gray-300 px-1 py-0.5 text-xs focus:border-primary-500 focus:outline-none"
+      >
+        <option value={0}>永久</option>
+        <option value={30}>30天</option>
+        <option value={90}>90天</option>
+        <option value={365}>365天</option>
+      </select>
+      <button
+        type="submit"
+        className="rounded bg-primary-600 px-2 py-0.5 text-xs text-white transition-colors hover:bg-primary-700"
+      >
+        授权
+      </button>
+    </form>
+  )
 }
 
 const EMPTY_SHOWCASE_FORM = {
@@ -26,6 +85,7 @@ const EMPTY_SHOWCASE_FORM = {
 }
 
 export default function AdminPage() {
+  const [activeTab, setActiveTab] = useState<AdminTab>('config')
   const [platformConfig, setPlatformConfig] = useState<PlatformConfig>({
     membershipPriceCents: 6600,
     questionnaireCouponAmountCents: 1000,
@@ -174,10 +234,14 @@ export default function AdminPage() {
     }
   }
 
-  const handleMembership = async (userId: number, action: 'grant' | 'revoke') => {
+  const handleMembership = async (userId: number, action: 'grant' | 'revoke', tier?: string, durationDays?: number) => {
     try {
       if (action === 'grant') {
-        await adminApi.grantMembership(userId)
+        if (tier && durationDays !== undefined) {
+          await adminApi.grantMembershipWithTier(userId, { tier, durationDays })
+        } else {
+          await adminApi.grantMembership(userId)
+        }
       } else {
         await adminApi.revokeMembership(userId)
       }
@@ -245,10 +309,27 @@ export default function AdminPage() {
         {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
         {success ? <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{success}</div> : null}
 
+        <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
+          {TAB_LABELS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === key
+                  ? 'border-b-2 border-primary-500 text-primary-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
         {loading ? (
           <div className="text-sm text-gray-500">加载中...</div>
         ) : (
           <>
+            {activeTab === 'config' && (
             <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
               <div className="rounded-lg border border-gray-200 bg-white px-6 py-6">
                 <h2 className="text-lg font-semibold text-gray-900">平台配置</h2>
@@ -284,16 +365,19 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
+            </section>
+            )}
 
-              <div className="rounded-lg border border-gray-200 bg-white px-6 py-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">官方样例管理</h2>
-                    <p className="mt-1 text-sm text-gray-500">从管理员自己的简历中挑选样例，对外发布到首页。</p>
-                  </div>
+            {activeTab === 'showcases' && (
+            <section className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">官方样例管理</h2>
+                  <p className="mt-1 text-sm text-gray-500">从管理员自己的简历中挑选样例，对外发布到首页。</p>
                 </div>
+              </div>
 
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <label className="block">
                     <span className="mb-2 block text-sm font-medium text-gray-700">关联简历</span>
                     <select
@@ -416,9 +500,10 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
-              </div>
             </section>
+            )}
 
+            {activeTab === 'feedback' && (
             <section className="rounded-lg border border-gray-200 bg-white px-6 py-6">
               <h2 className="text-lg font-semibold text-gray-900">问卷审核</h2>
               <div className="mt-5 space-y-4">
@@ -496,10 +581,11 @@ export default function AdminPage() {
                 ))}
               </div>
             </section>
+            )}
 
-            <section className="grid gap-6 xl:grid-cols-2">
-              <div className="rounded-lg border border-gray-200 bg-white px-6 py-6">
-                <h2 className="text-lg font-semibold text-gray-900">优惠码列表</h2>
+            {activeTab === 'coupons' && (
+            <section className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+              <h2 className="text-lg font-semibold text-gray-900">优惠码列表</h2>
                 <div className="mt-5 overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200 text-sm">
                     <thead>
@@ -522,10 +608,12 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+            </section>
+            )}
 
-              <div className="rounded-lg border border-gray-200 bg-white px-6 py-6">
-                <h2 className="text-lg font-semibold text-gray-900">用户会员管理</h2>
+            {activeTab === 'users' && (
+            <section className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+              <h2 className="text-lg font-semibold text-gray-900">用户会员管理</h2>
                 <div className="mt-5 overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200 text-sm">
                     <thead>
@@ -533,44 +621,76 @@ export default function AdminPage() {
                         <th className="py-3 pr-4 font-medium">邮箱</th>
                         <th className="py-3 pr-4 font-medium">角色</th>
                         <th className="py-3 pr-4 font-medium">会员状态</th>
+                        <th className="py-3 pr-4 font-medium">会员版本</th>
+                        <th className="py-3 pr-4 font-medium">到期时间</th>
+                        <th className="py-3 pr-4 font-medium">剩余天数</th>
+                        <th className="py-3 pr-4 font-medium">是否永久</th>
                         <th className="py-3 font-medium">操作</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-gray-700">
-                      {users.map((user) => (
-                        <tr key={user.id}>
-                          <td className="py-3 pr-4">
-                            <div className="font-medium text-gray-900">{user.email}</div>
-                            <div className="mt-1 text-xs text-gray-500">{user.createdAt}</div>
-                          </td>
-                          <td className="py-3 pr-4">{user.role}</td>
-                          <td className="py-3 pr-4">{user.membershipStatus}</td>
-                          <td className="py-3">
-                            {user.membershipStatus === 'ACTIVE' ? (
-                              <button
-                                type="button"
-                                onClick={() => void handleMembership(user.id, 'revoke')}
-                                className="text-red-700 transition-colors hover:text-red-800"
-                              >
-                                撤销会员
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => void handleMembership(user.id, 'grant')}
-                                className="text-primary-700 transition-colors hover:text-primary-800"
-                              >
-                                开通会员
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {users.map((user) => {
+                        const tierBadgeClass =
+                          user.membershipTier === 'FREE'
+                            ? 'bg-gray-100 text-gray-600'
+                            : user.membershipTier === 'LITE'
+                              ? 'bg-amber-100 text-amber-700'
+                              : user.membershipTier === 'PRO'
+                                ? 'bg-blue-100 text-blue-700'
+                                : user.membershipTier === 'MAX'
+                                  ? 'bg-gray-800 text-white'
+                                  : 'bg-gray-100 text-gray-600'
+                        const formatExpiry = (expiresAt: string | null, isPermanent: boolean) => {
+                          if (isPermanent) return '永久'
+                          if (!expiresAt) return '-'
+                          return expiresAt
+                        }
+                        const formatRemaining = (remainingDays: number | null, isPermanent: boolean, tier: string) => {
+                          if (isPermanent) return '永久'
+                          if (tier === 'FREE') return '-'
+                          if (remainingDays === null) return '-'
+                          return remainingDays.toString()
+                        }
+                        return (
+                          <tr key={user.id}>
+                            <td className="py-3 pr-4">
+                              <div className="font-medium text-gray-900">{user.email}</div>
+                              <div className="mt-1 text-xs text-gray-500">{user.createdAt}</div>
+                            </td>
+                            <td className="py-3 pr-4">{user.role}</td>
+                            <td className="py-3 pr-4">{user.membershipStatus}</td>
+                            <td className="py-3 pr-4">
+                              <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${tierBadgeClass}`}>
+                                {user.membershipTier}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4">{formatExpiry(user.membershipExpiresAt, user.isPermanent)}</td>
+                            <td className="py-3 pr-4">{formatRemaining(user.remainingDays, user.isPermanent, user.membershipTier)}</td>
+                            <td className="py-3 pr-4">{user.isPermanent ? '永久' : '-'}</td>
+                            <td className="py-3">
+                              {user.membershipStatus === 'ACTIVE' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => void handleMembership(user.id, 'revoke')}
+                                  className="text-red-700 transition-colors hover:text-red-800"
+                                >
+                                  撤销会员
+                                </button>
+                              ) : (
+                                <GrantTierForm userId={user.id} onGrant={handleMembership} />
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
-              </div>
             </section>
+            )}
+
+            {activeTab === 'activation-codes' && <ActivationCodesTab />}
+            {activeTab === 'activity' && <ActivityConfigTab />}
           </>
         )}
       </main>

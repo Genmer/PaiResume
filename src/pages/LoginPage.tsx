@@ -1,43 +1,25 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { LogoMark } from '../components/branding/LogoMark'
 
 const REMEMBERED_EMAIL_KEY = 'rememberedEmail'
-const REMEMBERED_PASSWORD_KEY = 'rememberedPassword'
 
-function getRememberedCredentials() {
+function getRememberedEmail() {
   if (typeof window === 'undefined') {
-    return { email: '', password: '', remembered: false }
+    return ''
   }
-
-  const rememberedEmail = window.localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? ''
-  const rememberedPassword = window.localStorage.getItem(REMEMBERED_PASSWORD_KEY) ?? ''
-  const remembered = Boolean(rememberedEmail && rememberedPassword)
-
-  return {
-    email: rememberedEmail,
-    password: rememberedPassword,
-    remembered,
-  }
-}
-
-function clearRememberedCredentials() {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.removeItem(REMEMBERED_EMAIL_KEY)
-  window.localStorage.removeItem(REMEMBERED_PASSWORD_KEY)
+  return window.localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? ''
 }
 
 export default function LoginPage() {
-  const rememberedCredentials = getRememberedCredentials()
   const navigate = useNavigate()
+  const location = useLocation()
+  const prefilledEmail = (location.state as { prefilledEmail?: string } | null)?.prefilledEmail ?? ''
   const { login } = useAuthStore()
-  const [email, setEmail] = useState(rememberedCredentials.email)
-  const [password, setPassword] = useState(rememberedCredentials.password)
-  const [rememberCredentials, setRememberCredentials] = useState(rememberedCredentials.remembered)
+  const [email, setEmail] = useState(prefilledEmail || getRememberedEmail())
+  const [password, setPassword] = useState('')
+  const [rememberCredentials, setRememberCredentials] = useState(Boolean(prefilledEmail || getRememberedEmail()))
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -55,9 +37,8 @@ export default function LoginPage() {
       await login(email, password)
       if (rememberCredentials) {
         localStorage.setItem(REMEMBERED_EMAIL_KEY, email.trim())
-        localStorage.setItem(REMEMBERED_PASSWORD_KEY, password)
       } else {
-        clearRememberedCredentials()
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY)
       }
       navigate('/dashboard')
     } catch (err: unknown) {
@@ -115,12 +96,12 @@ export default function LoginPage() {
                 const checked = e.target.checked
                 setRememberCredentials(checked)
                 if (!checked) {
-                  clearRememberedCredentials()
+                  localStorage.removeItem(REMEMBERED_EMAIL_KEY)
                 }
               }}
               className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
-            记住邮箱和密码
+            记住邮箱
           </label>
 
           <button

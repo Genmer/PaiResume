@@ -35,7 +35,6 @@ public enum ResultCode {
     RESUME_LIMIT_REACHED(3002, "简历数量已达上限"),
     MODULE_NOT_FOUND(3003, "模块不存在"),
     MODULE_ALREADY_EXISTS(3004, "该模块只能添加一份"),
-    MEMBERSHIP_REQUIRED(3005, "开通会员后才可导出简历"),
     EXPORT_FAILED(3006, "导出失败，请稍后重试"),
 
     // AI: 4xxx
@@ -57,6 +56,22 @@ public enum ResultCode {
     FEEDBACK_NOT_FOUND(7005, "问卷记录不存在"),
     FEEDBACK_RATE_LIMITED(7006, "提交过于频繁，请稍后再试"),
     FEEDBACK_PUBLISH_NOT_ALLOWED(7007, "当前问卷不满足发布条件"),
+
+    // Membership: 4xx01
+    MEMBERSHIP_REQUIRED(40301, "需要开通会员"),
+
+    // JD Parse: 4xx02
+    JD_PARSE_LIMIT_EXCEEDED(42901, "本月免费解析次数已用完"),
+
+    // Activation Code: 8xxx
+    ACTIVATION_CODE_NOT_FOUND(8001, "激活码不存在"),
+    ACTIVATION_CODE_INVALID(8002, "激活码无效"),
+    ACTIVATION_CODE_ALREADY_USED(8003, "激活码已使用"),
+    ACTIVATION_CODE_EXPIRED(8004, "激活码已过期"),
+    ACTIVATION_CODE_DISABLED(8005, "激活码已被禁用"),
+    ACTIVATION_CODE_TIER_LOWER(8006, "您当前订阅等级更高"),
+    ACTIVATION_CODE_BATCH_CREATE_FAILED(8007, "批量生成激活码失败"),
+    ACTIVITY_ALREADY_CLAIMED(8008, "您已领取过该活动福利"),
 
     // Admin: 1xxx
     ADMIN_REQUIRED(1002, "没有管理员权限");

@@ -5,6 +5,7 @@ server:
 
 app:
   environment: ${APP_ENV:development}
+  mode: ${APP_MODE:DEV}
   dev-account:
     email: ${DEV_ACCOUNT_EMAIL:test@example.com}
     password: ${DEV_ACCOUNT_PASSWORD:Test123456}
@@ -69,6 +70,13 @@ ai:
   model: ${AI_MODEL:${DEEPSEEK_MODEL:deepseek-chat}}
   analysis-model: ${AI_ANALYSIS_MODEL:${DEEPSEEK_ANALYSIS_MODEL:${AI_MODEL:${DEEPSEEK_MODEL:deepseek-chat}}}}
   timeout: 300
+  prompts:
+    jd-parse:
+      config-file: ${JD_PARSE_PROMPTS_FILE:config/jd-parse-prompts.yml}
+    error-check:
+      config-file: ${ERROR_CHECK_PROMPTS_FILE:config/error-check-prompts.yml}
+    ats-check:
+      config-file: ${ATS_CHECK_PROMPTS_FILE:config/ats-check-prompts.yml}
 
 springdoc:
   swagger-ui:

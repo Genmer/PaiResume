@@ -7,9 +7,11 @@ import com.itwanger.pairesume.dto.ResumeCreateDTO;
 import com.itwanger.pairesume.dto.ResumeExportRequestDTO;
 import com.itwanger.pairesume.dto.ResumeUpdateDTO;
 import com.itwanger.pairesume.entity.ResumeModule;
+import com.itwanger.pairesume.entity.ResumeTemplate;
 import com.itwanger.pairesume.service.ResumeModuleService;
 import com.itwanger.pairesume.service.ResumeExportService;
 import com.itwanger.pairesume.service.ResumeService;
+import com.itwanger.pairesume.service.ResumeTemplateService;
 import com.itwanger.pairesume.util.SecurityUtils;
 import com.itwanger.pairesume.vo.ResumeListVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,18 +35,27 @@ public class ResumeController {
     private final ResumeService resumeService;
     private final ResumeModuleService moduleService;
     private final ResumeExportService resumeExportService;
+    private final ResumeTemplateService resumeTemplateService;
 
     public ResumeController(ResumeService resumeService, ResumeModuleService moduleService,
-                            ResumeExportService resumeExportService) {
+                            ResumeExportService resumeExportService,
+                            ResumeTemplateService resumeTemplateService) {
         this.resumeService = resumeService;
         this.moduleService = moduleService;
         this.resumeExportService = resumeExportService;
+        this.resumeTemplateService = resumeTemplateService;
     }
 
     @Operation(summary = "获取简历列表")
     @GetMapping
     public Result<List<ResumeListVO>> list() {
         return Result.success(resumeService.listByUserId(getCurrentUserId()));
+    }
+
+    @Operation(summary = "获取简历模板列表")
+    @GetMapping("/resume-templates")
+    public Result<List<ResumeTemplate>> listTemplates() {
+        return Result.success(resumeTemplateService.listAll());
     }
 
     @Operation(summary = "创建简历")

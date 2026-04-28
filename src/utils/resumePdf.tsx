@@ -64,6 +64,9 @@ export type ResumePdfTemplateId =
   | 'warm'
   | 'slate'
   | 'focus'
+  | 'classic'
+  | 'sidebar'
+  | 'modern'
 export type ResumePdfDensity = 'normal' | 'compact'
 export type ResumePdfAccentPreset = 'auto' | 'blue' | 'slate' | 'warm' | 'emerald'
 export type ResumePdfHeadingStyle = 'auto' | 'underline' | 'filled' | 'bar'
@@ -163,6 +166,33 @@ export const RESUME_PDF_TEMPLATES: ResumePdfTemplateOption[] = [
     previewTitle: '重点聚焦',
     previewSummary: '适合想把核心项目和关键能力快速抛给招聘方的简历。',
     previewHighlights: ['重点对比', '亮点更显', '扫描更快'],
+  },
+  {
+    id: 'classic',
+    icon: '▤',
+    name: '经典传统',
+    description: '单栏经典排版，稳重传统，适合正式场合投递。',
+    previewTitle: '经典传统',
+    previewSummary: '适合国企、事业单位等传统场景，观感稳重不出错。',
+    previewHighlights: ['单栏排版', '居中抬头', '传统稳重'],
+  },
+  {
+    id: 'sidebar',
+    icon: '◧',
+    name: '侧栏布局',
+    description: '左侧信息栏 + 右侧主体，信息分区更清晰。',
+    previewTitle: '侧栏布局',
+    previewSummary: '适合想突出个人标签和技能的场景，左侧展示个人信息。',
+    previewHighlights: ['双栏分区', '技能侧栏', '主次分明'],
+  },
+  {
+    id: 'modern',
+    icon: '▣',
+    name: '现代横幅',
+    description: '顶部彩色横幅加主体内容，视觉冲击力强。',
+    previewTitle: '现代横幅',
+    previewSummary: '适合互联网、设计类职位，第一眼留下深刻印象。',
+    previewHighlights: ['横幅抬头', '视觉冲击', '现代感强'],
   },
 ]
 
@@ -503,6 +533,117 @@ function getBaseResumePdfTheme(templateId: ResolvedResumePdfTemplateId): ResumeP
         chipGap: 6,
         chipTop: 4,
         chipFontSize: 8.9,
+        chipHorizontalPadding: 6,
+        chipVerticalPadding: 2,
+      }
+    case 'classic':
+      return {
+        pagePadding: 32,
+        baseFontSize: 11.2,
+        titleSize: 14.2,
+        subtitleSize: 12.8,
+        lineHeight: 1.52,
+        headerBottom: 18,
+        headerRowGap: 18,
+        headerRowBottom: 8,
+        contactGap: 12,
+        sectionGap: 14,
+        itemGap: 9,
+        sectionTitleSize: 13.2,
+        sectionTitleBottom: 7,
+        sectionTitlePaddingBottom: 5,
+        sectionTitleColor: '#1e293b',
+        sectionTitleBorderColor: '#cbd5e1',
+        labelColor: '#475569',
+        bodyColor: '#1e293b',
+        mutedColor: '#64748b',
+        linkColor: '#1d4ed8',
+        chipTextColor: '#334155',
+        chipBackgroundColor: '#f1f5f9',
+        paragraphTop: 5,
+        listItemTop: 3,
+        orderedIndent: 15,
+        inlineMetaRowGap: 5,
+        inlineMetaColumnGap: 14,
+        inlineMetaItemRight: 14,
+        inlineMetaItemBottom: 5,
+        chipGap: 7,
+        chipTop: 5,
+        chipFontSize: 9,
+        chipHorizontalPadding: 7,
+        chipVerticalPadding: 2.2,
+      }
+    case 'sidebar':
+      return {
+        pagePadding: 0,
+        baseFontSize: 9.8,
+        titleSize: 12,
+        subtitleSize: 11.2,
+        lineHeight: 1.38,
+        headerBottom: 6,
+        headerRowGap: 8,
+        headerRowBottom: 3,
+        contactGap: 6,
+        sectionGap: 7,
+        itemGap: 5,
+        sectionTitleSize: 11.5,
+        sectionTitleBottom: 4,
+        sectionTitlePaddingBottom: 2,
+        sectionTitleColor: '#1e40af',
+        sectionTitleBorderColor: '#bfdbfe',
+        labelColor: '#475569',
+        bodyColor: '#1e293b',
+        mutedColor: '#64748b',
+        linkColor: '#2563eb',
+        chipTextColor: '#1d4ed8',
+        chipBackgroundColor: '#eff6ff',
+        paragraphTop: 3,
+        listItemTop: 1,
+        orderedIndent: 10,
+        inlineMetaRowGap: 2,
+        inlineMetaColumnGap: 8,
+        inlineMetaItemRight: 8,
+        inlineMetaItemBottom: 2,
+        chipGap: 4,
+        chipTop: 2,
+        chipFontSize: 7.8,
+        chipHorizontalPadding: 4,
+        chipVerticalPadding: 1.4,
+      }
+    case 'modern':
+      return {
+        pagePadding: 28,
+        baseFontSize: 11,
+        titleSize: 14.8,
+        subtitleSize: 12.8,
+        lineHeight: 1.48,
+        headerBottom: 14,
+        headerRowGap: 16,
+        headerRowBottom: 6,
+        contactGap: 10,
+        sectionGap: 12,
+        itemGap: 8,
+        sectionTitleSize: 13,
+        sectionTitleBottom: 6,
+        sectionTitlePaddingBottom: 4,
+        sectionTitleColor: '#1e40af',
+        sectionTitleBorderColor: '#bfdbfe',
+        labelColor: '#475569',
+        bodyColor: '#1e293b',
+        mutedColor: '#64748b',
+        linkColor: '#2563eb',
+        chipTextColor: '#1d4ed8',
+        chipBackgroundColor: '#eff6ff',
+        paragraphTop: 4,
+        listItemTop: 2,
+        orderedIndent: 14,
+        inlineMetaRowGap: 4,
+        inlineMetaColumnGap: 12,
+        inlineMetaItemRight: 12,
+        inlineMetaItemBottom: 4,
+        chipGap: 6,
+        chipTop: 4,
+        chipFontSize: 9,
         chipHorizontalPadding: 6,
         chipVerticalPadding: 2,
       }
@@ -1046,13 +1187,16 @@ function getResumePdfSectionHeadingVariant(
   switch (templateId) {
     case 'executive':
     case 'slate':
+    case 'modern':
       return 'filled'
     case 'focus':
+    case 'sidebar':
       return 'bar'
     case 'default':
     case 'accent':
     case 'minimal':
     case 'warm':
+    case 'classic':
     default:
       return 'underline'
   }
@@ -1082,6 +1226,8 @@ function ResumePdfDocument({
   const isMinimal = resolvedThemeConfig.templateId === 'minimal'
   const isExecutive = resolvedThemeConfig.templateId === 'executive'
   const isSlate = resolvedThemeConfig.templateId === 'slate'
+  const isSidebarLayout = resolvedThemeConfig.templateId === 'sidebar'
+  const isModernLayout = resolvedThemeConfig.templateId === 'modern'
   const sectionHeadingVariant = getResumePdfSectionHeadingVariant(
     resolvedThemeConfig.templateId,
     resolvedThemeConfig.headingStyle
@@ -1348,170 +1494,318 @@ function ResumePdfDocument({
     )
   }
 
-  return (
-    <Document onRender={onRender}>
-      <Page size={pageSize} style={styles.page}>
-        {hasPhoto ? (
-          <View style={topSectionWithPhotoStyle}>
-            <View style={styles.topSectionRow}>
-              <View style={styles.topSectionMain}>
-                {renderHeaderBlock(educationModules.length > 0 ? [] : [{ marginBottom: 0 }])}
-                {renderEducationBlock([{ marginBottom: 0 }])}
+  const renderModuleSection = (module: ResumeModule) => {
+    switch (module.moduleType) {
+      case 'basic_info':
+      case 'education':
+      case 'job_intention':
+        return null
+      case 'internship':
+      case 'work_experience': {
+        const content = normalizeInternshipContent(module.content)
+        const titleLine = [content.company, content.position, content.projectName].filter(Boolean).join(' - ')
+        return (
+          <View key={module.id} style={sectionStyle}>
+            <Text style={sectionTitleStyle}>
+              {module.moduleType === 'work_experience' ? workExperienceSectionTitle : internshipSectionTitle}
+            </Text>
+            <View style={styles.item}>
+              <View style={styles.rowBetween}>
+                <Text style={styles.strong}>{titleLine || '公司 - 职位 - 项目名'}</Text>
+                <Text style={styles.muted}>{formatMonthRange(content.startDate, content.endDate)}</Text>
               </View>
-              <View style={[styles.topSectionPhotoColumn, { width: photoFrameWidth }]}>
-                <View style={splitPhotoFrameStyle}>
-                  <Image src={photoSource} style={styles.photoImage} />
+              {content.projectDescription ? (
+                <View style={styles.paragraph}>
+                  {renderWrappedLabeledText(styles, '项目简介：', content.projectDescription, `summary-${module.id}`)}
                 </View>
+              ) : null}
+              {content.techStack ? <Text style={styles.paragraph}><Text style={styles.label}>技术栈：</Text>{content.techStack}</Text> : null}
+              {content.responsibilities.length > 0 ? (
+                <View style={styles.paragraph}>
+                  <Text><Text style={styles.label}>核心职责：</Text></Text>
+                  {content.responsibilities.map((line, index) => (
+                    <View key={`${index}-${line}`} style={styles.listItem}>
+                      {renderOrderedItem(styles, line, index, `duty-${module.id}-${index}`)}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          </View>
+        )
+      }
+      case 'project': {
+        if (module.id !== firstProjectModuleId) {
+          return null
+        }
+        return (
+          <View key={module.id} style={sectionStyle}>
+            <Text style={sectionTitleStyle}>项目经历</Text>
+            {projectModules.map(renderProjectItem)}
+          </View>
+        )
+      }
+      case 'skill': {
+        const content = normalizeSkillContent(module.content)
+        return (
+          <View key={module.id} style={sectionStyle}>
+            <Text style={sectionTitleStyle}>专业技能</Text>
+            {content.categories
+              .map((category) => ({
+                ...category,
+                items: category.items.filter((item) => item.trim().length > 0),
+              }))
+              .filter((category) => category.items.length > 0)
+              .map((category, index) => {
+                const hasTitle = Boolean(category.name.trim())
+                const shouldRenderAsList = !hasTitle || category.items.some((item) => item.length > 20 || /[，。；]/.test(item))
+                if (shouldRenderAsList) {
+                  return (
+                    <View key={index} style={styles.item}>
+                      {hasTitle ? <Text style={styles.strong}>{category.name}</Text> : null}
+                      {category.items.map((item, itemIndex) => (
+                        <View key={itemIndex} style={styles.listItem}>
+                          {renderBulletItem(styles, item, `skill-${index}-${itemIndex}`)}
+                        </View>
+                      ))}
+                    </View>
+                  )
+                }
+                return (
+                  <Text key={index} style={styles.item}>
+                    <Text style={styles.strong}>{category.name}：</Text>
+                    {category.items.join('、')}
+                  </Text>
+                )
+              })}
+          </View>
+        )
+      }
+      case 'paper': {
+        const content = normalizePaperContent(module.content)
+        if (!hasPaperContent(content)) {
+          return null
+        }
+        return (
+          <View key={module.id} style={sectionStyle}>
+            <Text style={sectionTitleStyle}>论文期刊</Text>
+            <Text style={styles.strong}>{content.journalName || '论文'}</Text>
+            <Text>{[content.journalType, content.publishTime].filter(Boolean).join(' / ')}</Text>
+            {content.content ? <Text style={styles.paragraph}>{content.content}</Text> : null}
+          </View>
+        )
+      }
+      case 'research': {
+        const content = normalizeResearchContent(module.content)
+        if (!hasResearchContent(content)) {
+          return null
+        }
+        return (
+          <View key={module.id} style={sectionStyle}>
+            <Text style={sectionTitleStyle}>科研经历</Text>
+            <Text style={styles.strong}>{content.projectName || '科研项目'}</Text>
+            {content.projectCycle ? <Text>{content.projectCycle}</Text> : null}
+            {content.background ? <Text style={styles.paragraph}>背景：{content.background}</Text> : null}
+            {content.workContent ? <Text style={styles.paragraph}>工作：{content.workContent}</Text> : null}
+            {content.achievements ? <Text style={styles.paragraph}>成果：{content.achievements}</Text> : null}
+          </View>
+        )
+      }
+      case 'award': {
+        if (hasEducationModule) {
+          return null
+        }
+        const content = normalizeAwardContent(module.content)
+        return (
+          <View key={module.id} style={sectionStyle}>
+            <Text style={sectionTitleStyle}>获奖情况</Text>
+            <Text>
+              {content.awardName || '奖项'}
+              {content.awardTime ? `（${formatAwardDisplayTime(content.awardTime)}）` : ''}
+            </Text>
+          </View>
+        )
+      }
+      default:
+        return null
+    }
+  }
+
+  const renderSingleColumnContent = () => (
+    <>
+      {hasPhoto ? (
+        <View style={topSectionWithPhotoStyle}>
+          <View style={styles.topSectionRow}>
+            <View style={styles.topSectionMain}>
+              {renderHeaderBlock(educationModules.length > 0 ? [] : [{ marginBottom: 0 }])}
+              {renderEducationBlock([{ marginBottom: 0 }])}
+            </View>
+            <View style={[styles.topSectionPhotoColumn, { width: photoFrameWidth }]}>
+              <View style={splitPhotoFrameStyle}>
+                <Image src={photoSource} style={styles.photoImage} />
               </View>
             </View>
           </View>
-        ) : (
-          <>
-            {renderHeaderBlock()}
-            {renderEducationBlock()}
-          </>
-        )}
+        </View>
+      ) : (
+        <>
+          {renderHeaderBlock()}
+          {renderEducationBlock()}
+        </>
+      )}
+      {sortedModules.map(renderModuleSection)}
+    </>
+  )
 
-        {sortedModules.map((module) => {
-          switch (module.moduleType) {
-            case 'basic_info':
-            case 'education':
-              return null
-            case 'internship':
-            case 'work_experience': {
-              const content = normalizeInternshipContent(module.content)
-              const titleLine = [content.company, content.position, content.projectName].filter(Boolean).join(' - ')
-              return (
-                <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>
-                    {module.moduleType === 'work_experience' ? workExperienceSectionTitle : internshipSectionTitle}
-                  </Text>
-                  <View style={styles.item}>
-                    <View style={styles.rowBetween}>
-                      <Text style={styles.strong}>{titleLine || '公司 - 职位 - 项目名'}</Text>
-                      <Text style={styles.muted}>{formatMonthRange(content.startDate, content.endDate)}</Text>
-                    </View>
-                    {content.projectDescription ? (
-                      <View style={styles.paragraph}>
-                        {renderWrappedLabeledText(styles, '项目简介：', content.projectDescription, `summary-${module.id}`)}
-                      </View>
-                    ) : null}
-                    {content.techStack ? <Text style={styles.paragraph}><Text style={styles.label}>技术栈：</Text>{content.techStack}</Text> : null}
-                    {content.responsibilities.length > 0 ? (
-                      <View style={styles.paragraph}>
-                        <Text><Text style={styles.label}>核心职责：</Text></Text>
-                        {content.responsibilities.map((line, index) => (
-                          <View key={`${index}-${line}`} style={styles.listItem}>
-                            {renderOrderedItem(styles, line, index, `duty-${module.id}-${index}`)}
-                          </View>
-                        ))}
-                      </View>
-                    ) : null}
-                  </View>
-                </View>
-              )
-            }
-            case 'project': {
-              if (module.id !== firstProjectModuleId) {
-                return null
-              }
+  const renderSidebarContent = () => {
+    const skillModule = sortedModules.find((m) => m.moduleType === 'skill')
+    const skillContent = skillModule ? normalizeSkillContent(skillModule.content) : null
+    const sidebarBg = theme.chipBackgroundColor
+    const sidebarBorder = theme.sectionTitleBorderColor
+    const sidebarMainModules = sortedModules.filter(
+      (m) => m.moduleType !== 'basic_info' && m.moduleType !== 'education' && m.moduleType !== 'skill' && m.moduleType !== 'job_intention'
+    )
+    const filteredSkillCategories = skillContent
+      ? skillContent.categories
+          .map((c) => ({ ...c, items: c.items.filter((item) => item.trim().length > 0) }))
+          .filter((c) => c.items.length > 0)
+      : []
 
-              return (
-                <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>项目经历</Text>
-                  {projectModules.map(renderProjectItem)}
-                </View>
-              )
-            }
-            case 'skill': {
-              const content = normalizeSkillContent(module.content)
-              return (
-                <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>专业技能</Text>
-                  {content.categories
-                    .map((category) => ({
-                      ...category,
-                      items: category.items.filter((item) => item.trim().length > 0),
-                    }))
-                    .filter((category) => category.items.length > 0)
-                    .map((category, index) => {
-                      const hasTitle = Boolean(category.name.trim())
-                      const shouldRenderAsList = !hasTitle || category.items.some((item) => item.length > 20 || /[，。；]/.test(item))
-
-                      if (shouldRenderAsList) {
-                        return (
-                          <View key={index} style={styles.item}>
-                            {hasTitle ? <Text style={styles.strong}>{category.name}</Text> : null}
-                            {category.items.map((item, itemIndex) => (
-                              <View key={itemIndex} style={styles.listItem}>
-                                {renderBulletItem(styles, item, `skill-${index}-${itemIndex}`)}
-                              </View>
-                            ))}
-                          </View>
-                        )
-                      }
-
-                      return (
-                        <Text key={index} style={styles.item}>
-                          <Text style={styles.strong}>{category.name}：</Text>
-                          {category.items.join('、')}
-                        </Text>
-                      )
-                    })}
-                </View>
-              )
-            }
-            case 'paper': {
-              const content = normalizePaperContent(module.content)
-              if (!hasPaperContent(content)) {
-                return null
-              }
-              return (
-                <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>论文期刊</Text>
-                  <Text style={styles.strong}>{content.journalName || '论文'}</Text>
-                  <Text>{[content.journalType, content.publishTime].filter(Boolean).join(' / ')}</Text>
-                  {content.content ? <Text style={styles.paragraph}>{content.content}</Text> : null}
-                </View>
-              )
-            }
-            case 'research': {
-              const content = normalizeResearchContent(module.content)
-              if (!hasResearchContent(content)) {
-                return null
-              }
-              return (
-                <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>科研经历</Text>
-                  <Text style={styles.strong}>{content.projectName || '科研项目'}</Text>
-                  {content.projectCycle ? <Text>{content.projectCycle}</Text> : null}
-                  {content.background ? <Text style={styles.paragraph}>背景：{content.background}</Text> : null}
-                  {content.workContent ? <Text style={styles.paragraph}>工作：{content.workContent}</Text> : null}
-                  {content.achievements ? <Text style={styles.paragraph}>成果：{content.achievements}</Text> : null}
-                </View>
-              )
-            }
-            case 'award': {
-              if (hasEducationModule) {
-                return null
-              }
-              const content = normalizeAwardContent(module.content)
-              return (
-                <View key={module.id} style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>获奖情况</Text>
-                  <Text>
-                    {content.awardName || '奖项'}
-                    {content.awardTime ? `（${formatAwardDisplayTime(content.awardTime)}）` : ''}
+    return (
+      <View style={{ flexDirection: 'row', flexGrow: 1 }}>
+        <View style={{ width: '32%', backgroundColor: sidebarBg, padding: 16, paddingTop: 20 }}>
+          {hasPhoto && (
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <View style={[{ width: 72, height: 96, overflow: 'hidden', backgroundColor: '#f8fafc' }, hasPhotoBorder ? { borderWidth: 1, borderColor: sidebarBorder } : {}]}>
+                <Image src={photoSource} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </View>
+            </View>
+          )}
+          {basicInfo && (
+            <>
+              <Text style={{ fontSize: theme.titleSize, fontWeight: 700, marginBottom: 4, color: theme.bodyColor }}>
+                {basicInfo.name || '未填写'}
+              </Text>
+              {displayJobIntention ? (
+                <Text style={{ fontSize: theme.baseFontSize, color: theme.mutedColor, marginBottom: 10 }}>
+                  {displayJobIntention}
+                </Text>
+              ) : null}
+            </>
+          )}
+          <View style={{ borderTopWidth: 1, borderTopColor: sidebarBorder, paddingTop: 10, marginBottom: 8 }}>
+            <Text style={{ fontSize: theme.sectionTitleSize, fontWeight: 700, color: theme.sectionTitleColor, marginBottom: 6 }}>
+              联系方式
+            </Text>
+            {basicInfo?.email ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>邮箱：</Text>{basicInfo.email}</Text> : null}
+            {basicInfo?.phone ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>手机：</Text>{basicInfo.phone}</Text> : null}
+            {basicInfo?.wechat ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>微信：</Text>{basicInfo.wechat}</Text> : null}
+            {basicInfo?.targetCity ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>城市：</Text>{basicInfo.targetCity}</Text> : null}
+            {basicInfo?.salaryRange ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>薪资：</Text>{basicInfo.salaryRange}</Text> : null}
+            {basicInfo?.github ? (
+              <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}>
+                <Text style={{ fontWeight: 700, color: theme.labelColor }}>GitHub：</Text>
+                <Link src={normalizeExternalUrl(basicInfo.github)} style={{ color: theme.linkColor, textDecoration: 'none', fontSize: 8.5 }}>{basicInfo.github}</Link>
+              </Text>
+            ) : null}
+            {basicInfo?.blog ? (
+              <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}>
+                <Text style={{ fontWeight: 700, color: theme.labelColor }}>博客：</Text>
+                <Link src={normalizeExternalUrl(basicInfo.blog)} style={{ color: theme.linkColor, textDecoration: 'none', fontSize: 8.5 }}>{basicInfo.blog}</Link>
+              </Text>
+            ) : null}
+            {basicInfo?.hometown ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>籍贯：</Text>{basicInfo.hometown}</Text> : null}
+            {basicInfo?.workYears ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>年限：</Text>{basicInfo.workYears}</Text> : null}
+          </View>
+          {filteredSkillCategories.length > 0 && (
+            <View style={{ borderTopWidth: 1, borderTopColor: sidebarBorder, paddingTop: 10 }}>
+              <Text style={{ fontSize: theme.sectionTitleSize, fontWeight: 700, color: theme.sectionTitleColor, marginBottom: 6 }}>
+                专业技能
+              </Text>
+              {filteredSkillCategories.map((category, idx) => (
+                <View key={idx} style={{ marginBottom: 4 }}>
+                  {category.name ? <Text style={{ fontSize: 8.5, fontWeight: 700, marginBottom: 1, color: theme.bodyColor }}>{category.name}</Text> : null}
+                  <Text style={{ fontSize: 8, color: theme.mutedColor, lineHeight: 1.35 }}>
+                    {category.items.join('、')}
                   </Text>
                 </View>
-              )
-            }
-            case 'job_intention':
-              return null
-            default:
-              return null
-          }
-        })}
+              ))}
+            </View>
+          )}
+        </View>
+        <View style={{ width: '68%', padding: 16, paddingLeft: 14 }}>
+          {basicInfo?.summary ? (
+            <View style={[{ marginBottom: theme.sectionGap, paddingBottom: theme.sectionTitlePaddingBottom, borderBottomWidth: 1, borderBottomColor: sidebarBorder }]}>
+              <Text style={{ fontSize: theme.sectionTitleSize, fontWeight: 700, color: theme.sectionTitleColor, marginBottom: 4 }}>
+                个人总结
+              </Text>
+              <Text style={{ fontSize: theme.baseFontSize, lineHeight: theme.lineHeight, color: theme.bodyColor }}>
+                {basicInfo.summary}
+              </Text>
+            </View>
+          ) : null}
+          {renderEducationBlock()}
+          {sidebarMainModules.map(renderModuleSection)}
+        </View>
+      </View>
+    )
+  }
+
+  const renderModernContent = () => {
+    const bannerColor = theme.sectionTitleColor
+    return (
+      <>
+        <View style={{ backgroundColor: bannerColor, paddingVertical: 22, paddingHorizontal: 24, marginBottom: 14 }}>
+          <Text style={{ fontSize: theme.titleSize + 4, fontWeight: 700, color: '#f8fafc' }}>
+            {basicInfo?.name || '未填写'}
+          </Text>
+          {displayJobIntention ? (
+            <Text style={{ fontSize: theme.subtitleSize, color: '#e2e8f0', marginTop: 4 }}>
+              {displayJobIntention}
+            </Text>
+          ) : null}
+        </View>
+        <View style={[styles.contactRow, { marginBottom: 12, paddingHorizontal: 4 }]}>
+          {basicInfo?.email ? <Text style={styles.muted}>{basicInfo.email}</Text> : null}
+          {basicInfo?.phone ? <Text style={styles.muted}>{basicInfo.phone}</Text> : null}
+          {basicInfo?.wechat ? <Text style={styles.muted}>{basicInfo.wechat}</Text> : null}
+          {basicInfo?.targetCity ? <Text style={styles.muted}>{basicInfo.targetCity}</Text> : null}
+          {basicInfo?.salaryRange ? <Text style={styles.muted}>{basicInfo.salaryRange}</Text> : null}
+          {basicInfo?.github ? (
+            <Link src={normalizeExternalUrl(basicInfo.github)} style={headerLinkStyle}>{basicInfo.github}</Link>
+          ) : null}
+          {basicInfo?.blog ? (
+            <Link src={normalizeExternalUrl(basicInfo.blog)} style={headerLinkStyle}>{basicInfo.blog}</Link>
+          ) : null}
+        </View>
+        {basicInfo?.summary ? (
+          <View style={{ marginBottom: theme.sectionGap }}>
+            <Text style={{ fontSize: theme.baseFontSize, lineHeight: theme.lineHeight, color: theme.bodyColor }}>
+              {basicInfo.summary}
+            </Text>
+          </View>
+        ) : null}
+        {hasPhoto ? (
+          <View style={{ marginBottom: theme.sectionGap, alignItems: 'flex-end' }}>
+            <View style={splitPhotoFrameStyle}>
+              <Image src={photoSource} style={styles.photoImage} />
+            </View>
+          </View>
+        ) : null}
+        {renderEducationBlock()}
+        {sortedModules.map(renderModuleSection)}
+      </>
+    )
+  }
+
+  return (
+    <Document onRender={onRender}>
+      <Page size={pageSize} style={styles.page}>
+        {isSidebarLayout
+          ? renderSidebarContent()
+          : isModernLayout
+            ? renderModernContent()
+            : renderSingleColumnContent()}
       </Page>
     </Document>
   )

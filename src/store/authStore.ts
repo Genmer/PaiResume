@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { authApi, type TokenData } from '../api/auth'
+import { rememberAccount } from '../utils/accountMemory'
 
 interface AuthState {
   user: TokenData['userInfo'] | null
@@ -31,6 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const tokenData = res.data
     localStorage.setItem('accessToken', tokenData.accessToken)
     localStorage.setItem('refreshToken', tokenData.refreshToken)
+    rememberAccount(email, tokenData.userInfo.nickname)
     set({ user: tokenData.userInfo, isAuthenticated: true, initialized: true })
   },
 
@@ -39,6 +41,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const tokenData = res.data
     localStorage.setItem('accessToken', tokenData.accessToken)
     localStorage.setItem('refreshToken', tokenData.refreshToken)
+    rememberAccount(email, tokenData.userInfo.nickname)
     set({ user: tokenData.userInfo, isAuthenticated: true, initialized: true })
   },
 

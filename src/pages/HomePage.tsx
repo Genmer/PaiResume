@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { publicApi, type HomeData } from '../api/public'
-import { PublicSiteHeader } from '../components/layout/PublicSiteHeader'
+import { Header } from '../components/layout/Header'
 import { useAuthStore } from '../store/authStore'
 
 function formatCents(value: number) {
@@ -34,7 +34,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <PublicSiteHeader />
+      <Header />
 
       <main>
         <section className="border-b border-gray-200 bg-white">
