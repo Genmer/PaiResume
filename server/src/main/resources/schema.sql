@@ -248,3 +248,38 @@ ON DUPLICATE KEY UPDATE `id` = `id`;
 -- Uncomment and run manually when ready to migrate legacy ACTIVE statuses to LITE tier:
 -- UPDATE `user` SET `membership_status` = 'LITE' WHERE `membership_status` = 'ACTIVE';
 
+-- 模拟面试会话表
+CREATE TABLE IF NOT EXISTS `mock_interview_session` (
+    `id`                  BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `user_id`             BIGINT       NOT NULL COMMENT '用户 ID',
+    `resume_id`           BIGINT       NOT NULL COMMENT '简历 ID',
+    `resume_snapshot`     TEXT         NULL COMMENT '简历快照 JSON',
+    `interview_mode`      VARCHAR(30)  NOT NULL COMMENT '面试模式: TARGET_POSITION/DEEP_DIVE_PROJECT',
+    `target_position`     VARCHAR(100) NULL COMMENT '目标岗位（TARGET_POSITION 模式）',
+    `target_years`        VARCHAR(20)  NULL COMMENT '目标年限（TARGET_POSITION 模式）',
+    `status`              VARCHAR(20)  NOT NULL DEFAULT 'IN_PROGRESS' COMMENT '状态: IN_PROGRESS/COMPLETED/ABANDONED',
+    `total_score`         DECIMAL(3,1) NULL COMMENT '综合评分 1-10',
+    `score_technical`     DECIMAL(3,1) NULL COMMENT '技术深度评分',
+    `score_expression`    DECIMAL(3,1) NULL COMMENT '表达清晰度评分',
+    `score_project`       DECIMAL(3,1) NULL COMMENT '项目理解评分',
+    `evaluation_summary`  TEXT         NULL COMMENT 'AI 评价摘要',
+    `max_rounds`          INT          NOT NULL DEFAULT 8 COMMENT '最大面试轮数: 1/3/8',
+    `created_at`          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `completed_at`        DATETIME     NULL COMMENT '完成时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_status` (`user_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模拟面试会话表';
+
+-- 模拟面试消息表
+CREATE TABLE IF NOT EXISTS `mock_interview_message` (
+    `id`         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `session_id` BIGINT       NOT NULL COMMENT '会话 ID',
+    `role`       VARCHAR(20)  NOT NULL COMMENT '角色: USER/ASSISTANT/SYSTEM',
+    `content`    TEXT         NOT NULL COMMENT '消息内容',
+    `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_session_id` (`session_id`),
+    CONSTRAINT `fk_message_session` FOREIGN KEY (`session_id`) REFERENCES `mock_interview_session`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模拟面试消息表';
+

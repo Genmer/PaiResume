@@ -39,7 +39,7 @@ function getImportTypeFromFile(file: File): ResumeImportType | null {
 export function Header() {
   const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuthStore()
-  const { membershipTier, appMode } = useMembership()
+  const { membershipTier, appMode, mockInterviewRemaining } = useMembership()
   const { importResume } = useResumeStore()
   const [importMenuOpen, setImportMenuOpen] = useState(false)
   const [importingType, setImportingType] = useState<ResumeImportType | null>(null)
@@ -330,6 +330,15 @@ export function Header() {
                 className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
               >
                 问卷
+              </Link>
+              <Link
+                to="/interview"
+                className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700 inline-flex items-center gap-1"
+              >
+                模拟面试
+                {isAuthenticated && mockInterviewRemaining > 0 && (
+                  <span className="text-xs text-primary-500">({mockInterviewRemaining})</span>
+                )}
               </Link>
               {isAuthenticated ? (
                 <>

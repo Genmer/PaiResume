@@ -14,6 +14,7 @@ import FieldOptimizePage from './pages/FieldOptimizePage'
 import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
 import AnalyticsPage from './pages/AnalyticsPage'
+import InterviewPage from './pages/InterviewPage'
 import { FloatingWebmDecorations } from './components/decorations/FloatingWebmDecorations'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -89,6 +90,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/interview"
+          element={
+            <ProtectedRoute>
+              <InterviewPage />
             </ProtectedRoute>
           }
         />

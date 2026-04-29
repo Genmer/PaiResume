@@ -36,6 +36,7 @@ public class MembershipController {
     private final ActivityConfigService activityConfigService;
     private final ActivationCodeService activationCodeService;
     private final JdParseRateLimiter jdParseRateLimiter;
+    private final MockInterviewRateLimiter mockInterviewRateLimiter;
     private final UserMapper userMapper;
     private final ActivationCodeMapper activationCodeMapper;
 
@@ -72,6 +73,7 @@ public class MembershipController {
         data.put("membershipStatus", membershipStatus);
         data.put("membershipTier", tier.name());
         data.put("jdParseRemaining", remaining);
+        data.put("mockInterviewRemaining", mockInterviewRateLimiter.getRemainingInterviews(userId));
         data.put("membershipExpiresAt", user != null ? DateTimeUtils.format(user.getMembershipExpiresAt()) : null);
         data.put("isPermanent", user != null && user.getMembershipExpiresAt() == null && tier != MembershipTier.FREE);
         if (user != null && user.getMembershipExpiresAt() != null) {
