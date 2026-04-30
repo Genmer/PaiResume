@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# ide
+.idea/
+.vscode/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# docker
+.dockerignore
+
+# tools
+.playwright-mcp/
+.sisyphus/
+
+# misc
+*.png
+*.log
+*.jar
+target/

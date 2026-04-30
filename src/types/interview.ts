@@ -41,7 +41,6 @@ export interface EvaluationResult {
   scoreProject: number
   summary: string
   suggestions: string[]
-}
   referenceAnswers?: ReferenceAnswer[]
 }
 

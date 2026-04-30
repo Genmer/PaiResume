@@ -1,0 +1,2 @@
+server_port: ${SERVER_PORT:-8084}
+server_tomcat_thread_max: 200
