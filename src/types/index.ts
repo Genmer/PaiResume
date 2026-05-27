@@ -18,6 +18,8 @@ export interface BasicInfoContent {
   leetcode: string
   workYears: string
   summary: string
+  qrCodeUrl: string
+  qrCodeEnabled: boolean
 }
 
 export interface EducationContent {

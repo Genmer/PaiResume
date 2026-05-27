@@ -114,6 +114,8 @@ export function normalizeBasicInfoContent(content: Record<string, unknown>): Bas
     leetcode: toStringValue(record.leetcode),
     workYears: toStringValue(record.workYears),
     summary: toStringValue(record.summary),
+    qrCodeUrl: toStringValue(record.qrCodeUrl),
+    qrCodeEnabled: toBooleanValue(record.qrCodeEnabled),
   }
 }
 

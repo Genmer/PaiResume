@@ -16,6 +16,7 @@ import {
 } from '../../utils/moduleContent'
 import { parseInlineMarkdownSegments } from '../../utils/inlineMarkdown'
 import { normalizePhotoSource } from '../../utils/resumePhoto'
+import { generateQrCodeSvg } from '../../utils/qrCode'
 import { findBasicInfoContent, getModuleDisplayLabel } from '../../utils/resumeDisplay'
 import {
   generateResumePdfBlob,
@@ -496,6 +497,26 @@ function PdfPreviewCard({
   )
 }
 
+function QrCodePreview({ url }: { url: string }) {
+  const [svg, setSvg] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    generateQrCodeSvg(url)
+      .then((result) => {
+        if (!cancelled) setSvg(result)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [url])
+
+  if (!svg) return null
+
+  return (
+    <div className="float-right ml-4 mb-2 [&_svg]:h-[80px] [&_svg]:w-[80px]" dangerouslySetInnerHTML={{ __html: svg }} />
+  )
+}
+
 function renderLabeledText(label: string, value: string, emphasize = false) {
   return (
     <>
@@ -664,33 +685,36 @@ function ModulePreviewSection({
           ['LeetCode', content.leetcode as string],
         ].filter(([, value]) => value)
 
+        const showQrCode = content.qrCodeEnabled && content.qrCodeUrl.trim()
+
         return (
-          <div className="mb-6 space-y-3">
-            <div className={photoSource ? 'grid grid-cols-[minmax(0,1fr)_108px] gap-5 items-start' : 'space-y-3'}>
-              <div className="min-w-0 space-y-3">
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[15px]">
-                  <p>{renderLabeledText('姓名', (content.name as string) || '未填写', true)}</p>
-                  {content.jobIntention && <p>{renderLabeledText('求职意向', content.jobIntention as string)}</p>}
-                </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
-                  {contactItems.map(([itemLabel, itemValue]) => (
-                    renderContactItem(itemLabel as string, itemValue as string)
-                  ))}
-                </div>
-                {content.summary && (
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                    <span className="text-gray-500">个人总结：</span>
-                    {content.summary}
-                  </p>
-                )}
+          <div className="mb-6">
+            {showQrCode && (
+              <QrCodePreview url={content.qrCodeUrl.trim()} />
+            )}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[15px]">
+                <p>{renderLabeledText('姓名', (content.name as string) || '未填写', true)}</p>
+                {content.jobIntention && <p>{renderLabeledText('求职意向', content.jobIntention as string)}</p>}
               </div>
-              {photoSource ? (
-                <div className="flex justify-end">
+              {photoSource && (
+                <div className="float-right ml-4 mb-2">
                   <div className={`aspect-[3/4] w-[108px] overflow-hidden shadow-[0_10px_25px_-18px_rgba(15,23,42,0.4)] ${photoFrameClassName}`}>
                     <img src={photoSource} alt="简历照片" className="h-full w-full object-cover" />
                   </div>
                 </div>
-              ) : null}
+              )}
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
+                {contactItems.map(([itemLabel, itemValue]) => (
+                  renderContactItem(itemLabel as string, itemValue as string)
+                ))}
+              </div>
+              {content.summary && (
+                <p className="text-sm text-gray-600 whitespace-pre-wrap break-words">
+                  <span className="text-gray-500">个人总结：</span>
+                  {content.summary}
+                </p>
+              )}
             </div>
           </div>
         )

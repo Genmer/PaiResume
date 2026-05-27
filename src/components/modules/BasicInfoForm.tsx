@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { BasicInfoContent } from '../../types'
 import { useModuleContentState } from '../../hooks/useModuleContentState'
 import { normalizeBasicInfoContent } from '../../utils/moduleContent'
@@ -8,6 +8,7 @@ import {
   normalizePhotoSource,
   readPhotoFileAsDataUrl,
 } from '../../utils/resumePhoto'
+import { generateQrCodeSvg } from '../../utils/qrCode'
 import { ModuleSaveBar } from './ModuleSaveBar'
 
 interface Props {
@@ -25,6 +26,7 @@ export function BasicInfoForm({ resumeId, moduleId, initialContent }: Props) {
   })
   const [showOptionalFields, setShowOptionalFields] = useState(() => hasOptionalBasicInfoContent(normalizeBasicInfoContent(initialContent)))
   const [photoError, setPhotoError] = useState('')
+  const [qrCodePreview, setQrCodePreview] = useState('')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const update = (field: keyof BasicInfoContent, value: string | boolean) => {
@@ -68,6 +70,37 @@ export function BasicInfoForm({ resumeId, moduleId, initialContent }: Props) {
       fileInputRef.current.value = ''
     }
   }
+
+  const updateQrCodeUrl = useCallback((value: string) => {
+    update('qrCodeUrl', value)
+    if (!value.trim()) {
+      setQrCodePreview('')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!content.qrCodeEnabled || !content.qrCodeUrl.trim()) {
+      setQrCodePreview('')
+      return
+    }
+
+    let cancelled = false
+    generateQrCodeSvg(content.qrCodeUrl.trim())
+      .then((svg) => {
+        if (!cancelled) {
+          setQrCodePreview(svg)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setQrCodePreview('')
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [content.qrCodeEnabled, content.qrCodeUrl])
 
   return (
     <div className="space-y-4">
@@ -251,6 +284,38 @@ export function BasicInfoForm({ resumeId, moduleId, initialContent }: Props) {
             />
             党员
           </label>
+
+          <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={content.qrCodeEnabled}
+                onChange={(e) => update('qrCodeEnabled', e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <span className="font-medium">显示二维码</span>
+            </label>
+            {content.qrCodeEnabled && (
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">二维码链接</label>
+                  <input
+                    type="text"
+                    value={content.qrCodeUrl}
+                    onChange={(e) => updateQrCodeUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">输入链接后将自动生成二维码，扫码即可访问。</p>
+                </div>
+                {qrCodePreview && (
+                  <div className="flex justify-center">
+                    <div className="rounded-lg border border-gray-200 bg-white p-2 [&_svg]:h-[120px] [&_svg]:w-[120px]" dangerouslySetInnerHTML={{ __html: qrCodePreview }} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -266,6 +331,7 @@ function hasOptionalBasicInfoContent(content: BasicInfoContent) {
     || content.leetcode
     || content.summary
     || content.isPartyMember
+    || content.qrCodeEnabled
   )
 }
 

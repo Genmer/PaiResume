@@ -27,6 +27,7 @@ import {
 import { parseInlineMarkdownSegments } from './inlineMarkdown'
 import { buildResumeExportFileName } from './exportFileName'
 import { normalizePhotoSource } from './resumePhoto'
+import { generateQrCodeDataUrl } from './qrCode'
 import { getModuleDisplayLabel } from './resumeDisplay'
 
 function resolveFontSource(fileName: string) {
@@ -1209,6 +1210,7 @@ function ResumePdfDocument({
   density = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.density,
   accentPreset = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.accentPreset,
   headingStyle = DEFAULT_RESUME_PDF_PREVIEW_CONFIG.headingStyle,
+  qrCodeDataUrl,
   onRender,
 }: {
   modules: ResumeModule[]
@@ -1217,6 +1219,7 @@ function ResumePdfDocument({
   density?: ResumePdfDensity
   accentPreset?: ResumePdfAccentPreset
   headingStyle?: ResumePdfHeadingStyle
+  qrCodeDataUrl?: string
   onRender?: (props: unknown) => void
 }) {
   const resolvedThemeConfig = getResolvedResumePdfThemeConfig({ templateId, density, accentPreset, headingStyle })
@@ -1238,6 +1241,7 @@ function ResumePdfDocument({
   const photoSource = normalizePhotoSource(basicInfo?.photo)
   const hasPhoto = Boolean(photoSource)
   const hasPhotoBorder = Boolean(basicInfo?.photoBorder)
+  const hasQrCode = Boolean(qrCodeDataUrl)
   const jobIntentionModule = sortedModules.find((module) => module.moduleType === 'job_intention')
   const jobIntention = jobIntentionModule ? normalizeJobIntentionContent(jobIntentionModule.content) : null
   const displayJobIntention = basicInfo?.jobIntention || jobIntention?.targetPosition || ''
@@ -1644,6 +1648,23 @@ function ResumePdfDocument({
               <View style={splitPhotoFrameStyle}>
                 <Image src={photoSource} style={styles.photoImage} />
               </View>
+              {hasQrCode && qrCodeDataUrl ? (
+                <View style={{ marginTop: 8 }}>
+                  <Image src={qrCodeDataUrl} style={{ width: 60, height: 60 }} />
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      ) : hasQrCode && qrCodeDataUrl ? (
+        <View style={topSectionWithPhotoStyle}>
+          <View style={styles.topSectionRow}>
+            <View style={styles.topSectionMain}>
+              {renderHeaderBlock(educationModules.length > 0 ? [] : [{ marginBottom: 0 }])}
+              {renderEducationBlock([{ marginBottom: 0 }])}
+            </View>
+            <View style={[styles.topSectionPhotoColumn, { width: 72 }]}>
+              <Image src={qrCodeDataUrl} style={{ width: 60, height: 60 }} />
             </View>
           </View>
         </View>
@@ -1717,6 +1738,11 @@ function ResumePdfDocument({
             {basicInfo?.hometown ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>籍贯：</Text>{basicInfo.hometown}</Text> : null}
             {basicInfo?.workYears ? <Text style={{ fontSize: 8.5, marginBottom: 3, lineHeight: 1.4, color: theme.bodyColor }}><Text style={{ fontWeight: 700, color: theme.labelColor }}>年限：</Text>{basicInfo.workYears}</Text> : null}
           </View>
+          {hasQrCode && qrCodeDataUrl ? (
+            <View style={{ borderTopWidth: 1, borderTopColor: sidebarBorder, paddingTop: 10, marginBottom: 8, alignItems: 'center' }}>
+              <Image src={qrCodeDataUrl} style={{ width: 64, height: 64 }} />
+            </View>
+          ) : null}
           {filteredSkillCategories.length > 0 && (
             <View style={{ borderTopWidth: 1, borderTopColor: sidebarBorder, paddingTop: 10 }}>
               <Text style={{ fontSize: theme.sectionTitleSize, fontWeight: 700, color: theme.sectionTitleColor, marginBottom: 6 }}>
@@ -1755,14 +1781,19 @@ function ResumePdfDocument({
     const bannerColor = theme.sectionTitleColor
     return (
       <>
-        <View style={{ backgroundColor: bannerColor, paddingVertical: 22, paddingHorizontal: 24, marginBottom: 14 }}>
-          <Text style={{ fontSize: theme.titleSize + 4, fontWeight: 700, color: '#f8fafc' }}>
-            {basicInfo?.name || '未填写'}
-          </Text>
-          {displayJobIntention ? (
-            <Text style={{ fontSize: theme.subtitleSize, color: '#e2e8f0', marginTop: 4 }}>
-              {displayJobIntention}
+        <View style={{ backgroundColor: bannerColor, paddingVertical: 22, paddingHorizontal: 24, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View>
+            <Text style={{ fontSize: theme.titleSize + 4, fontWeight: 700, color: '#f8fafc' }}>
+              {basicInfo?.name || '未填写'}
             </Text>
+            {displayJobIntention ? (
+              <Text style={{ fontSize: theme.subtitleSize, color: '#e2e8f0', marginTop: 4 }}>
+                {displayJobIntention}
+              </Text>
+            ) : null}
+          </View>
+          {hasQrCode && qrCodeDataUrl ? (
+            <Image src={qrCodeDataUrl} style={{ width: 48, height: 48 }} />
           ) : null}
         </View>
         <View style={[styles.contactRow, { marginBottom: 12, paddingHorizontal: 4 }]}>
@@ -1913,6 +1944,18 @@ async function renderResumePdfAsset(
   options?: ResumePdfOptions
 ) {
   let previewMeta: ResumePdfPreviewMeta | null = null
+
+  const basicInfoModule = modules.find((module) => module.moduleType === 'basic_info')
+  const basicInfo = basicInfoModule ? normalizeBasicInfoContent(basicInfoModule.content) : null
+  let qrCodeDataUrl: string | undefined
+  if (basicInfo?.qrCodeEnabled && basicInfo.qrCodeUrl.trim()) {
+    try {
+      qrCodeDataUrl = await generateQrCodeDataUrl(basicInfo.qrCodeUrl.trim())
+    } catch {
+      qrCodeDataUrl = undefined
+    }
+  }
+
   const document = (
     <ResumePdfDocument
       modules={modules}
@@ -1921,6 +1964,7 @@ async function renderResumePdfAsset(
       density={options?.density}
       accentPreset={options?.accentPreset}
       headingStyle={options?.headingStyle}
+      qrCodeDataUrl={qrCodeDataUrl}
       onRender={(props) => {
         const layout = props && typeof props === 'object'
           ? (props as { _INTERNAL__LAYOUT__DATA_?: unknown })._INTERNAL__LAYOUT__DATA_
