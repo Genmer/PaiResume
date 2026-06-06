@@ -23,13 +23,14 @@ services:
     image: redis:7-alpine
     container_name: pairesume-redis
     restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-} --appendonly yes
     ports:
       # 仅绑定本机，避免 Redis 无认证暴露公网
       - "127.0.0.1:16379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

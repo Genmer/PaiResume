@@ -5,7 +5,47 @@
 - Docker 20.10+
 - Docker Compose V2+
 
-## 快速启动
+## 快速启动（一键部署）
+
+macOS / Linux:
+
+```bash
+./docker-setup.sh
+```
+
+Windows（双击运行或在 CMD 中执行）：
+
+```bat
+docker-setup.bat
+```
+
+首次运行会自动：
+1. 从 `.env.example` 生成 `.env`（随机填充 `JWT_SECRET`）
+2. 检测 MySQL 和 Redis 是否已在运行
+3. 如果已运行 → 跳过数据库，只启动后端和前端
+4. 如果未运行 → 启动全部 4 个服务（MySQL、Redis、后端、前端）
+
+如需配置 AI、邮件等可选功能，先编辑 `.env`，再重新运行脚本。
+
+### 已有数据库的情况
+
+如果你已经手动用 `docker run` 或其他方式启动了 MySQL/Redis，只需在 `.env` 中配置对应的连接信息：
+
+```bash
+MYSQL_HOST=localhost      # 或 host.docker.internal（Docker 内访问宿主机）
+MYSQL_PORT=3306
+MYSQL_DATABASE=pai_resume
+MYSQL_USERNAME=root
+MYSQL_PASSWORD=你的密码
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=你的密码
+```
+
+脚本会自动检测到已有数据库，只启动后端和前端。
+
+### 手动启动
 
 ```bash
 # 1. 设置必须的环境变量

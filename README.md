@@ -1,3 +1,4 @@
+123
 # PaiResume
 
 PaiResume 是一个面向中文简历场景的在线简历编辑器，采用前后端分离架构，支持账号体系、模块化简历编辑、实时预览、Markdown/TXT 简历导入、AI 优化与整份简历分析，以及 PDF 导出。
@@ -224,6 +225,60 @@ npm run dev
 - 前端地址：[http://localhost:5173](http://localhost:5173)
 - 前端会通过 Vite 代理把 `/api` 请求转发到后端
 
+## Docker 部署
+
+无需手动安装 Java、Node.js、MySQL、Redis，一条命令即可启动完整服务。脚本会自动检测当前环境是否已有数据库，智能决定启动哪些服务。
+
+详细配置（环境变量、自定义端口、数据持久化等）参见 **[DOCKER.md](./DOCKER.md)**。
+
+### 一键启动
+
+macOS / Linux：
+
+```bash
+./docker-setup.sh
+```
+
+Windows（双击运行或在 CMD 中执行）：
+
+```bat
+docker-setup.bat
+```
+
+脚本自动处理：
+1. 首次运行自动生成 `.env`（随机填充 `JWT_SECRET`）
+2. 检测 MySQL/Redis 是否已在运行
+3. 已有数据库 → 只启动后端 + 前端
+4. 没有数据库 → 启动全部 4 个服务（MySQL、Redis、后端、前端）
+
+### 服务与端口
+
+| 服务 | 镜像 | 端口映射 | 说明 |
+|------|------|----------|------|
+| frontend | 自建（nginx） | `80:80` | React 前端 + API 反代 |
+| backend | 自建（JRE 17） | `8080:8080` | Spring Boot 后端 |
+| mysql | mysql:8.0 | `13306:3306` | 数据库 |
+| redis | redis:7-alpine | `16379:6379` | 缓存 |
+
+启动完成后访问：
+
+- 前端：http://localhost
+- 后端 API：http://localhost/api/
+- API 文档：http://localhost/api/doc.html
+
+### 常用命令
+
+```bash
+docker compose logs -f          # 查看所有服务日志
+docker compose logs -f backend  # 只看后端日志
+docker compose down             # 停止（保留数据）
+docker compose down -v          # 停止并清除数据卷（慎用）
+docker compose build            # 重新构建镜像
+docker compose up -d            # 重启服务
+```
+
+---
+
 ## 环境变量
 
 ### 根目录 `.env`
@@ -324,7 +379,9 @@ npm run dev
 ## 后续可扩展方向
 
 - 开放 Word 简历导入
-- 增加部署脚本、Docker 化与 CI/CD
+- 增加更多模板与排版主题
+- 多模板导出
+- CI/CD 自动化构建与发布
 
 
 
