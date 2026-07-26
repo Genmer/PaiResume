@@ -68,10 +68,96 @@ PaiResume
 - npm 9+
 - Java 17
 - Maven 3.9+
-- MySQL 8.x
-- Redis 6.x 或 7.x
+- Docker Desktop（用于一键部署 MySQL + Redis）
 
-### 2. 启动后端
+### 2. 一键部署数据库和 Redis（Docker）
+
+项目提供了跨平台的 Docker 一键部署脚本，自动创建 MySQL 8.0 和 Redis 7.2 容器并初始化表结构。
+
+**两种模式：**
+
+| 模式 | 说明 | 适用场景 |
+| --- | --- | --- |
+| 确保模式（默认） | 逐个检查服务，已正常运行的跳过，只补缺失的 | 日常启动、上次中途失败后继续 |
+| 重装模式 (`-Reinstall` / `--reinstall`) | 删除所有容器后从头创建，保留数据卷 | 环境异常、更换镜像版本 |
+
+#### Windows (PowerShell)
+
+```powershell
+# 确保模式 - 相对路径（在项目根目录下执行）
+.\scripts\dev-env-setup.ps1
+
+# 确保模式 - 绝对路径（在任意目录下执行）
+e:\Code\Java\PaiResume\scripts\dev-env-setup.ps1
+
+# 重装模式 - 删除容器并重新创建（数据保留）
+.\scripts\dev-env-setup.ps1 -Reinstall
+e:\Code\Java\PaiResume\scripts\dev-env-setup.ps1 -Reinstall
+```
+
+#### Mac / Linux (Bash)
+
+```bash
+# 首次执行需要赋权
+chmod +x scripts/dev-env-setup.sh
+
+# 确保模式 - 相对路径（在项目根目录下执行）
+./scripts/dev-env-setup.sh
+
+# 确保模式 - 绝对路径（在任意目录下执行，路径替换为你的实际路径）
+/Users/<你的用户名>/Code/PaiResume/scripts/dev-env-setup.sh
+
+# 重装模式 - 删除容器并重新创建（数据保留）
+./scripts/dev-env-setup.sh --reinstall
+/Users/<你的用户名>/Code/PaiResume/scripts/dev-env-setup.sh --reinstall
+```
+
+#### 脚本特性
+
+| 特性 | 说明 |
+| --- | --- |
+| 容器命名 | `workon-auto-mysql-20260725` / `workon-auto-redis-20260725` |
+| 镜像版本 | MySQL `8.0.37` / Redis `7.2.5-alpine`（固定版本，不用 latest） |
+| 数据持久化 | 数据映射到本机目录，容器删除不丢数据 |
+| 重复执行保护 | 检测已有容器和数据库数据，确认后才重建 |
+| 自动建表 | 等待 MySQL 就绪后自动执行 `schema.sql` |
+
+#### 数据卷默认路径
+
+| 平台 | 默认基础目录 | 示例 |
+| --- | --- | --- |
+| Mac | `~/Documents/docker-volumes` | `~/Documents/docker-volumes/mysql/data` |
+| Windows | `E:/Code/docker/docker-volumes` | `E:/Code/docker/docker-volumes/mysql/data` |
+
+可通过环境变量修改基础目录：
+
+```bash
+# Mac/Linux
+DOCKER_VOLUMES_BASE=/custom/path ./scripts/dev-env-setup.sh
+```
+
+```powershell
+# Windows PowerShell
+$env:DOCKER_VOLUMES_BASE='D:/docker-volumes'; .\scripts\dev-env-setup.ps1
+```
+
+#### Windows 常见问题
+
+| 问题 | 原因 | 解决方法 |
+| --- | --- | --- |
+| 中文乱码 / 字符显示为 `鏁版嵁搴?` | PowerShell 5.1 默认不识别无 BOM 的 UTF-8 文件 | 脚本已保存为 UTF-8 with BOM；如重新编辑请确保编辑器保存时选择 "UTF-8 with BOM" |
+| `数组索引表达式丢失` 解析错误 | 字符串中的 `[xxx]` 被 PowerShell 解析为数组索引 | 已修复，使用 `Write-Host -ForegroundColor` 替代自定义函数传参 |
+| `NativeCommandError` docker network not found | `$ErrorActionPreference = "Stop"` 将 docker stderr 视为终止错误 | 已修复，关键 docker 调用前临时切换为 `SilentlyContinue` |
+| 执行策略限制 (`Execution Policy`) | 系统默认禁止运行 .ps1 脚本 | 执行 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 或加 `-ExecutionPolicy Bypass` 参数 |
+
+#### Mac / Linux 注意事项
+
+- 首次执行前必须 `chmod +x scripts/dev-env-setup.sh` 赋予可执行权限
+- 如遇 `Permission denied`，检查是否用了 `sh scripts/dev-env-setup.sh`（应使用 `bash` 或 `./`）
+- macOS 默认编码为 UTF-8，无需额外配置
+- 脚本已对所有可能失败的 docker 命令加了 `|| true` 防止 `set -e` 误退出
+
+### 3. 启动后端
 
 在项目根目录准备环境变量：
 
@@ -115,7 +201,7 @@ mvn spring-boot:run
 - 当前项目没有显式依赖 Flyway 运行迁移，数据库初始化以 `schema.sql` 为准。
 - 在 `APP_ENV` 不是 `development` 时，必须显式覆盖 `JWT_SECRET`，否则服务会拒绝启动。
 
-### 3. 启动前端
+### 4. 启动前端
 
 在项目根目录执行：
 
