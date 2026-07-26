@@ -19,6 +19,7 @@ public class InterviewSessionDTO {
     private BigDecimal scoreExpression;
     private BigDecimal scoreProject;
     private String evaluationSummary;
+    private EvaluationResultDTO evaluationResult;
     private Integer maxRounds;
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;

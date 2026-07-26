@@ -36,6 +36,8 @@ public class MockInterviewSession {
 
     private String evaluationSummary;
 
+    private String evaluationReport;
+
     private Integer maxRounds;
 
     @TableField(fill = FieldFill.INSERT)

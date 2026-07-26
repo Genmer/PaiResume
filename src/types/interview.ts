@@ -16,6 +16,7 @@ export interface InterviewSession {
   scoreExpression?: number
   scoreProject?: number
   evaluationSummary?: string
+  evaluationResult?: EvaluationResult
   createdAt: string
   completedAt?: string
 }
@@ -48,6 +49,7 @@ export interface InterviewHistoryItem {
   id: number
   resumeTitle: string
   mode: InterviewMode
+  status?: InterviewSessionStatus
   totalScore?: number
   createdAt: string
   completedAt?: string

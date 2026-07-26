@@ -60,7 +60,10 @@ export function InterviewHistory({ onBack, onViewDetail }: Props) {
                 </div>
                 <div className="text-right">
                   {item.totalScore != null ? (
-                    <p className="text-lg font-bold text-primary-600">{item.totalScore.toFixed(1)}</p>
+                    <>
+                      <p className="text-lg font-bold text-primary-600">{item.totalScore.toFixed(1)}</p>
+                      <p className="text-xs text-gray-400">查看复盘报告 →</p>
+                    </>
                   ) : (
                     <span className="text-xs text-gray-400">未完成</span>
                   )}

@@ -9,6 +9,7 @@ public class InterviewHistoryItemDTO {
     private Long id;
     private String resumeTitle;
     private String interviewMode;
+    private String status;
     private BigDecimal totalScore;
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;

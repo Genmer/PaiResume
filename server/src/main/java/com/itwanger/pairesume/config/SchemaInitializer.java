@@ -32,6 +32,7 @@ public class SchemaInitializer implements ApplicationRunner {
                     new org.springframework.core.io.ClassPathResource("schema.sql"));
             migrateUserMembershipColumns();
             migrateAiOptimizeRecordStatusColumn();
+            migrateMockInterviewColumns();
             ensurePlatformConfigRow();
             backfillEmailPasswordIdentities();
             log.info("Schema initialized successfully");
@@ -89,6 +90,14 @@ public class SchemaInitializer implements ApplicationRunner {
         } catch (Exception e) {
             log.warn("Failed to migrate ai_optimize_record status column", e);
         }
+    }
+
+    private void migrateMockInterviewColumns() {
+        ensureColumn(
+                "mock_interview_session",
+                "evaluation_report",
+                "ALTER TABLE `mock_interview_session` ADD COLUMN `evaluation_report` MEDIUMTEXT NULL COMMENT '完整评估报告 JSON（建议+逐题参考答案）' AFTER `evaluation_summary`"
+        );
     }
 
     private void ensurePlatformConfigRow() {

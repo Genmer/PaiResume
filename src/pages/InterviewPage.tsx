@@ -25,6 +25,7 @@ export default function InterviewPage() {
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState('')
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null)
+  const [chatReadOnly, setChatReadOnly] = useState(false)
 
   useEffect(() => {
     fetchResumeList()
@@ -61,6 +62,7 @@ export default function InterviewPage() {
         maxRounds,
       })
       setSessionId(result.id)
+      setChatReadOnly(false)
       setView('chat')
     } catch (err) {
       setError(err instanceof Error ? err.message : '开始面试失败')
@@ -71,14 +73,45 @@ export default function InterviewPage() {
 
   const handleEndInterview = (result: typeof evaluationResult) => {
     setEvaluationResult(result)
+    setChatReadOnly(true)
     setView('report')
   }
 
   const handleRetry = () => {
     setSessionId(null)
     setEvaluationResult(null)
+    setChatReadOnly(false)
     setView('select')
   }
+
+  // 历史列表点击：已完成的会话直接回看复盘报告，未完成的继续对话
+  const handleViewHistoryDetail = useCallback(async (id: number) => {
+    setSessionId(id)
+    try {
+      const detail = await interviewApi.getInterviewDetail(id)
+      if (detail.maxRounds) setMaxRounds(detail.maxRounds)
+      if (detail.status === 'COMPLETED') {
+        const fallback: EvaluationResult | null = detail.totalScore != null
+          ? {
+              totalScore: detail.totalScore,
+              scoreTechnical: detail.scoreTechnical ?? 0,
+              scoreExpression: detail.scoreExpression ?? 0,
+              scoreProject: detail.scoreProject ?? 0,
+              summary: detail.evaluationSummary ?? '',
+              suggestions: [],
+            }
+          : null
+        setEvaluationResult(detail.evaluationResult ?? fallback)
+        setChatReadOnly(true)
+        setView('report')
+        return
+      }
+    } catch {
+      // 详情加载失败时回退到对话视图，由 InterviewChat 自行展示错误
+    }
+    setChatReadOnly(false)
+    setView('chat')
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -235,8 +268,9 @@ export default function InterviewPage() {
           <InterviewChat
             sessionId={sessionId}
             maxRounds={maxRounds}
+            readOnly={chatReadOnly}
             onEnd={handleEndInterview}
-            onBack={() => setView('select')}
+            onBack={() => setView(chatReadOnly ? 'report' : 'select')}
           />
         )}
 
@@ -245,16 +279,14 @@ export default function InterviewPage() {
             result={evaluationResult}
             onRetry={handleRetry}
             onBack={() => setView('select')}
+            onViewChat={sessionId != null ? () => setView('chat') : undefined}
           />
         )}
 
         {view === 'history' && (
           <InterviewHistory
             onBack={() => setView('select')}
-            onViewDetail={(id) => {
-              setSessionId(id)
-              setView('chat')
-            }}
+            onViewDetail={(id) => void handleViewHistoryDetail(id)}
           />
         )}
       </main>

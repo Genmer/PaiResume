@@ -5,6 +5,7 @@ import type { EvaluationResult } from '../../types/interview'
 interface Props {
   sessionId: number
   maxRounds: number
+  readOnly?: boolean
   onEnd: (result: EvaluationResult | null) => void
   onBack: () => void
 }
@@ -14,7 +15,7 @@ interface ChatMessage {
   content: string
 }
 
-export function InterviewChat({ sessionId, maxRounds, onEnd, onBack }: Props) {
+export function InterviewChat({ sessionId, maxRounds, readOnly = false, onEnd, onBack }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -47,7 +48,7 @@ export function InterviewChat({ sessionId, maxRounds, onEnd, onBack }: Props) {
         setRound(loaded.filter((m) => m.role === 'user').length)
         setLoading(false)
 
-        if (!loaded.some((m) => m.role === 'assistant')) {
+        if (!readOnly && !loaded.some((m) => m.role === 'assistant')) {
           await doSend('__START__')
         }
       } catch (e) {
@@ -146,9 +147,13 @@ export function InterviewChat({ sessionId, maxRounds, onEnd, onBack }: Props) {
           <button
             onClick={handleEnd}
             disabled={ending}
-            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className={`rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50 ${
+              readOnly
+                ? 'border-primary-200 text-primary-600 hover:bg-primary-50'
+                : 'border-red-200 text-red-600 hover:bg-red-50'
+            }`}
           >
-            {ending ? '结束中...' : '结束面试'}
+            {ending ? (readOnly ? '加载中...' : '结束中...') : (readOnly ? '查看报告' : '结束面试')}
           </button>
         </div>
       </div>
@@ -183,24 +188,26 @@ export function InterviewChat({ sessionId, maxRounds, onEnd, onBack }: Props) {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="mt-3 flex gap-2">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="输入你的回答..."
-          rows={2}
-          disabled={sending || loading}
-          className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
-        />
-        <button
-          onClick={handleSend}
-          disabled={sending || !input.trim() || loading}
-          className="rounded-lg bg-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50 self-end"
-        >
-          {sending ? '回复中...' : '发送'}
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="mt-3 flex gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="输入你的回答..."
+            rows={2}
+            disabled={sending || loading}
+            className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
+          />
+          <button
+            onClick={handleSend}
+            disabled={sending || !input.trim() || loading}
+            className="rounded-lg bg-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50 self-end"
+          >
+            {sending ? '回复中...' : '发送'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

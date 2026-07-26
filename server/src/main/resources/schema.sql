@@ -263,6 +263,7 @@ CREATE TABLE IF NOT EXISTS `mock_interview_session` (
     `score_expression`    DECIMAL(3,1) NULL COMMENT '表达清晰度评分',
     `score_project`       DECIMAL(3,1) NULL COMMENT '项目理解评分',
     `evaluation_summary`  TEXT         NULL COMMENT 'AI 评价摘要',
+    `evaluation_report`   MEDIUMTEXT   NULL COMMENT '完整评估报告 JSON（建议+逐题参考答案）',
     `max_rounds`          INT          NOT NULL DEFAULT 8 COMMENT '最大面试轮数: 1/3/8',
     `created_at`          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `completed_at`        DATETIME     NULL COMMENT '完成时间',

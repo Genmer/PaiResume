@@ -230,13 +230,7 @@ public class MockInterviewServiceImpl implements MockInterviewService {
         }
 
         if ("COMPLETED".equals(session.getInterviewStatus())) {
-            var result = new EvaluationResultDTO();
-            if (session.getTotalScore() != null) result.setTotalScore(session.getTotalScore().doubleValue());
-            if (session.getScoreTechnical() != null) result.setScoreTechnical(session.getScoreTechnical().doubleValue());
-            if (session.getScoreExpression() != null) result.setScoreExpression(session.getScoreExpression().doubleValue());
-            if (session.getScoreProject() != null) result.setScoreProject(session.getScoreProject().doubleValue());
-            result.setSummary(session.getEvaluationSummary());
-            return result;
+            return rebuildEvaluationResult(session);
         }
 
         var allMessages = messageMapper.selectList(
@@ -281,6 +275,12 @@ public class MockInterviewServiceImpl implements MockInterviewService {
         session.setScoreExpression(BigDecimal.valueOf(result.getScoreExpression()));
         session.setScoreProject(BigDecimal.valueOf(result.getScoreProject()));
         session.setEvaluationSummary(result.getSummary());
+        try {
+            // 持久化完整报告（含建议与逐题参考答案），供历史复盘回看
+            session.setEvaluationReport(objectMapper.writeValueAsString(result));
+        } catch (Exception e) {
+            log.warn("Failed to serialize evaluation report: sessionId={}", sessionId, e);
+        }
         session.setInterviewStatus("COMPLETED");
         session.setCompletedAt(LocalDateTime.now());
         sessionMapper.updateById(session);
@@ -302,6 +302,7 @@ public class MockInterviewServiceImpl implements MockInterviewService {
             var resume = resumeMapper.selectById(session.getResumeId());
             dto.setResumeTitle(resume != null ? resume.getTitle() : "已删除的简历");
             dto.setInterviewMode(session.getInterviewMode());
+            dto.setStatus(session.getInterviewStatus());
             dto.setTotalScore(session.getTotalScore());
             dto.setCreatedAt(session.getCreatedAt());
             dto.setCompletedAt(session.getCompletedAt());
@@ -336,6 +337,9 @@ public class MockInterviewServiceImpl implements MockInterviewService {
         dto.setMaxRounds(session.getMaxRounds());
         dto.setCreatedAt(session.getCreatedAt());
         dto.setCompletedAt(session.getCompletedAt());
+        if ("COMPLETED".equals(session.getInterviewStatus())) {
+            dto.setEvaluationResult(rebuildEvaluationResult(session));
+        }
 
         var messages = messageMapper.selectList(
                 new LambdaQueryWrapper<MockInterviewMessage>()
@@ -352,6 +356,26 @@ public class MockInterviewServiceImpl implements MockInterviewService {
         }).toList());
 
         return dto;
+    }
+
+    /**
+     * 从持久化的完整报告 JSON 重建评估结果；旧数据无报告时回退到分数与摘要字段拼装。
+     */
+    private EvaluationResultDTO rebuildEvaluationResult(MockInterviewSession session) {
+        if (session.getEvaluationReport() != null && !session.getEvaluationReport().isBlank()) {
+            try {
+                return objectMapper.readValue(session.getEvaluationReport(), EvaluationResultDTO.class);
+            } catch (Exception e) {
+                log.warn("Failed to parse stored evaluation report: sessionId={}", session.getId(), e);
+            }
+        }
+        var result = new EvaluationResultDTO();
+        if (session.getTotalScore() != null) result.setTotalScore(session.getTotalScore().doubleValue());
+        if (session.getScoreTechnical() != null) result.setScoreTechnical(session.getScoreTechnical().doubleValue());
+        if (session.getScoreExpression() != null) result.setScoreExpression(session.getScoreExpression().doubleValue());
+        if (session.getScoreProject() != null) result.setScoreProject(session.getScoreProject().doubleValue());
+        result.setSummary(session.getEvaluationSummary());
+        return result;
     }
 
     private String buildSystemPrompt(String mode, String resumeSnapshot, String targetPosition, String targetYears) {
@@ -639,6 +663,18 @@ public class MockInterviewServiceImpl implements MockInterviewService {
                     suggestions.add(item.asText());
                 }
                 result.setSuggestions(suggestions);
+            }
+            if (root.has("referenceAnswers") && root.get("referenceAnswers").isArray()) {
+                var refs = new ArrayList<ReferenceAnswerDTO>();
+                for (var item : root.get("referenceAnswers")) {
+                    var ref = new ReferenceAnswerDTO();
+                    if (item.has("question")) ref.setQuestion(item.get("question").asText());
+                    if (item.has("candidateAnswer")) ref.setCandidateAnswer(item.get("candidateAnswer").asText());
+                    if (item.has("referenceAnswer")) ref.setReferenceAnswer(item.get("referenceAnswer").asText());
+                    if (item.has("evaluation")) ref.setEvaluation(item.get("evaluation").asText());
+                    refs.add(ref);
+                }
+                result.setReferenceAnswers(refs);
             }
             return result;
         }

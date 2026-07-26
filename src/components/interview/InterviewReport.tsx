@@ -4,9 +4,10 @@ interface Props {
   result: EvaluationResult | null
   onRetry: () => void
   onBack: () => void
+  onViewChat?: () => void
 }
 
-export function InterviewReport({ result, onRetry, onBack }: Props) {
+export function InterviewReport({ result, onRetry, onBack, onViewChat }: Props) {
   if (!result) {
     return (
       <div className="py-12 text-center">
@@ -127,6 +128,14 @@ export function InterviewReport({ result, onRetry, onBack }: Props) {
         >
           再试一次
         </button>
+        {onViewChat && (
+          <button
+            onClick={onViewChat}
+            className="flex-1 rounded-lg border border-primary-200 px-4 py-2.5 text-sm font-medium text-primary-600 hover:bg-primary-50"
+          >
+            查看对话记录
+          </button>
+        )}
         <button
           onClick={onBack}
           className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
