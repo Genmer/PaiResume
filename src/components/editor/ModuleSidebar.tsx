@@ -18,6 +18,8 @@ interface ModuleSidebarProps {
   onSelectJdMatch?: () => void
   coverLetterActive?: boolean
   onSelectCoverLetter?: () => void
+  shareActive?: boolean
+  onSelectShare?: () => void
   errorCheckActive?: boolean
   onSelectErrorCheck?: () => void
   atsCheckActive?: boolean
@@ -53,13 +55,15 @@ export function ModuleSidebar({
   onSelectJdMatch,
   coverLetterActive = false,
   onSelectCoverLetter,
+  shareActive = false,
+  onSelectShare,
   errorCheckActive = false,
   onSelectErrorCheck,
   atsCheckActive = false,
   onSelectAtsCheck,
 }: ModuleSidebarProps) {
   const existingTypes = new Set(modules.map((m) => m.moduleType as ModuleType))
-  const toolsActive = analysisActive || templateSelectionActive || jdParseActive || jdMatchActive || coverLetterActive || errorCheckActive || atsCheckActive
+  const toolsActive = analysisActive || templateSelectionActive || jdParseActive || jdMatchActive || coverLetterActive || shareActive || errorCheckActive || atsCheckActive
   const moduleViewActive = !toolsActive
   const basicInfoContent = findBasicInfoContent(modules)
 
@@ -220,6 +224,20 @@ export function ModuleSidebar({
               <span className="flex items-center gap-2.5">
                 <span className="text-base">✉️</span>
                 <span className="flex-1">求职信/自我介绍</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onSelectShare}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                shareActive
+                  ? 'bg-primary-50 font-medium text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="text-base">🔗</span>
+                <span className="flex-1">在线分享</span>
               </span>
             </button>
             <button

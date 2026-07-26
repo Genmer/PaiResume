@@ -39,6 +39,12 @@ export interface ShowcaseDetail {
   updatedAt: string
 }
 
+export interface SharedResume {
+  title: string
+  modules: ResumeModule[]
+  updatedAt: string
+}
+
 export interface FeedbackSubmissionPayload {
   contactEmail: string
   displayName: string
@@ -57,6 +63,9 @@ export const publicApi = {
 
   showcaseDetail: (slug: string) =>
     client.get<ApiEnvelope<ShowcaseDetail>>(`/public/showcases/${slug}`),
+
+  sharedResume: (token: string) =>
+    client.get<ApiEnvelope<SharedResume>>(`/public/shares/${token}`),
 
   submitFeedback: (payload: FeedbackSubmissionPayload) =>
     client.post('/public/feedback-submissions', payload),

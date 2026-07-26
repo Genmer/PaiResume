@@ -3,9 +3,11 @@ package com.itwanger.pairesume.controller;
 import com.itwanger.pairesume.common.Result;
 import com.itwanger.pairesume.dto.FeedbackSubmissionCreateDTO;
 import com.itwanger.pairesume.dto.HomeDTO;
+import com.itwanger.pairesume.dto.SharedResumeDTO;
 import com.itwanger.pairesume.dto.ShowcaseDetailDTO;
 import com.itwanger.pairesume.service.FeedbackSubmissionService;
 import com.itwanger.pairesume.service.PublicHomeService;
+import com.itwanger.pairesume.service.ResumeShareService;
 import com.itwanger.pairesume.service.ResumeShowcaseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +24,7 @@ public class PublicController {
     private final PublicHomeService publicHomeService;
     private final ResumeShowcaseService resumeShowcaseService;
     private final FeedbackSubmissionService feedbackSubmissionService;
+    private final ResumeShareService resumeShareService;
 
     @Operation(summary = "公开首页聚合数据")
     @GetMapping("/home")
@@ -33,6 +36,12 @@ public class PublicController {
     @GetMapping("/showcases/{slug}")
     public Result<ShowcaseDetailDTO> showcaseDetail(@PathVariable String slug) {
         return Result.success(resumeShowcaseService.getPublishedDetail(slug));
+    }
+
+    @Operation(summary = "公开分享简历详情")
+    @GetMapping("/shares/{token}")
+    public Result<SharedResumeDTO> sharedResume(@PathVariable String token) {
+        return Result.success(resumeShareService.getSharedResume(token));
     }
 
     @Operation(summary = "提交公开问卷")

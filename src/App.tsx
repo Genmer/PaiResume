@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore'
 import HomePage from './pages/HomePage'
 import PricingPage from './pages/PricingPage'
 import ShowcasePage from './pages/ShowcasePage'
+import SharePage from './pages/SharePage'
 import SurveyPage from './pages/SurveyPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -50,6 +51,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/showcases/:slug" element={<ShowcasePage />} />
+        <Route path="/share/:token" element={<SharePage />} />
         <Route path="/survey" element={<SurveyPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

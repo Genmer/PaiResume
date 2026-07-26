@@ -143,6 +143,12 @@ export interface CoverLetterResult {
   content: string
 }
 
+export interface ResumeShareStatus {
+  enabled: boolean
+  shareToken?: string
+  viewCount: number
+}
+
 export interface JdMatchResult {
   matchScore: number
   summary: string
@@ -669,6 +675,15 @@ export const resumeApi = {
 
   coverLetter: (resumeId: number, params: { type: 'cover_letter' | 'self_intro'; tone: 'formal' | 'friendly'; jdText?: string }) =>
     client.post<ApiEnvelope<CoverLetterResult>>(`/resumes/${resumeId}/cover-letter`, params, { timeout: 90000 }),
+
+  getShareStatus: (resumeId: number) =>
+    client.get<ApiEnvelope<ResumeShareStatus>>(`/resumes/${resumeId}/share`),
+
+  enableShare: (resumeId: number) =>
+    client.post<ApiEnvelope<ResumeShareStatus>>(`/resumes/${resumeId}/share/enable`),
+
+  disableShare: (resumeId: number) =>
+    client.post<ApiEnvelope<ResumeShareStatus>>(`/resumes/${resumeId}/share/disable`),
 
   smartOnePagePreview: (resumeId: number, data: SmartOnePagePreviewRequest) =>
     withAiLogging(

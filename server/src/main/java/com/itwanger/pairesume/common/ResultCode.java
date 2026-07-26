@@ -56,6 +56,7 @@ public enum ResultCode {
     FEEDBACK_NOT_FOUND(7005, "问卷记录不存在"),
     FEEDBACK_RATE_LIMITED(7006, "提交过于频繁，请稍后再试"),
     FEEDBACK_PUBLISH_NOT_ALLOWED(7007, "当前问卷不满足发布条件"),
+    SHARE_NOT_FOUND(7008, "分享链接不存在或已关闭"),
 
     // Membership: 4xx01
     MEMBERSHIP_REQUIRED(40301, "需要开通会员"),

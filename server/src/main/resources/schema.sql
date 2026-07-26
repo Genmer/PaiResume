@@ -143,6 +143,22 @@ CREATE TABLE IF NOT EXISTS `resume_showcase` (
     KEY `idx_resume_showcase_publish_order` (`publish_status`, `display_order`, `updated_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='官方简历样例表';
 
+-- 简历分享链接表
+CREATE TABLE IF NOT EXISTS `resume_share` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `resume_id` BIGINT NOT NULL COMMENT '关联简历 ID',
+    `user_id` BIGINT NOT NULL COMMENT '所属用户 ID',
+    `share_token` VARCHAR(64) NOT NULL COMMENT '公开访问令牌',
+    `share_status` VARCHAR(16) NOT NULL DEFAULT 'ENABLED' COMMENT '状态: ENABLED/DISABLED',
+    `view_count` INT NOT NULL DEFAULT 0 COMMENT '被访问次数',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_resume_share_token` (`share_token`),
+    UNIQUE KEY `uk_resume_share_resume` (`resume_id`),
+    KEY `idx_resume_share_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='简历分享链接表';
+
 -- 字段级 AI 优化记录表
 CREATE TABLE IF NOT EXISTS `ai_optimize_record` (
     `id`                 BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',

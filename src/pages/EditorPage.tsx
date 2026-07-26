@@ -8,6 +8,7 @@ import { ChromePreviewFrame } from '../components/editor/ChromePreviewFrame'
 import { JdParsePanel } from '../components/jd/JdParsePanel'
 import { JdMatchPanel } from '../components/jd/JdMatchPanel'
 import { CoverLetterPanel } from '../components/tools/CoverLetterPanel'
+import { SharePanel } from '../components/tools/SharePanel'
 import { ErrorCheckPanel } from '../components/editor/ErrorCheckPanel'
 import { AtsCheckPanel } from '../components/editor/AtsCheckPanel'
 import { AiOptimizePanel } from '../components/analysis/AiOptimizePanel'
@@ -38,7 +39,7 @@ import {
   type ResumePdfPreviewConfig,
 } from '../utils/resumePdf'
 
-type EditorView = 'module' | 'analysis' | 'template-selection' | 'jd-parse' | 'jd-match' | 'cover-letter' | 'error-check' | 'ats-check'
+type EditorView = 'module' | 'analysis' | 'template-selection' | 'jd-parse' | 'jd-match' | 'cover-letter' | 'share' | 'error-check' | 'ats-check'
 const AI_OPTIMIZABLE_MODULE_TYPES = new Set<ModuleType>(['research', 'skill'])
 const NON_REMOVABLE_MODULE_TYPES = new Set<ModuleType>(['basic_info'])
 const PREVIEW_PANEL_COLLAPSED_STORAGE_KEY = 'pai-resume.preview-panel-collapsed'
@@ -80,6 +81,8 @@ export default function EditorPage() {
           ? 'jd-match'
           : requestedViewParam === 'cover-letter'
             ? 'cover-letter'
+            : requestedViewParam === 'share'
+              ? 'share'
             : requestedViewParam === 'error-check'
               ? 'error-check'
               : requestedViewParam === 'ats-check'
@@ -217,6 +220,8 @@ export default function EditorPage() {
             ? 'jd-match'
             : currentQueryViewParam === 'cover-letter'
               ? 'cover-letter'
+              : currentQueryViewParam === 'share'
+                ? 'share'
               : currentQueryViewParam === 'error-check'
                 ? 'error-check'
                 : currentQueryViewParam === 'ats-check'
@@ -243,6 +248,8 @@ export default function EditorPage() {
             ? 'jd-match'
             : currentQueryViewParam === 'cover-letter'
               ? 'cover-letter'
+              : currentQueryViewParam === 'share'
+                ? 'share'
               : currentQueryViewParam === 'error-check'
                 ? 'error-check'
                 : currentQueryViewParam === 'ats-check'
@@ -318,6 +325,12 @@ export default function EditorPage() {
     setAiModuleId(null)
     setEditorView('cover-letter')
     updateEditorLocation('cover-letter')
+  }, [updateEditorLocation])
+
+  const openShareView = useCallback(() => {
+    setAiModuleId(null)
+    setEditorView('share')
+    updateEditorLocation('share')
   }, [updateEditorLocation])
 
   const openErrorCheckView = useCallback(() => {
@@ -518,6 +531,8 @@ export default function EditorPage() {
           onSelectJdMatch={openJdMatchView}
           coverLetterActive={editorView === 'cover-letter'}
           onSelectCoverLetter={openCoverLetterView}
+                    shareActive={editorView === 'share'}
+                    onSelectShare={openShareView}
           errorCheckActive={editorView === 'error-check'}
           onSelectErrorCheck={openErrorCheckView}
           atsCheckActive={editorView === 'ats-check'}
@@ -550,6 +565,8 @@ export default function EditorPage() {
             <JdMatchPanel resumeId={resumeId} />
           ) : editorView === 'cover-letter' ? (
             <CoverLetterPanel resumeId={resumeId} />
+          ) : editorView === 'share' ? (
+            <SharePanel resumeId={resumeId} />
           ) : editorView === 'error-check' ? (
             <ErrorCheckPanel resumeId={resumeId} />
           ) : editorView === 'ats-check' ? (
