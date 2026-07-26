@@ -80,6 +80,8 @@ ai:
       config-file: ${ERROR_CHECK_PROMPTS_FILE:config/error-check-prompts.yml}
     ats-check:
       config-file: ${ATS_CHECK_PROMPTS_FILE:config/ats-check-prompts.yml}
+    cover-letter:
+      config-file: ${COVER_LETTER_PROMPTS_FILE:config/cover-letter-prompts.yml}
 
 springdoc:
   swagger-ui:

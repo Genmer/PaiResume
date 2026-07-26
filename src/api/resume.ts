@@ -138,6 +138,11 @@ export interface JdMatchSuggestion {
   advice: string
 }
 
+export interface CoverLetterResult {
+  type: 'cover_letter' | 'self_intro'
+  content: string
+}
+
 export interface JdMatchResult {
   matchScore: number
   summary: string
@@ -661,6 +666,9 @@ export const resumeApi = {
 
   jdMatch: (resumeId: number, jdText: string) =>
     client.post<ApiEnvelope<JdMatchResult>>(`/resumes/${resumeId}/jd-match`, { jdText }, { timeout: 90000 }),
+
+  coverLetter: (resumeId: number, params: { type: 'cover_letter' | 'self_intro'; tone: 'formal' | 'friendly'; jdText?: string }) =>
+    client.post<ApiEnvelope<CoverLetterResult>>(`/resumes/${resumeId}/cover-letter`, params, { timeout: 90000 }),
 
   smartOnePagePreview: (resumeId: number, data: SmartOnePagePreviewRequest) =>
     withAiLogging(
