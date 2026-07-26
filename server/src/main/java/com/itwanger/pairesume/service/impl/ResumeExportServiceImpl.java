@@ -2,6 +2,7 @@ package com.itwanger.pairesume.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itwanger.pairesume.common.BusinessException;
+import com.itwanger.pairesume.common.MembershipTier;
 import com.itwanger.pairesume.common.ResultCode;
 import com.itwanger.pairesume.dto.ResumeExportRequestDTO;
 import com.itwanger.pairesume.entity.User;
@@ -44,7 +45,7 @@ public class ResumeExportServiceImpl implements ResumeExportService {
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
-        if (!"ACTIVE".equals(user.getMembershipStatus())) {
+        if (MembershipTier.fromStatus(user.getMembershipStatus()) == MembershipTier.FREE) {
             throw new BusinessException(ResultCode.MEMBERSHIP_REQUIRED);
         }
 

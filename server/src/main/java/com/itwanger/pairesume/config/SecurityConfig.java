@@ -64,7 +64,6 @@ public class SecurityConfig {
                     "/membership/quote",
                     "/health",
                     "/ready",
-                    "/resume/parse",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",

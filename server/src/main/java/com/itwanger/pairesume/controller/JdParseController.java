@@ -1,9 +1,13 @@
 package com.itwanger.pairesume.controller;
 
+import com.itwanger.pairesume.common.BusinessException;
 import com.itwanger.pairesume.common.Result;
+import com.itwanger.pairesume.common.ResultCode;
 import com.itwanger.pairesume.dto.JdParseResult;
+import com.itwanger.pairesume.service.JdParseRateLimiter;
 import com.itwanger.pairesume.service.JdParseService;
 import com.itwanger.pairesume.service.impl.JdParseServiceImpl.JdParseException;
+import com.itwanger.pairesume.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +25,7 @@ import java.util.Map;
 public class JdParseController {
 
     private final JdParseService jdParseService;
+    private final JdParseRateLimiter jdParseRateLimiter;
 
     @Operation(
             summary = "解析 JD 文本",
@@ -40,8 +45,19 @@ public class JdParseController {
 
         log.info("[JD Parse][Controller] received request, resumeId: {}, text length: {}", id, jdText.length());
 
+        Long userId = SecurityUtils.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
+        int remaining = jdParseRateLimiter.getRemainingParses(userId);
+        // -1 表示不限次数；<=0 表示当月配额已用完
+        if (remaining != -1 && remaining <= 0) {
+            throw new BusinessException(ResultCode.JD_PARSE_LIMIT_EXCEEDED);
+        }
+
         try {
             JdParseResult result = jdParseService.parseJd(jdText);
+            jdParseRateLimiter.incrementParseCount(userId);
             return Result.success(result);
         } catch (JdParseException e) {
             log.warn("[JD Parse][Controller] parse failed: {}", e.getMessage());

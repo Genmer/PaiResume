@@ -9,7 +9,8 @@ services:
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     ports:
-      - "13306:3306"
+      # 仅绑定本机，避免数据库直接暴露公网
+      - "127.0.0.1:13306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -23,7 +24,8 @@ services:
     container_name: pairesume-redis
     restart: unless-stopped
     ports:
-      - "16379:6379"
+      # 仅绑定本机，避免 Redis 无认证暴露公网
+      - "127.0.0.1:16379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -43,6 +45,8 @@ services:
         condition: service_healthy
     environment:
       APP_ENV: production
+      # 生产默认 PRO 模式（控制活动领取等一次性限制）
+      APP_MODE: ${APP_MODE:-PRO}
       SERVER_PORT: 8080
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -51,6 +55,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pairesume123}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in production}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_BASE_URL: ${AI_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}

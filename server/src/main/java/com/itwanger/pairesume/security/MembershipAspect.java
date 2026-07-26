@@ -1,6 +1,7 @@
 package com.itwanger.pairesume.security;
 
 import com.itwanger.pairesume.common.BusinessException;
+import com.itwanger.pairesume.common.MembershipTier;
 import com.itwanger.pairesume.common.ResultCode;
 import com.itwanger.pairesume.entity.User;
 import com.itwanger.pairesume.mapper.UserMapper;
@@ -30,7 +31,7 @@ public class MembershipAspect {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
 
-        if (!"ACTIVE".equals(user.getMembershipStatus())) {
+        if (MembershipTier.fromStatus(user.getMembershipStatus()) == MembershipTier.FREE) {
             throw new BusinessException(ResultCode.MEMBERSHIP_REQUIRED);
         }
 

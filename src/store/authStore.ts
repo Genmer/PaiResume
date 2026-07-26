@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { authApi, type TokenData } from '../api/auth'
 import { rememberAccount } from '../utils/accountMemory'
+import { clearMembershipCache } from '../hooks/useMembership'
 
 interface AuthState {
   user: TokenData['userInfo'] | null
@@ -33,6 +34,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem('accessToken', tokenData.accessToken)
     localStorage.setItem('refreshToken', tokenData.refreshToken)
     rememberAccount(email, tokenData.userInfo.nickname)
+    clearMembershipCache()
     set({ user: tokenData.userInfo, isAuthenticated: true, initialized: true })
   },
 
@@ -42,6 +44,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem('accessToken', tokenData.accessToken)
     localStorage.setItem('refreshToken', tokenData.refreshToken)
     rememberAccount(email, tokenData.userInfo.nickname)
+    clearMembershipCache()
     set({ user: tokenData.userInfo, isAuthenticated: true, initialized: true })
   },
 
@@ -49,6 +52,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try { await authApi.logout() } catch { /* ignore */ }
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
+    clearMembershipCache()
     set({ user: null, isAuthenticated: false, initialized: true, restoring: false })
   },
 
@@ -76,6 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
+      clearMembershipCache()
       set({
         user: null,
         isAuthenticated: false,

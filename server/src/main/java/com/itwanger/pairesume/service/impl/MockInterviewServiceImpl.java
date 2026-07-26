@@ -120,7 +120,8 @@ public class MockInterviewServiceImpl implements MockInterviewService {
         session.setInterviewMode(request.getMode());
         session.setTargetPosition(request.getTargetPosition());
         session.setTargetYears(request.getTargetYears());
-        session.setMaxRounds(VALID_ROUNDS.contains(request.getMaxRounds()) ? request.getMaxRounds() : DEFAULT_ROUNDS);
+        Integer requestedRounds = request.getMaxRounds();
+        session.setMaxRounds(requestedRounds != null && VALID_ROUNDS.contains(requestedRounds) ? requestedRounds : DEFAULT_ROUNDS);
         session.setInterviewStatus("IN_PROGRESS");
         sessionMapper.insert(session);
 
@@ -161,6 +162,7 @@ public class MockInterviewServiceImpl implements MockInterviewService {
                 new LambdaQueryWrapper<MockInterviewMessage>()
                         .eq(MockInterviewMessage::getSessionId, sessionId)
                         .orderByAsc(MockInterviewMessage::getCreatedAt)
+                        .orderByAsc(MockInterviewMessage::getId)
         );
 
         List<Map<String, String>> chatMessages = new ArrayList<>();
@@ -241,6 +243,7 @@ public class MockInterviewServiceImpl implements MockInterviewService {
                 new LambdaQueryWrapper<MockInterviewMessage>()
                         .eq(MockInterviewMessage::getSessionId, sessionId)
                         .orderByAsc(MockInterviewMessage::getCreatedAt)
+                        .orderByAsc(MockInterviewMessage::getId)
         );
 
         String conversationHistory = allMessages.stream()
@@ -338,6 +341,7 @@ public class MockInterviewServiceImpl implements MockInterviewService {
                 new LambdaQueryWrapper<MockInterviewMessage>()
                         .eq(MockInterviewMessage::getSessionId, session.getId())
                         .orderByAsc(MockInterviewMessage::getCreatedAt)
+                        .orderByAsc(MockInterviewMessage::getId)
         );
 
         dto.setMessages(messages.stream().map(msg -> {
@@ -542,14 +546,12 @@ public class MockInterviewServiceImpl implements MockInterviewService {
                 if (delta != null) {
                     if (delta.has("reasoning_content")) {
                         var reasoning = delta.get("reasoning_content").asText();
-                        if (!reasoning.isEmpty()) {
-                            contentBuilder.append(reasoning);
-                            if (eventConsumer != null) {
-                                eventConsumer.accept(Map.of(
-                                        "type", "content_delta",
-                                        "content", reasoning
-                                ));
-                            }
+                        if (!reasoning.isEmpty() && eventConsumer != null) {
+                            // 思维链仅透传前端展示，不写入正式回答，避免污染面试记录与后续上下文
+                            eventConsumer.accept(Map.of(
+                                    "type", "reasoning_delta",
+                                    "content", reasoning
+                            ));
                         }
                     }
                     if (delta.has("content")) {

@@ -6,6 +6,11 @@ interface MembershipStatus extends MembershipStatusResponse {}
 
 let cachedStatus: MembershipStatus | null = null
 
+// 登出/切换账号时清空模块级缓存，避免新账号读到上一个账号的会员状态
+export function clearMembershipCache() {
+  cachedStatus = null
+}
+
 export function useMembership() {
   const [status, setStatus] = useState<MembershipStatus | null>(cachedStatus)
   const [loading, setLoading] = useState(false)

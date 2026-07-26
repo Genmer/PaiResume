@@ -159,8 +159,8 @@ export const interviewApi = {
   },
 
   getInterviewDetail: async (sessionId: number) => {
-    const result = await client.get<ApiEnvelope<{
-      session: InterviewSession
+    // 后端返回扁平的会话对象，messages 在顶层
+    const result = await client.get<ApiEnvelope<InterviewSession & {
       messages: InterviewMessage[]
     }>>(`/interview/${sessionId}`)
     return unwrap(result)

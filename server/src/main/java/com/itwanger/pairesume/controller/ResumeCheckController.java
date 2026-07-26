@@ -3,6 +3,7 @@ package com.itwanger.pairesume.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itwanger.pairesume.common.BusinessException;
+import com.itwanger.pairesume.common.MembershipTier;
 import com.itwanger.pairesume.common.Result;
 import com.itwanger.pairesume.common.ResultCode;
 import com.itwanger.pairesume.dto.ResumeCheckResult;
@@ -87,7 +88,8 @@ public class ResumeCheckController {
             ResumeCheckResult result = resumeCheckService.checkResume(resumeContent);
 
             User user = userMapper.selectById(userId);
-            boolean isMember = user != null && "ACTIVE".equals(user.getMembershipStatus());
+            boolean isMember = user != null
+                    && MembershipTier.fromStatus(user.getMembershipStatus()) != MembershipTier.FREE;
 
             if (!isMember) {
                 log.info("[Resume Check][Controller] free user, returning summary only");

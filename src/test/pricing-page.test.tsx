@@ -1,7 +1,7 @@
 import { render, screen, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import PricingPage from '../pages/PricingPage'
-import type { MembershipTier, ActivityConfig } from '../types/membership'
+import type { MembershipTier } from '../types/membership'
 
 const { mockRefresh, mockGetActivity } = vi.hoisted(() => ({
   mockRefresh: vi.fn().mockResolvedValue(undefined),
@@ -47,6 +47,8 @@ vi.mock('../api/membership', () => ({
 vi.mock('react-router-dom', () => ({
   Link: ({ children, ...props }: { children: React.ReactNode; to: string; className?: string }) =>
     <a href={props.to} className={props.className}>{children}</a>,
+  // Header 使用了 useNavigate，mock 中必须提供，否则渲染直接报错
+  useNavigate: () => vi.fn(),
 }))
 
 vi.mock('../components/branding/LogoMark', () => ({
@@ -86,13 +88,11 @@ describe('PricingPage', () => {
       membershipTier: 'FREE' as MembershipTier,
     }
 
-    const activityData: ActivityConfig = {
-      activityTier: 'LITE',
-      activityDurationDays: 30,
-      activityEnabled: true,
-      activityStartAt: '2025-01-01',
-      activityEndAt: '2025-12-31',
-      activityLabel: '限时免费',
+    // 后端 /membership/activity 实际返回扁平的 ActivityActiveInfo { tier, label, durationDays }
+    const activityData = {
+      tier: 'LITE',
+      label: '限时免费',
+      durationDays: 30,
     }
 
     mockGetActivity.mockResolvedValue({

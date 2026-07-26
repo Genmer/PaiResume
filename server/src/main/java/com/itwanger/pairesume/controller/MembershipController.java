@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.SecureRandom;
@@ -100,6 +101,7 @@ public class MembershipController {
 
     @Operation(summary = "活动领取会员")
     @PostMapping("/activity-redeem")
+    @Transactional
     public Result<Map<String, Object>> activityRedeem() {
         if (!activityConfigService.isActivityActive()) {
             throw new BusinessException(ResultCode.BAD_REQUEST.getCode(), "当前没有进行中的活动");
@@ -114,6 +116,7 @@ public class MembershipController {
             Long claimCount = activationCodeMapper.selectCount(
                     new LambdaQueryWrapper<ActivationCode>()
                             .eq(ActivationCode::getUsedByUserId, userId)
+                            .eq(ActivationCode::getBatchId, "ACTIVITY")
             );
             if (claimCount != null && claimCount > 0) {
                 throw new BusinessException(ResultCode.ACTIVITY_ALREADY_CLAIMED);

@@ -1,6 +1,7 @@
 package com.itwanger.pairesume.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.itwanger.pairesume.common.BusinessException;
 import com.itwanger.pairesume.common.MembershipTier;
 import com.itwanger.pairesume.common.ResultCode;
@@ -104,10 +105,20 @@ public class ActivationCodeServiceImpl implements ActivationCodeService {
 
         String newStatus = ac.getTier();
 
+        // 条件更新（乐观锁语义）：仅当状态仍为 UNUSED 时才能核销，防止并发重复兑换
+        int rows = activationCodeMapper.update(null,
+                new LambdaUpdateWrapper<ActivationCode>()
+                        .eq(ActivationCode::getId, ac.getId())
+                        .eq(ActivationCode::getCodeStatus, "UNUSED")
+                        .set(ActivationCode::getCodeStatus, "USED")
+                        .set(ActivationCode::getUsedByUserId, userId)
+                        .set(ActivationCode::getUsedAt, now));
+        if (rows == 0) {
+            throw new BusinessException(ResultCode.ACTIVATION_CODE_ALREADY_USED);
+        }
         ac.setCodeStatus("USED");
         ac.setUsedByUserId(userId);
         ac.setUsedAt(now);
-        activationCodeMapper.updateById(ac);
 
         user.setMembershipStatus(newStatus);
         user.setMembershipGrantedAt(now);

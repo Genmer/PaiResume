@@ -6,6 +6,7 @@ import com.itwanger.pairesume.mapper.UserMapper;
 import com.itwanger.pairesume.service.MembershipExpiryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,8 @@ public class MembershipExpiryServiceImpl implements MembershipExpiryService {
 
     @Override
     @Transactional
+    // 每小时整点扫描一次，避免过期会员不访问个人中心时继续享受付费配额
+    @Scheduled(cron = "0 0 * * * *")
     public void checkAndDowngradeAllExpired() {
         List<User> expiredUsers = userMapper.selectList(
                 new LambdaQueryWrapper<User>()
