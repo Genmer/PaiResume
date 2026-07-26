@@ -133,6 +133,20 @@ export interface JdParseResult {
   responsibilities: string[]
 }
 
+export interface JdMatchSuggestion {
+  module: string
+  advice: string
+}
+
+export interface JdMatchResult {
+  matchScore: number
+  summary: string
+  matchedSkills: string[]
+  missingSkills: string[]
+  suggestions: JdMatchSuggestion[]
+  detailed: boolean
+}
+
 export interface AtsCheckCategory {
   name: string
   score: number
@@ -644,6 +658,9 @@ export const resumeApi = {
 
   jdParse: (resumeId: number, jdText: string) =>
     client.post<ApiEnvelope<JdParseResult>>(`/resumes/${resumeId}/jd-parse`, { jdText }, { timeout: 70000 }),
+
+  jdMatch: (resumeId: number, jdText: string) =>
+    client.post<ApiEnvelope<JdMatchResult>>(`/resumes/${resumeId}/jd-match`, { jdText }, { timeout: 90000 }),
 
   smartOnePagePreview: (resumeId: number, data: SmartOnePagePreviewRequest) =>
     withAiLogging(

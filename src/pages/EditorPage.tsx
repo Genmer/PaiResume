@@ -6,6 +6,7 @@ import { ModuleSidebar } from '../components/editor/ModuleSidebar'
 import { PreviewPanel } from '../components/editor/PreviewPanel'
 import { ChromePreviewFrame } from '../components/editor/ChromePreviewFrame'
 import { JdParsePanel } from '../components/jd/JdParsePanel'
+import { JdMatchPanel } from '../components/jd/JdMatchPanel'
 import { ErrorCheckPanel } from '../components/editor/ErrorCheckPanel'
 import { AtsCheckPanel } from '../components/editor/AtsCheckPanel'
 import { AiOptimizePanel } from '../components/analysis/AiOptimizePanel'
@@ -36,7 +37,7 @@ import {
   type ResumePdfPreviewConfig,
 } from '../utils/resumePdf'
 
-type EditorView = 'module' | 'analysis' | 'template-selection' | 'jd-parse' | 'error-check' | 'ats-check'
+type EditorView = 'module' | 'analysis' | 'template-selection' | 'jd-parse' | 'jd-match' | 'error-check' | 'ats-check'
 const AI_OPTIMIZABLE_MODULE_TYPES = new Set<ModuleType>(['research', 'skill'])
 const NON_REMOVABLE_MODULE_TYPES = new Set<ModuleType>(['basic_info'])
 const PREVIEW_PANEL_COLLAPSED_STORAGE_KEY = 'pai-resume.preview-panel-collapsed'
@@ -74,11 +75,13 @@ export default function EditorPage() {
       ? 'template-selection'
       : requestedViewParam === 'jd-parse'
         ? 'jd-parse'
-        : requestedViewParam === 'error-check'
-          ? 'error-check'
-          : requestedViewParam === 'ats-check'
-            ? 'ats-check'
-            : 'module'
+        : requestedViewParam === 'jd-match'
+          ? 'jd-match'
+          : requestedViewParam === 'error-check'
+            ? 'error-check'
+            : requestedViewParam === 'ats-check'
+              ? 'ats-check'
+              : 'module'
   const initialModuleType = requestedModuleType && requestedModuleType in getDefaultContentMap()
     ? requestedModuleType as ModuleType
     : requestedView === 'module'
@@ -207,11 +210,13 @@ export default function EditorPage() {
         ? 'template-selection'
         : currentQueryViewParam === 'jd-parse'
           ? 'jd-parse'
-          : currentQueryViewParam === 'error-check'
-            ? 'error-check'
-            : currentQueryViewParam === 'ats-check'
-              ? 'ats-check'
-              : 'module'
+          : currentQueryViewParam === 'jd-match'
+            ? 'jd-match'
+            : currentQueryViewParam === 'error-check'
+              ? 'error-check'
+              : currentQueryViewParam === 'ats-check'
+                ? 'ats-check'
+                : 'module'
     if (nextActiveModuleType && (currentQueryModuleType !== nextActiveModuleType || currentQueryView !== editorView)) {
       updateEditorLocation(editorView, nextActiveModuleType)
     }
@@ -229,11 +234,13 @@ export default function EditorPage() {
         ? 'template-selection'
         : currentQueryViewParam === 'jd-parse'
           ? 'jd-parse'
-          : currentQueryViewParam === 'error-check'
-            ? 'error-check'
-            : currentQueryViewParam === 'ats-check'
-              ? 'ats-check'
-              : 'module'
+          : currentQueryViewParam === 'jd-match'
+            ? 'jd-match'
+            : currentQueryViewParam === 'error-check'
+              ? 'error-check'
+              : currentQueryViewParam === 'ats-check'
+                ? 'ats-check'
+                : 'module'
     if (currentQueryView !== editorView) {
       updateEditorLocation(editorView)
     }
@@ -292,6 +299,12 @@ export default function EditorPage() {
     setAiModuleId(null)
     setEditorView('jd-parse')
     updateEditorLocation('jd-parse')
+  }, [updateEditorLocation])
+
+  const openJdMatchView = useCallback(() => {
+    setAiModuleId(null)
+    setEditorView('jd-match')
+    updateEditorLocation('jd-match')
   }, [updateEditorLocation])
 
   const openErrorCheckView = useCallback(() => {
@@ -488,6 +501,8 @@ export default function EditorPage() {
           onSelectTemplateSelection={openTemplateSelectionView}
           jdParseActive={editorView === 'jd-parse'}
           onSelectJdParse={openJdParseView}
+          jdMatchActive={editorView === 'jd-match'}
+          onSelectJdMatch={openJdMatchView}
           errorCheckActive={editorView === 'error-check'}
           onSelectErrorCheck={openErrorCheckView}
           atsCheckActive={editorView === 'ats-check'}
@@ -516,6 +531,8 @@ export default function EditorPage() {
             />
           ) : editorView === 'jd-parse' ? (
             <JdParsePanel resumeId={resumeId} />
+          ) : editorView === 'jd-match' ? (
+            <JdMatchPanel resumeId={resumeId} />
           ) : editorView === 'error-check' ? (
             <ErrorCheckPanel resumeId={resumeId} />
           ) : editorView === 'ats-check' ? (

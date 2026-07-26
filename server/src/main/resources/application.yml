@@ -74,6 +74,8 @@ ai:
   prompts:
     jd-parse:
       config-file: ${JD_PARSE_PROMPTS_FILE:config/jd-parse-prompts.yml}
+    jd-match:
+      config-file: ${JD_MATCH_PROMPTS_FILE:config/jd-match-prompts.yml}
     error-check:
       config-file: ${ERROR_CHECK_PROMPTS_FILE:config/error-check-prompts.yml}
     ats-check:

@@ -14,6 +14,8 @@ interface ModuleSidebarProps {
   onSelectTemplateSelection?: () => void
   jdParseActive?: boolean
   onSelectJdParse?: () => void
+  jdMatchActive?: boolean
+  onSelectJdMatch?: () => void
   errorCheckActive?: boolean
   onSelectErrorCheck?: () => void
   atsCheckActive?: boolean
@@ -45,13 +47,15 @@ export function ModuleSidebar({
   onSelectTemplateSelection,
   jdParseActive = false,
   onSelectJdParse,
+  jdMatchActive = false,
+  onSelectJdMatch,
   errorCheckActive = false,
   onSelectErrorCheck,
   atsCheckActive = false,
   onSelectAtsCheck,
 }: ModuleSidebarProps) {
   const existingTypes = new Set(modules.map((m) => m.moduleType as ModuleType))
-  const toolsActive = analysisActive || templateSelectionActive || jdParseActive || errorCheckActive || atsCheckActive
+  const toolsActive = analysisActive || templateSelectionActive || jdParseActive || jdMatchActive || errorCheckActive || atsCheckActive
   const moduleViewActive = !toolsActive
   const basicInfoContent = findBasicInfoContent(modules)
 
@@ -184,6 +188,20 @@ export function ModuleSidebar({
               <span className="flex items-center gap-2.5">
                 <span className="text-base">📋</span>
                 <span className="flex-1">JD 解析</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onSelectJdMatch}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                jdMatchActive
+                  ? 'bg-primary-50 font-medium text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="text-base">🎯</span>
+                <span className="flex-1">JD 匹配分析</span>
               </span>
             </button>
             <button
