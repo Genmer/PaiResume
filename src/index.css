@@ -13,21 +13,15 @@
 body {
   margin: 0;
   min-height: 100vh;
+  /* 统一画布：带品牌色呼吸感的浅渐变，替换死板纯灰 */
+  background:
+    radial-gradient(880px 420px at 8% -10%, rgba(51, 105, 232, 0.07), transparent 60%),
+    radial-gradient(720px 380px at 96% 4%, rgba(67, 56, 202, 0.06), transparent 55%),
+    #f7f9fd;
 }
 
-/* 统一圆角语言：大面板保持硬朗，小控件保留轻微圆角 */
-.rounded,
-.rounded-md,
-.rounded-lg,
-.rounded-xl {
-  border-radius: 4px !important;
-}
-
-.rounded-2xl,
-.rounded-3xl,
-.rounded-\[24px\],
-.rounded-\[32px\] {
-  border-radius: 0 !important;
+::selection {
+  background: #e0ebff;
 }
 
 /* 打印样式 */

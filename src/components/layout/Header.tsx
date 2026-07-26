@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type MouseEvent as ReactMouseEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useMembership } from '../../hooks/useMembership'
 import { useResumeStore } from '../../store/resumeStore'
@@ -38,8 +38,9 @@ function getImportTypeFromFile(file: File): ResumeImportType | null {
 
 export function Header() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, isAuthenticated, logout } = useAuthStore()
-  const { membershipTier, appMode, mockInterviewRemaining } = useMembership()
+  const { membershipTier, appMode, mockInterviewRemaining, membershipExpiresAt, isPermanent } = useMembership()
   const { importResume } = useResumeStore()
   const [importMenuOpen, setImportMenuOpen] = useState(false)
   const [importingType, setImportingType] = useState<ResumeImportType | null>(null)
@@ -302,66 +303,73 @@ export function Header() {
     })
   }
 
+  // 导航链接统一胶囊样式，当前页高亮
+  const navLinks = [
+    { to: '/', label: '首页' },
+    { to: '/pricing', label: '定价' },
+    { to: '/survey', label: '问卷' },
+    { to: '/interview', label: '模拟面试' },
+    ...(isAuthenticated ? [{ to: '/dashboard', label: '我的简历' }] : []),
+    ...(isAuthenticated && user?.admin ? [{ to: '/admin', label: '管理后台' }] : []),
+  ]
+  const isActivePath = (to: string) => (
+    to === '/' ? location.pathname === '/' : location.pathname === to || location.pathname.startsWith(`${to}/`)
+  )
+
+  // 会员徽标：四档同构造（小圆点 + 文案），只换色不换形
+  const tierStyles: Record<string, { label: string; chip: string; dot: string }> = {
+    FREE: { label: '免费版', chip: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' },
+    LITE: { label: '基础版', chip: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
+    PRO: { label: '专业版', chip: 'bg-primary-50 text-primary-600', dot: 'bg-primary-500' },
+    MAX: { label: '旗舰版', chip: 'bg-gradient-to-br from-slate-800 to-slate-900 text-amber-300', dot: 'bg-amber-300' },
+  }
+  const tier = tierStyles[membershipTier] ?? tierStyles.FREE
+  const membershipExpiryText = membershipTier === 'FREE'
+    ? ''
+    : isPermanent
+      ? ' · 永久'
+      : membershipExpiresAt
+        ? ` · ${new Date(membershipExpiresAt).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })} 到期`
+        : ''
+
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="sticky top-0 z-10 border-b border-gray-900/10 bg-white/80 backdrop-blur-xl">
         <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex min-h-16 items-center justify-between gap-4 py-3">
-            <Link to="/dashboard" className="flex items-center gap-3">
+          <div className="flex min-h-16 items-center gap-5 py-3">
+            <Link to="/dashboard" className="flex shrink-0 items-center gap-2.5">
               <LogoMark className="h-9 w-9" />
-              <span className="text-xl font-bold text-gray-900">咕咕嘎嘎简历</span>
+              <span className="text-lg font-bold text-gray-900">咕咕嘎嘎<span className="text-primary-600">简历</span></span>
             </Link>
 
-            <div className="flex items-center gap-4">
-              <Link
-                to="/"
-                className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-              >
-                首页
-              </Link>
-              <Link
-                to="/pricing"
-                className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-              >
-                定价
-              </Link>
-              <Link
-                to="/survey"
-                className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-              >
-                问卷
-              </Link>
-              <Link
-                to="/interview"
-                className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700 inline-flex items-center gap-1"
-              >
-                模拟面试
-                {isAuthenticated && mockInterviewRemaining > 0 && (
-                  <span className="text-xs text-primary-500">({mockInterviewRemaining})</span>
-                )}
-              </Link>
+            <nav className="mx-auto flex items-center gap-0.5">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                    isActivePath(link.to)
+                      ? 'bg-primary-100 font-semibold text-primary-700'
+                      : 'font-medium text-gray-500 hover:bg-primary-50 hover:text-primary-700'
+                  }`}
+                >
+                  {link.label}
+                  {link.to === '/interview' && isAuthenticated && mockInterviewRemaining > 0 && (
+                    <span className="text-xs text-primary-500">({mockInterviewRemaining})</span>
+                  )}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="flex shrink-0 items-center gap-2.5">
               {isAuthenticated ? (
                 <>
-                  <Link
-                    to="/dashboard"
-                    className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-                  >
-                    我的简历
-                  </Link>
-                  {user?.admin ? (
-                    <Link
-                      to="/admin"
-                      className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
-                    >
-                      管理后台
-                    </Link>
-                  ) : null}
                   <div className="relative" ref={menuRef}>
                     <button
                       type="button"
                       onClick={() => setImportMenuOpen((open) => !open)}
                       disabled={!!importingType}
-                      className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 transition-colors hover:border-primary-200 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-primary-50 px-3.5 py-2 text-sm font-semibold text-primary-700 ring-1 ring-inset ring-primary-100 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 16V6m0 0l-4 4m4-4l4 4M5 20h14" />
@@ -370,7 +378,7 @@ export function Header() {
                     </button>
 
                     {importMenuOpen && (
-                      <div className="absolute right-0 top-full z-20 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-2 shadow-lg">
+                      <div className="absolute right-0 top-full z-20 mt-2 w-64 rounded-2xl bg-white p-2 shadow-pop ring-1 ring-gray-900/10">
                         {resumeImporters.map((importer) => (
                           importer.enabled ? (
                             <div
@@ -418,40 +426,43 @@ export function Header() {
                     <span className="max-w-xs text-xs text-red-500">{importError}</span>
                   )}
                   <div className="relative" ref={userMenuRef}>
+                    {/* 用户胶囊：头像 + 昵称 + 会员徽标收进同一描边胶囊 */}
                     <button
                       onClick={() => setUserMenuOpen((v) => !v)}
-                      className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 ring-1 ring-inset ring-gray-900/10 transition-colors hover:bg-gray-900/5"
                     >
-                      <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-grad-brand text-xs font-bold text-white">
                         {(user?.nickname || user?.email || 'U')[0].toUpperCase()}
-                      </div>
-                      {(() => {
-                          const tierStyles: Record<string, { label: string; bg: string; dot: string }> = {
-                            FREE: { label: '免费版', bg: 'bg-gray-50 border-gray-200 text-gray-500', dot: 'bg-gray-400' },
-                            LITE: { label: '基础版', bg: 'bg-amber-50 border-amber-200 text-amber-600', dot: 'bg-amber-400' },
-                            PRO: { label: '专业版', bg: 'bg-blue-50 border-blue-200 text-blue-600', dot: 'bg-blue-400' },
-                            MAX: { label: '旗舰版', bg: 'bg-gray-800 border-gray-700 text-gray-200', dot: 'bg-gray-300' },
-                          }
-                          const s = tierStyles[membershipTier] ?? tierStyles.FREE
-                          return (
-                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none ${s.bg}`}>
-                              <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-                              {s.label}
-                            </span>
-                          )
-                      })()}
-                      <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                      </span>
+                      <span className="max-w-28 truncate text-sm font-medium text-gray-700">
+                        {user?.nickname || user?.email}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium leading-none ${tier.chip}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${tier.dot}`} />
+                        {tier.label}
+                      </span>
+                      <svg className={`h-3.5 w-3.5 text-gray-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     {userMenuOpen && (
-                      <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-gray-200 bg-white shadow-lg py-1 z-50">
-                        <div className="px-3 py-2 border-b border-gray-100">
-                          <p className="text-sm font-medium text-gray-900 truncate">{user?.nickname || user?.email}</p>
-                          <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                      <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl bg-white py-1 shadow-pop ring-1 ring-gray-900/10">
+                        {/* 下拉头部：账号信息 + 会员到期日 + 运行模式并列 */}
+                        <div className="border-b border-gray-100 px-4 py-3">
+                          <p className="truncate text-sm font-semibold text-gray-900">{user?.nickname || user?.email}</p>
+                          <p className="mt-0.5 truncate text-xs text-gray-400">{user?.email}</p>
+                          <div className="mt-2 flex items-center gap-1.5">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium leading-none ${tier.chip}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${tier.dot}`} />
+                              {tier.label}{membershipExpiryText}
+                            </span>
+                            <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none ${appMode === 'PRO' ? 'bg-primary-50 text-primary-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                              {appMode}
+                            </span>
+                          </div>
                         </div>
                         <Link
                           to="/profile"
                           onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                         >
                           <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
                           个人中心
@@ -461,13 +472,13 @@ export function Header() {
                           onMouseEnter={() => setSwitchMenuOpen(true)}
                           onMouseLeave={() => setSwitchMenuOpen(false)}
                         >
-                          <button className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                          <button className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50">
                             <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
                             切换账号
                             <svg className="w-3 h-3 ml-auto text-gray-300 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                           </button>
                           {switchMenuOpen && (
-                            <div className="absolute right-full top-0 mr-1 w-52 rounded-lg border border-gray-200 bg-white shadow-lg py-1 z-50">
+                            <div className="absolute right-full top-0 z-50 mr-1 w-52 rounded-2xl bg-white py-1 shadow-pop ring-1 ring-gray-900/10">
                               {savedAccounts.length > 0 && savedAccounts.map((acc) => (
                                 <button
                                   key={acc.email}
@@ -496,7 +507,7 @@ export function Header() {
                         <div className="border-t border-gray-100 mt-1 pt-1">
                           <button
                             onClick={() => { setUserMenuOpen(false); handleLogout() }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-500 transition-colors hover:bg-red-50"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
                             退出登录
@@ -505,21 +516,18 @@ export function Header() {
                       </div>
                     )}
                   </div>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${appMode === 'PRO' ? 'bg-blue-50 text-blue-500 border border-blue-200' : 'bg-emerald-50 text-emerald-500 border border-emerald-200'}`}>
-                    {appMode}
-                  </span>
                 </>
               ) : (
                 <>
                   <Link
                     to="/login"
-                    className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-700"
+                    className="rounded-full px-3.5 py-1.5 text-sm font-medium text-gray-500 transition-colors hover:bg-primary-50 hover:text-primary-700"
                   >
                     登录
                   </Link>
                   <Link
                     to="/register"
-                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                    className="rounded-xl bg-grad-brand px-4 py-2 text-sm font-semibold text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
                   >
                     免费注册
                   </Link>

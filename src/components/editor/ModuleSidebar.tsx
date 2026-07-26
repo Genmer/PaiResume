@@ -20,6 +20,8 @@ interface ModuleSidebarProps {
   onSelectCoverLetter?: () => void
   shareActive?: boolean
   onSelectShare?: () => void
+  reparseActive?: boolean
+  onSelectReparse?: () => void
   errorCheckActive?: boolean
   onSelectErrorCheck?: () => void
   atsCheckActive?: boolean
@@ -57,13 +59,15 @@ export function ModuleSidebar({
   onSelectCoverLetter,
   shareActive = false,
   onSelectShare,
+  reparseActive = false,
+  onSelectReparse,
   errorCheckActive = false,
   onSelectErrorCheck,
   atsCheckActive = false,
   onSelectAtsCheck,
 }: ModuleSidebarProps) {
   const existingTypes = new Set(modules.map((m) => m.moduleType as ModuleType))
-  const toolsActive = analysisActive || templateSelectionActive || jdParseActive || jdMatchActive || coverLetterActive || shareActive || errorCheckActive || atsCheckActive
+  const toolsActive = analysisActive || templateSelectionActive || jdParseActive || jdMatchActive || coverLetterActive || shareActive || reparseActive || errorCheckActive || atsCheckActive
   const moduleViewActive = !toolsActive
   const basicInfoContent = findBasicInfoContent(modules)
 
@@ -238,6 +242,20 @@ export function ModuleSidebar({
               <span className="flex items-center gap-2.5">
                 <span className="text-base">🔗</span>
                 <span className="flex-1">在线分享</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={onSelectReparse}
+              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                reparseActive
+                  ? 'bg-primary-50 font-medium text-primary-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="text-base">♻️</span>
+                <span className="flex-1">重新解析</span>
               </span>
             </button>
             <button

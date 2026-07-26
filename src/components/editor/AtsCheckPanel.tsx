@@ -86,7 +86,7 @@ export function AtsCheckPanel({ resumeId }: AtsCheckPanelProps) {
       )}
 
       {result && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
+        <div className="rounded-2xl bg-white p-6 space-y-5 shadow-card ring-1 ring-gray-900/10">
           <div className="flex items-center gap-4">
             <ScoreGauge score={result.overallScore} />
             <div>

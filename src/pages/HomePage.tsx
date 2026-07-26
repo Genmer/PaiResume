@@ -33,11 +33,11 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen text-gray-900">
       <Header />
 
       <main>
-        <section className="border-b border-gray-200 bg-white">
+        <section className="border-b border-gray-900/10 bg-white/70">
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
             <div className="max-w-3xl">
               <p className="text-sm font-medium text-primary-700">高分简历样例 · 问卷反馈 · 会员导出</p>
@@ -51,20 +51,20 @@ export default function HomePage() {
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
                   to={readyAuthenticated ? '/dashboard' : '/register'}
-                  className="rounded-lg bg-primary-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                  className="rounded-xl bg-grad-brand px-5 py-3 text-sm font-semibold text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
                 >
                   {readyAuthenticated ? '开始制作简历' : '免费注册开始'}
                 </Link>
                 <Link
                   to="/survey"
-                  className="rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300 hover:text-gray-900"
+                  className="rounded-xl bg-white px-5 py-3 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-900/10 transition-colors hover:bg-gray-900/5 hover:text-gray-900"
                 >
                   提交评价 / 需求 / Bug
                 </Link>
                 {user?.admin ? (
                   <Link
                     to="/admin"
-                    className="rounded-lg border border-primary-200 bg-primary-50 px-5 py-3 text-sm font-medium text-primary-700 transition-colors hover:border-primary-300"
+                    className="rounded-xl bg-primary-50 px-5 py-3 text-sm font-semibold text-primary-700 ring-1 ring-inset ring-primary-100 transition-colors hover:bg-primary-100"
                   >
                     进入管理后台
                   </Link>
@@ -73,19 +73,19 @@ export default function HomePage() {
             </div>
 
             <div className="mt-12 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-5">
+              <div className="rounded-2xl bg-white px-5 py-5 shadow-card ring-1 ring-gray-900/10">
                 <div className="text-sm text-gray-500">当前会员价</div>
                 <div className="mt-2 text-3xl font-semibold text-gray-900">
                   {homeData ? formatCents(homeData.membershipPriceCents) : '加载中'}
                 </div>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-5">
+              <div className="rounded-2xl bg-white px-5 py-5 shadow-card ring-1 ring-gray-900/10">
                 <div className="text-sm text-gray-500">问卷默认优惠</div>
                 <div className="mt-2 text-3xl font-semibold text-gray-900">
                   {homeData ? formatCents(homeData.questionnaireCouponAmountCents) : '加载中'}
                 </div>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-5">
+              <div className="rounded-2xl bg-white px-5 py-5 shadow-card ring-1 ring-gray-900/10">
                 <div className="text-sm text-gray-500">导出权限</div>
                 <div className="mt-2 text-lg font-semibold text-gray-900">仅会员可导出 PDF</div>
               </div>
@@ -110,7 +110,7 @@ export default function HomePage() {
                 <Link
                   key={showcase.id}
                   to={`/showcases/${showcase.slug}`}
-                  className="rounded-lg border border-gray-200 bg-white px-5 py-5 transition hover:border-primary-200 hover:shadow-sm"
+                  className="rounded-2xl bg-white px-5 py-5 shadow-card ring-1 ring-gray-900/10 transition-all hover:-translate-y-0.5 hover:shadow-card-hover hover:ring-primary-200"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -139,7 +139,7 @@ export default function HomePage() {
           )}
         </section>
 
-        <section className="border-y border-gray-200 bg-white">
+        <section className="border-y border-gray-900/10 bg-white/70">
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
             <div>
               <h2 className="text-2xl font-semibold text-gray-900">高分评价</h2>
@@ -151,7 +151,7 @@ export default function HomePage() {
             ) : homeData?.testimonials.length ? (
               <div className="mt-6 grid gap-5 lg:grid-cols-3">
                 {homeData.testimonials.map((testimonial) => (
-                  <div key={testimonial.id} className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-5">
+                  <div key={testimonial.id} className="rounded-2xl bg-white px-5 py-5 shadow-card ring-1 ring-gray-900/10">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="font-medium text-gray-900">{testimonial.displayName}</div>
@@ -159,7 +159,7 @@ export default function HomePage() {
                           {testimonial.schoolOrCompany} · {testimonial.targetRole}
                         </div>
                       </div>
-                      <div className="rounded-full bg-white px-3 py-1 text-xs text-primary-700">
+                      <div className="rounded-full bg-primary-50 px-3 py-1 text-xs text-primary-700">
                         {testimonial.rating} / 5
                       </div>
                     </div>

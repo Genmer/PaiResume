@@ -102,7 +102,10 @@ export function useMembership() {
 
   if (!initialFetchDone.current && !cachedStatus) {
     initialFetchDone.current = true
-    refresh()
+    // 未登录时不请求会员状态，公开页直接用 FREE 默认值
+    if (localStorage.getItem('accessToken')) {
+      refresh().catch(() => {})
+    }
   }
 
   return {

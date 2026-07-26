@@ -177,7 +177,7 @@ export function ActivationCodesTab() {
 
       {stats && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-lg border border-gray-200 bg-white px-4 py-4">
+          <div className="rounded-2xl bg-white px-4 py-4 shadow-card ring-1 ring-gray-900/10">
             <div className="text-sm text-gray-500">总计</div>
             <div className="mt-1 text-2xl font-semibold text-gray-900">{stats.total}</div>
           </div>
@@ -189,14 +189,14 @@ export function ActivationCodesTab() {
             <div className="text-sm text-blue-600">已使用</div>
             <div className="mt-1 text-2xl font-semibold text-blue-700">{stats.used}</div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4">
+          <div className="rounded-xl bg-gray-50 px-4 py-4 ring-1 ring-inset ring-gray-900/5">
             <div className="text-sm text-gray-500">已禁用</div>
             <div className="mt-1 text-2xl font-semibold text-gray-600">{stats.disabled}</div>
           </div>
         </div>
       )}
 
-      <div className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+      <div className="rounded-2xl bg-white px-6 py-6 shadow-card ring-1 ring-gray-900/10">
         <h3 className="text-lg font-semibold text-gray-900">创建激活码</h3>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block">
@@ -250,7 +250,7 @@ export function ActivationCodesTab() {
             type="button"
             onClick={() => void handleCreate()}
             disabled={creating}
-            className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+            className="rounded-xl bg-grad-brand px-4 py-2.5 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:opacity-50"
           >
             {creating ? '创建中...' : '创建激活码'}
           </button>
@@ -282,7 +282,7 @@ export function ActivationCodesTab() {
         </label>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+      <div className="rounded-2xl bg-white px-6 py-6 shadow-card ring-1 ring-gray-900/10">
         <h3 className="text-lg font-semibold text-gray-900">激活码列表</h3>
         <div className="mt-5 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm">

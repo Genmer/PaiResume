@@ -85,7 +85,7 @@ export function JdMatchPanel({ resumeId }: Props) {
         </div>
       )}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
         <div className="mb-3 flex items-center justify-between">
           <label className="text-sm font-medium text-gray-700">JD 文本</label>
           {jdParseRemaining !== -1 && (
@@ -126,7 +126,7 @@ export function JdMatchPanel({ resumeId }: Props) {
       )}
 
       {result && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
+        <div className="rounded-2xl bg-white p-6 space-y-5 shadow-card ring-1 ring-gray-900/10">
           <div className="flex items-center gap-4">
             <MatchScoreCircle score={result.matchScore} />
             <div className="min-w-0">

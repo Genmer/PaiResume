@@ -11,7 +11,7 @@ const thumbnailThemes = [
   {
     frame: 'border-primary-100 bg-gradient-to-br from-primary-50 via-white to-sky-50',
     glow: 'bg-primary-200/60',
-    badge: 'bg-primary-600 text-white',
+    badge: 'bg-grad-brand text-white',
     accent: 'bg-primary-500',
     soft: 'bg-primary-100',
     ink: 'bg-primary-200',
@@ -66,7 +66,7 @@ export function ResumeCard({ resume, onDelete, onRename }: ResumeCardProps) {
   return (
     <div
       onClick={() => navigate(`/editor/${resume.id}`)}
-      className="bg-white rounded-xl border border-gray-200 p-5 cursor-pointer hover:border-primary-300 hover:shadow-md transition-all group"
+      className="group cursor-pointer rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10 transition-all hover:-translate-y-0.5 hover:shadow-card-hover hover:ring-primary-200"
     >
       <div className="flex items-start justify-between mb-4">
         <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">

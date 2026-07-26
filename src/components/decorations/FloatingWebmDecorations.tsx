@@ -36,7 +36,8 @@ const PAGE_REGION_PLAN: Record<string, Region[]> = {
   dashboard: ['left', 'right'],
   login: ['left', 'right', 'top', 'bottom'],
   register: ['left', 'right', 'top', 'bottom'],
-  editor: ['left', 'right', 'bottom'],
+  // 编辑器左侧是模块侧边栏，装饰图只放右侧和右下角，避免盖住侧边栏
+  editor: ['right', 'bottom'],
   fieldOptimize: ['left', 'right'],
   admin: ['left', 'right'],
   showcase: ['left', 'right', 'bottom'],
@@ -190,7 +191,7 @@ function buildPlacement(
   }
 
   const sideWidth = Math.max(bounds.leftLimit, bounds.rightLimit, 100)
-  const leftSide = random() > 0.5
+  const leftSide = pageKey === 'editor' ? false : random() > 0.5
   const x = leftSide
     ? Math.round(16 + random() * Math.max(16, sideWidth - width))
     : Math.round(viewportWidth - sideWidth + random() * Math.max(16, sideWidth - width) - 16)
@@ -354,7 +355,7 @@ export function FloatingWebmDecorations() {
         onMouseDown={onPointerDown}
         onTouchStart={onPointerDown}
         onClick={() => { if (!dragStateRef.current?.moved) toggleEnabled() }}
-        className="fixed z-[100] flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-600 shadow-md backdrop-blur-sm transition-shadow hover:shadow-lg border border-gray-200 touch-none select-none cursor-grab active:cursor-grabbing"
+        className="fixed z-[100] flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-600 shadow-card backdrop-blur-sm transition-shadow hover:shadow-card-hover ring-1 ring-gray-900/10 touch-none select-none cursor-grab active:cursor-grabbing"
         title={enabled ? '关闭小企鹅' : '开启小企鹅'}
         style={dragPos ? { left: dragPos.x, top: dragPos.y } : { top: 16, right: '25%' }}
       >

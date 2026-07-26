@@ -57,7 +57,7 @@ export function MembershipUpgradeModal({ open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-      <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-pop ring-1 ring-gray-900/10">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">限时福利，免费导出</h2>
@@ -68,7 +68,7 @@ export function MembershipUpgradeModal({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 transition-colors hover:text-gray-900"
+            className="rounded-xl bg-white px-3 py-2 text-sm text-gray-500 ring-1 ring-inset ring-gray-900/10 transition-colors hover:bg-gray-900/5 hover:text-gray-900"
           >
             关闭
           </button>
@@ -88,7 +88,7 @@ export function MembershipUpgradeModal({ open, onClose }: Props) {
                 type="button"
                 onClick={() => void fetchQuote(couponCode.trim() || undefined)}
                 disabled={loading}
-                className="rounded-lg bg-primary-600 px-4 py-2.5 text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                className="rounded-xl bg-grad-brand px-4 py-2.5 text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:opacity-50"
               >
                 {loading ? '计算中...' : '计算价格'}
               </button>
@@ -96,7 +96,7 @@ export function MembershipUpgradeModal({ open, onClose }: Props) {
             {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4">
+          <div className="rounded-xl bg-gray-50 px-4 py-4 ring-1 ring-inset ring-gray-900/5">
             <div className="space-y-3">
               {priceRows.map((row) => (
                 <div key={row.label} className="flex items-center justify-between text-sm">

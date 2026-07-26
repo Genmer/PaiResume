@@ -29,7 +29,7 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-pop ring-1 ring-gray-900/10">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
           <p className="mt-1 text-sm leading-6 text-gray-500">{description}</p>

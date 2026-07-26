@@ -183,7 +183,7 @@ export function ResumeCheckPanel({ resumeId }: ResumeCheckPanelProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col items-center gap-4 rounded-xl border border-gray-200 bg-white p-6">
+      <div className="flex flex-col items-center gap-4 rounded-2xl bg-white p-6 shadow-card ring-1 ring-gray-900/10">
         <div className="text-center">
           <h2 className="text-lg font-semibold text-gray-900">简历纠错检测</h2>
           <p className="mt-1 text-sm text-gray-500">

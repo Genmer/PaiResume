@@ -48,7 +48,7 @@ function PreviewStatusBadge({ isActive }: { isActive: boolean }) {
   }
 
   return (
-    <span className="inline-flex h-5 items-center justify-center rounded-full bg-primary-600 px-2 text-[11px] font-medium text-white">
+    <span className="inline-flex h-5 items-center justify-center rounded-full bg-grad-brand px-2 text-[11px] font-medium text-white">
       当前
     </span>
   )

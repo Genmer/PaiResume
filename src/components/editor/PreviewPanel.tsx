@@ -275,7 +275,7 @@ export function PreviewPanel({
                 </p>
               )}
             </div>
-            <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+            <div className="inline-flex rounded-full bg-white p-1 shadow-card ring-1 ring-gray-900/10">
               <button
                 type="button"
                 onClick={() => setPreviewMode('live')}
@@ -453,7 +453,7 @@ function PdfPreviewCard({
   return (
     <section
       ref={containerRef}
-      className="overflow-hidden rounded-2xl border border-gray-200 bg-slate-100/90 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.38)]"
+      className="overflow-hidden rounded-2xl bg-slate-100/90 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.38)] ring-1 ring-gray-900/10"
     >
       {preview.error || renderError ? (
         <div className="flex h-[70vh] min-h-[520px] items-center justify-center px-6 text-sm text-red-500">

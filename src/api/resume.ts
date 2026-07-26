@@ -1,5 +1,5 @@
 import client, { type ApiEnvelope } from './client'
-import type { AnalysisResult } from '../types'
+import type { AnalysisResult, ParsedResumeDTO } from '../types'
 import { getDefaultResumeExportFileName } from '../utils/exportFileName'
 
 export interface ResumeListItem {
@@ -147,6 +147,15 @@ export interface ResumeShareStatus {
   enabled: boolean
   shareToken?: string
   viewCount: number
+}
+
+export interface ResumeSourceFileMeta {
+  exists: boolean
+  fileName?: string
+  fileType?: 'pdf' | 'word'
+  uploadedAt?: string
+  lastParsedAt?: string
+  modifiedAfterParse: boolean
 }
 
 export interface JdMatchResult {
@@ -678,6 +687,36 @@ export const resumeApi = {
 
   getShareStatus: (resumeId: number) =>
     client.get<ApiEnvelope<ResumeShareStatus>>(`/resumes/${resumeId}/share`),
+
+  uploadSourceFile: (resumeId: number, file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return client.post<ApiEnvelope<ResumeSourceFileMeta>>(`/resumes/${resumeId}/source-file`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    })
+  },
+
+  getSourceFileMeta: (resumeId: number) =>
+    client.get<ApiEnvelope<ResumeSourceFileMeta>>(`/resumes/${resumeId}/source-file`),
+
+  downloadSourceFile: (resumeId: number) =>
+    client.get<Blob>(`/resumes/${resumeId}/source-file/download`, { responseType: 'blob', timeout: 60000 }),
+
+  parseSourceFile: (resumeId: number) =>
+    withAiLogging(
+      'source-file-reparse',
+      {
+        resumeId,
+        url: `/resumes/${resumeId}/source-file/parse`,
+      },
+      () => client.post<ApiEnvelope<ParsedResumeDTO>>(`/resumes/${resumeId}/source-file/parse`, {}, {
+        timeout: 300000,
+      })
+    ),
+
+  markSourceFileParsed: (resumeId: number) =>
+    client.post<ApiEnvelope<ResumeSourceFileMeta>>(`/resumes/${resumeId}/source-file/mark-parsed`),
 
   enableShare: (resumeId: number) =>
     client.post<ApiEnvelope<ResumeShareStatus>>(`/resumes/${resumeId}/share/enable`),

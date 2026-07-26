@@ -44,7 +44,7 @@ export function InterviewHistory({ onBack, onViewDetail }: Props) {
             <button
               key={item.id}
               onClick={() => onViewDetail(item.id)}
-              className="w-full rounded-lg border border-gray-200 bg-white p-4 text-left hover:border-gray-300 transition-colors"
+              className="w-full rounded-2xl bg-white p-4 text-left shadow-card ring-1 ring-gray-900/10 transition-all hover:-translate-y-0.5 hover:shadow-card-hover hover:ring-primary-200"
             >
               <div className="flex items-center justify-between">
                 <div>

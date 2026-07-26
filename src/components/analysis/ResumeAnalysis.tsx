@@ -132,7 +132,7 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-5">
+      <div className="space-y-4 rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
         <AutoResizeTextarea
           minRows={10}
           value={promptDraft}
@@ -193,7 +193,7 @@ export function ResumeAnalysis({ resumeId }: ResumeAnalysisProps) {
               <button
                 type="button"
                 onClick={() => setShowReasoning((current) => !current)}
-                className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-primary-200 hover:text-primary-700"
+                className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-900/10 transition hover:text-primary-700 hover:ring-primary-200"
               >
                 {showReasoning ? '收起过程' : '显示过程'}
               </button>

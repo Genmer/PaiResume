@@ -161,7 +161,7 @@ public class ResumeParserServiceImpl implements ResumeParserService {
                    "educations": [{"school": "学校", "degree": "学历", "major": "专业", "startDate": "YYYY-MM", "endDate": "YYYY-MM"}],
                    "experiences": [{"company": "公司", "position": "职位", "startDate": "YYYY-MM", "endDate": "YYYY-MM", "description": "完整描述", "achievements": ["职责1", "职责2"]}],
                    "projects": [{"projectName": "项目名", "role": "角色", "techStack": ["技术栈1", "技术栈2"], "description": "完整描述", "achievements": ["成果1", "成果2"]}],
-                   "skills": ["技能1", "技能2"]
+                   "skills": ["技能描述（绝对不要拆分成单个词汇！按原文的行/块完整保留一整段描述，如：'编程语言：深入理解并熟练使用 Java，熟悉 Golang'）"]
                  }
                 
                 简历文本：

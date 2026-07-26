@@ -40,7 +40,7 @@ export default function SharePage() {
   ), [detail])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-2">
@@ -49,7 +49,7 @@ export default function SharePage() {
           </Link>
           <Link
             to="/register"
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+            className="rounded-xl bg-grad-brand px-4 py-2 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
           >
             我也要做简历
           </Link>

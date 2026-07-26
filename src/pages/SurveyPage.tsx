@@ -43,11 +43,11 @@ export default function SurveyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header />
 
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-lg border border-gray-200 bg-white px-6 py-8">
+        <div className="rounded-2xl bg-white px-6 py-8 shadow-card ring-1 ring-gray-900/10">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">提交评价 / 新需求 / Bug 反馈</h1>
             <p className="mt-2 text-sm leading-6 text-gray-500">
@@ -151,7 +151,7 @@ export default function SurveyPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-lg bg-primary-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+              className="rounded-xl bg-grad-brand px-5 py-3 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:opacity-50"
             >
               {submitting ? '提交中...' : '提交问卷'}
             </button>

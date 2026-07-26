@@ -141,7 +141,7 @@ export function BasicInfoForm({ resumeId, moduleId, initialContent }: Props) {
                     <button
                       type="button"
                       onClick={clearPhoto}
-                      className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-500 transition hover:border-red-200 hover:text-red-600"
+                      className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-900/10 transition hover:text-red-600 hover:ring-red-200"
                     >
                       移除
                     </button>

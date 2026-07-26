@@ -88,7 +88,8 @@ function shouldRefreshToken(error: unknown) {
   }
 
   if (status === 401 || payload?.code === 401) {
-    return true
+    // 未登录访客（本地无 refreshToken）不尝试刷新，避免公开页被强制跳登录
+    return Boolean(localStorage.getItem('refreshToken'))
   }
 
   return status === 403 && Boolean(localStorage.getItem('refreshToken'))

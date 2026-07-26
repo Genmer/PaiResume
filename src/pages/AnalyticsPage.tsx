@@ -49,7 +49,7 @@ const TOOLTIP_STYLE: React.CSSProperties = {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-gray-900/10">
       <h3 className="mb-3 text-sm font-semibold text-gray-700">{title}</h3>
       {children}
     </div>
@@ -58,7 +58,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
-    <div className="rounded border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-gray-900/10">
       <p className="text-xs text-gray-500">{label}</p>
       <p className="mt-1 text-2xl font-bold" style={{ color: accent ?? '#111827' }}>{value}</p>
     </div>
@@ -72,9 +72,9 @@ function PeriodToggle({ value, onChange }: { value: number; onChange: (d: number
         <button
           key={d}
           onClick={() => onChange(d)}
-          className={`rounded px-2 py-0.5 text-xs transition-colors ${
+          className={`rounded-full px-2 py-0.5 text-xs transition-colors ${
             value === d
-              ? 'bg-primary-600 text-white'
+              ? 'bg-grad-brand text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
@@ -198,7 +198,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header />
         <div className="mx-auto max-w-7xl px-4 py-16 text-center text-gray-400">加载中…</div>
       </div>
@@ -207,13 +207,13 @@ export default function AnalyticsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header />
         <div className="mx-auto max-w-7xl px-4 py-16 text-center">
           <p className="text-red-500">{error}</p>
           <button
             onClick={() => void fetchAll()}
-            className="mt-4 rounded bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700"
+            className="mt-4 rounded-xl bg-grad-brand px-4 py-2 text-sm text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
           >
             重试
           </button>
@@ -223,7 +223,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-6">
         <h1 className="mb-6 text-xl font-bold text-gray-900">订阅数据分析</h1>

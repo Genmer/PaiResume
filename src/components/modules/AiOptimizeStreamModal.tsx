@@ -112,7 +112,7 @@ export function AiOptimizeStreamModal({
                         <button
                           type="button"
                           onClick={() => onAdoptCandidate?.(candidate)}
-                          className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-primary-700"
+                          className="rounded-xl bg-grad-brand px-3 py-1.5 text-xs font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
                         >
                           采纳这个版本
                         </button>

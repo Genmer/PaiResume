@@ -74,7 +74,7 @@ export function CoverLetterPanel({ resumeId }: Props) {
         </p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+      <div className="rounded-2xl bg-white p-5 space-y-4 shadow-card ring-1 ring-gray-900/10">
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">生成类型</label>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -163,7 +163,7 @@ export function CoverLetterPanel({ resumeId }: Props) {
       )}
 
       {result && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-gray-900/10">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-900">
               {result.type === 'cover_letter' ? '✉️ 求职信' : '🎤 自我介绍'}

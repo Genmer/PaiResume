@@ -158,7 +158,7 @@ export function InterviewChat({ sessionId, maxRounds, readOnly = false, onEnd, o
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-lg border border-gray-200 bg-white p-4">
+      <div className="flex-1 overflow-y-auto rounded-2xl bg-white p-4 shadow-card ring-1 ring-gray-900/10">
         {loading && (
           <div className="flex h-full items-center justify-center text-gray-400 text-sm">
             <span className="animate-pulse">面试官正在准备中...</span>
@@ -169,7 +169,7 @@ export function InterviewChat({ sessionId, maxRounds, readOnly = false, onEnd, o
             <div
               className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === 'user'
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-grad-brand text-white'
                   : 'bg-gray-100 text-gray-800'
               }`}
             >
@@ -202,7 +202,7 @@ export function InterviewChat({ sessionId, maxRounds, readOnly = false, onEnd, o
           <button
             onClick={handleSend}
             disabled={sending || !input.trim() || loading}
-            className="rounded-lg bg-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50 self-end"
+            className="rounded-xl bg-grad-brand px-5 py-2 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 self-end"
           >
             {sending ? '回复中...' : '发送'}
           </button>

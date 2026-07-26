@@ -699,7 +699,7 @@ export default function FieldOptimizePage() {
           <button
             type="button"
             onClick={handleBack}
-            className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-white/90 px-4 py-2 text-sm text-slate-600 shadow-sm transition hover:border-primary-200 hover:text-primary-700"
+            className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm text-slate-600 shadow-card ring-1 ring-inset ring-primary-100 transition hover:text-primary-700 hover:ring-primary-200"
           >
             <span aria-hidden="true">←</span>
             {backLabel}
@@ -713,13 +713,13 @@ export default function FieldOptimizePage() {
         )}
 
         {!fieldContext && !loading ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm">
+          <div className="rounded-2xl bg-white p-8 text-sm text-slate-500 shadow-card ring-1 ring-gray-900/10">
             当前优化参数无效，无法定位到对应字段。
           </div>
         ) : (
           <div className="space-y-6">
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.25fr]">
-              <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section className="min-w-0 rounded-2xl bg-white p-6 shadow-card ring-1 ring-gray-900/10">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-medium text-slate-800">系统提示词</div>
@@ -760,7 +760,7 @@ export default function FieldOptimizePage() {
                 </div>
               </section>
 
-              <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <section className="min-w-0 rounded-2xl bg-white p-6 shadow-card ring-1 ring-gray-900/10">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-medium text-slate-800">用户提示词</div>
@@ -804,7 +804,7 @@ export default function FieldOptimizePage() {
 
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.25fr]">
               <div className="min-w-0 space-y-6">
-                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <section className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-gray-900/10">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-medium text-slate-800">AI 生成过程</div>
@@ -813,7 +813,7 @@ export default function FieldOptimizePage() {
                       type="button"
                       onClick={() => void handleStartOptimize()}
                       disabled={isStreaming || !fieldContext || !promptDraft.trim()}
-                      className="rounded-xl bg-primary-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-xl bg-grad-brand px-4 py-2 text-xs font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {state.status === 'idle' ? '开始优化' : '重新生成'}
                     </button>
@@ -839,7 +839,7 @@ export default function FieldOptimizePage() {
               </div>
 
               <div className="min-w-0 space-y-6">
-                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <section className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-gray-900/10">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="text-sm font-medium text-slate-800">优化前</div>
                     <div className="text-xs text-slate-500">
@@ -852,7 +852,7 @@ export default function FieldOptimizePage() {
                 </section>
 
                 {fieldContext?.multiCandidate ? (
-                  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <section className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-gray-900/10">
                     <div className="mb-3 text-sm font-medium text-slate-800">优化后候选</div>
                     <div className="space-y-4">
                       {state.candidates && state.candidates.length > 0 ? state.candidates.map((candidate, candidateIndex) => (
@@ -868,7 +868,7 @@ export default function FieldOptimizePage() {
                               type="button"
                               onClick={() => void handleAdopt((candidateDrafts[candidateIndex] || candidate).trim())}
                               disabled={saving}
-                              className="rounded-xl bg-primary-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-xl bg-grad-brand px-4 py-2 text-xs font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {saving ? '回填中...' : '采纳这个版本'}
                             </button>
@@ -888,7 +888,7 @@ export default function FieldOptimizePage() {
                     </div>
                   </section>
                 ) : (
-                  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <section className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-gray-900/10">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="text-sm font-medium text-slate-800">优化后</div>
@@ -900,7 +900,7 @@ export default function FieldOptimizePage() {
                         type="button"
                         onClick={() => optimizedDraft.trim() && void handleAdopt(optimizedDraft.trim())}
                         disabled={!optimizedDraft.trim() || saving}
-                        className="rounded-xl bg-primary-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl bg-grad-brand px-4 py-2 text-xs font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {saving ? '回填中...' : '采纳优化'}
                       </button>

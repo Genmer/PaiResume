@@ -65,7 +65,7 @@ function GrantTierForm({ userId, onGrant }: GrantTierFormProps) {
       </select>
       <button
         type="submit"
-        className="rounded bg-primary-600 px-2 py-0.5 text-xs text-white transition-colors hover:bg-primary-700"
+        className="rounded-full bg-grad-brand px-2.5 py-0.5 text-xs text-white transition-all hover:brightness-110"
       >
         授权
       </button>
@@ -297,7 +297,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header />
 
       <main className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
@@ -306,8 +306,8 @@ export default function AdminPage() {
           <p className="mt-2 text-sm text-gray-500">统一管理会员价格、问卷审核、优惠码、官方样例和用户会员。</p>
         </div>
 
-        {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-        {success ? <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{success}</div> : null}
+        {error ? <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">{error}</div> : null}
+        {success ? <div className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700 ring-1 ring-inset ring-green-200">{success}</div> : null}
 
         <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
           {TAB_LABELS.map(({ key, label }) => (
@@ -331,7 +331,7 @@ export default function AdminPage() {
           <>
             {activeTab === 'config' && (
             <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-              <div className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+              <div className="rounded-2xl bg-white px-6 py-6 shadow-card ring-1 ring-gray-900/10">
                 <h2 className="text-lg font-semibold text-gray-900">平台配置</h2>
                 <div className="mt-5 space-y-4">
                   <label className="block">
@@ -352,14 +352,14 @@ export default function AdminPage() {
                       className="w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
                     />
                   </label>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4 text-sm text-gray-600">
+                  <div className="rounded-xl bg-gray-50 px-4 py-4 text-sm text-gray-600 ring-1 ring-inset ring-gray-900/5">
                     当前会员价 {formatCents(platformConfig.membershipPriceCents)}，问卷默认优惠 {formatCents(platformConfig.questionnaireCouponAmountCents)}
                   </div>
                   <button
                     type="button"
                     onClick={() => void handleSaveConfig()}
                     disabled={savingConfig}
-                    className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                    className="rounded-xl bg-grad-brand px-4 py-2.5 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:opacity-50"
                   >
                     {savingConfig ? '保存中...' : '保存配置'}
                   </button>
@@ -369,7 +369,7 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'showcases' && (
-            <section className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+            <section className="rounded-2xl bg-white px-6 py-6 shadow-card ring-1 ring-gray-900/10">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">官方样例管理</h2>
@@ -455,14 +455,14 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => void handleSubmitShowcase()}
                     disabled={submittingShowcase}
-                    className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                    className="rounded-xl bg-grad-brand px-4 py-2.5 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:opacity-50"
                   >
                     {submittingShowcase ? '保存中...' : showcaseForm.id ? '更新样例' : '创建样例'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowcaseForm(EMPTY_SHOWCASE_FORM)}
-                    className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-900"
+                    className="rounded-xl bg-white px-4 py-2.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-900/10 transition-colors hover:bg-gray-900/5 hover:text-gray-900"
                   >
                     清空表单
                   </button>
@@ -504,11 +504,11 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'feedback' && (
-            <section className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+            <section className="rounded-2xl bg-white px-6 py-6 shadow-card ring-1 ring-gray-900/10">
               <h2 className="text-lg font-semibold text-gray-900">问卷审核</h2>
               <div className="mt-5 space-y-4">
                 {feedbacks.map((feedback) => (
-                  <article key={feedback.id} className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-5">
+                  <article key={feedback.id} className="rounded-xl bg-gray-50 px-5 py-5 ring-1 ring-inset ring-gray-900/5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <div className="font-medium text-gray-900">
@@ -539,7 +539,7 @@ export default function AdminPage() {
                       <button
                         type="button"
                         onClick={() => void handleApprove(feedback)}
-                        className="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-700"
+                        className="rounded-xl bg-grad-brand px-4 py-2 text-sm text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
                       >
                         通过并发码
                       </button>
@@ -554,7 +554,7 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => void handlePublish(feedback, 'unpublish')}
-                          className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:border-gray-300"
+                          className="rounded-xl bg-white px-4 py-2 text-sm text-gray-700 ring-1 ring-inset ring-gray-900/10 transition-colors hover:bg-gray-900/5"
                         >
                           下线评价
                         </button>
@@ -562,7 +562,7 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => void handlePublish(feedback, 'publish')}
-                          className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:border-gray-300"
+                          className="rounded-xl bg-white px-4 py-2 text-sm text-gray-700 ring-1 ring-inset ring-gray-900/10 transition-colors hover:bg-gray-900/5"
                         >
                           发布评价
                         </button>
@@ -571,7 +571,7 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => void handleResendCoupon(feedback)}
-                          className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:border-gray-300"
+                          className="rounded-xl bg-white px-4 py-2 text-sm text-gray-700 ring-1 ring-inset ring-gray-900/10 transition-colors hover:bg-gray-900/5"
                         >
                           重发优惠码
                         </button>
@@ -584,7 +584,7 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'coupons' && (
-            <section className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+            <section className="rounded-2xl bg-white px-6 py-6 shadow-card ring-1 ring-gray-900/10">
               <h2 className="text-lg font-semibold text-gray-900">优惠码列表</h2>
                 <div className="mt-5 overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -612,7 +612,7 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'users' && (
-            <section className="rounded-lg border border-gray-200 bg-white px-6 py-6">
+            <section className="rounded-2xl bg-white px-6 py-6 shadow-card ring-1 ring-gray-900/10">
               <h2 className="text-lg font-semibold text-gray-900">用户会员管理</h2>
                 <div className="mt-5 overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200 text-sm">

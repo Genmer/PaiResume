@@ -122,7 +122,7 @@ export function AtsCheckPanel({ resumeId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
         <h2 className="text-lg font-semibold text-gray-900">ATS 简历检测</h2>
         <p className="mt-1 text-sm text-gray-500">
           检测简历在招聘系统中的关键指标，帮助提高通过率
@@ -136,7 +136,7 @@ export function AtsCheckPanel({ resumeId }: Props) {
       )}
 
       {checking && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
           <div className="py-8 text-center">
             <div className="mx-auto mb-4 inline-block h-8 w-8 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
             <p className="text-sm text-gray-500">AI 正在逐项审核简历内容...</p>
@@ -146,7 +146,7 @@ export function AtsCheckPanel({ resumeId }: Props) {
       )}
 
       {!result && !checking && !error && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
           <div className="py-8 text-center">
             <svg
               className="mx-auto mb-3 h-12 w-12 text-gray-300"
@@ -173,7 +173,7 @@ export function AtsCheckPanel({ resumeId }: Props) {
 
       {result && !checking && (
         <>
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
             <div className="flex flex-col items-center">
               <div className="relative inline-flex items-center justify-center">
                 <svg className="h-36 w-36 -rotate-90" viewBox="0 0 120 120">
@@ -216,7 +216,7 @@ export function AtsCheckPanel({ resumeId }: Props) {
           </div>
 
           {categoryMap.size > 0 && (
-            <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
               <h3 className="mb-4 text-sm font-semibold text-gray-700">分类得分</h3>
               <div className="space-y-3">
                 {Array.from(categoryMap.entries()).map(([category, categoryIssues]) => {

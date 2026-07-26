@@ -122,7 +122,7 @@ export function JdParsePanel({ resumeId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
         <div className="mb-3 flex items-center justify-between">
           <label className="text-sm font-medium text-gray-700">
             JD 文本
@@ -165,7 +165,7 @@ export function JdParsePanel({ resumeId }: Props) {
       )}
 
       {result && (
-        <div className="rounded-xl border border-gray-200 bg-white">
+        <div className="rounded-2xl bg-white shadow-card ring-1 ring-gray-900/10">
           <div className="border-b border-gray-100 px-5 pt-4">
             <div className="mb-1 flex items-center gap-2">
               {result.jobTitle && (

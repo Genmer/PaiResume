@@ -37,7 +37,7 @@ export function InterviewReport({ result, onRetry, onBack, onViewChat }: Props) 
         <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700">← 返回模拟面试</button>
       </div>
 
-      <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 text-center">
+      <div className="mb-8 rounded-2xl bg-white p-6 text-center shadow-card ring-1 ring-gray-900/10">
         <p className="text-sm text-gray-500 mb-2">综合评分</p>
         <p className={`text-6xl font-bold ${scoreColor(result.totalScore)}`}>
           {result.totalScore.toFixed(1)}
@@ -51,7 +51,7 @@ export function InterviewReport({ result, onRetry, onBack, onViewChat }: Props) 
           { label: '表达清晰度', score: result.scoreExpression },
           { label: '项目理解', score: result.scoreProject },
         ].map((item) => (
-          <div key={item.label} className="rounded-lg border border-gray-200 bg-white p-4">
+          <div key={item.label} className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-gray-900/10">
             <p className="text-sm text-gray-500 mb-2">{item.label}</p>
             <p className={`text-2xl font-bold ${scoreColor(item.score)}`}>{item.score.toFixed(1)}</p>
             <div className="mt-2 h-1.5 rounded-full bg-gray-100">
@@ -65,14 +65,14 @@ export function InterviewReport({ result, onRetry, onBack, onViewChat }: Props) 
       </div>
 
       {result.summary && (
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
+        <div className="mb-6 rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
           <h3 className="font-semibold text-gray-800 mb-2">评价摘要</h3>
           <p className="text-sm text-gray-600 leading-relaxed">{result.summary}</p>
         </div>
       )}
 
       {result.suggestions && result.suggestions.length > 0 && (
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
+        <div className="mb-6 rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
           <h3 className="font-semibold text-gray-800 mb-3">改进建议</h3>
           <ul className="space-y-2">
             {result.suggestions.map((s, i) => (
@@ -92,7 +92,7 @@ export function InterviewReport({ result, onRetry, onBack, onViewChat }: Props) 
           <h3 className="mb-4 font-semibold text-gray-800">参考答案</h3>
           <div className="space-y-4">
             {result.referenceAnswers.map((ra, i) => (
-              <div key={i} className="rounded-lg border border-gray-200 bg-white p-5">
+              <div key={i} className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
                 <div className="mb-3">
                   <span className="inline-block rounded bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
                     Q{i + 1}
@@ -124,7 +124,7 @@ export function InterviewReport({ result, onRetry, onBack, onViewChat }: Props) 
       <div className="flex gap-3">
         <button
           onClick={onRetry}
-          className="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700"
+          className="flex-1 rounded-xl bg-grad-brand px-4 py-2.5 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
         >
           再试一次
         </button>

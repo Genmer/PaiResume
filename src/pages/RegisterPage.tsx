@@ -72,7 +72,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <LogoMark className="mx-auto mb-4 h-14 w-14" />
@@ -80,7 +80,7 @@ export default function RegisterPage() {
           <p className="text-gray-500 mt-1">创建新账号</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card ring-1 ring-gray-900/10 p-6 space-y-5">
           {error && (
             <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
               {error}
@@ -148,7 +148,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-2.5 bg-grad-brand text-white rounded-xl font-semibold shadow-brand hover:brightness-110 hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {loading ? '注册中...' : '注册'}
           </button>

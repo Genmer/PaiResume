@@ -50,14 +50,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-center gap-3">
           <LogoMark className="h-12 w-12 shrink-0" />
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">咕咕嘎嘎简历</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card ring-1 ring-gray-900/10 p-6 space-y-5">
           {error && (
             <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
               {error}
@@ -107,7 +107,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-2.5 bg-grad-brand text-white rounded-xl font-semibold shadow-brand hover:brightness-110 hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {loading ? '登录中...' : '登录'}
           </button>

@@ -36,7 +36,7 @@ export default function ShowcasePage() {
   ), [detail])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header />
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -53,7 +53,7 @@ export default function ShowcasePage() {
         ) : detail && resume ? (
           <div className="mt-8 grid gap-8 lg:grid-cols-[340px_minmax(0,1fr)]">
             <aside className="space-y-5">
-              <div className="rounded-lg border border-gray-200 bg-white px-5 py-5">
+              <div className="rounded-2xl bg-white px-5 py-5 shadow-card ring-1 ring-gray-900/10">
                 <div className="text-sm text-primary-700">{detail.scoreLabel}</div>
                 <h1 className="mt-2 text-2xl font-semibold text-gray-900">{detail.title}</h1>
                 <p className="mt-4 text-sm leading-6 text-gray-600">{detail.summary}</p>
@@ -66,7 +66,7 @@ export default function ShowcasePage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-200 bg-white px-5 py-5 text-sm leading-6 text-gray-600">
+              <div className="rounded-2xl bg-white px-5 py-5 text-sm leading-6 text-gray-600 shadow-card ring-1 ring-gray-900/10">
                 <p>这个页面只展示管理员发布的官方高分样例，不会公开普通用户简历。</p>
                 <p className="mt-3">如果你也想把自己的简历整理到这种完成度，可以先免费注册，写完后再开通会员导出。</p>
               </div>

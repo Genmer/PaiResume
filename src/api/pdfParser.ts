@@ -10,7 +10,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
  * 注意：此接口使用 multipart/form-data 上传文件，
  * 需要独立的 axios 实例（不经过默认的 JSON 请求拦截器）
  */
-export async function parseResumePdf(file: File): Promise<ParsedResumeDTO> {
+export async function parseResumePdf(
+  file: File,
+  onUploadProgress?: (percent: number) => void
+): Promise<ParsedResumeDTO> {
   const formData = new FormData()
   formData.append('file', file)
 
@@ -29,7 +32,13 @@ export async function parseResumePdf(file: File): Promise<ParsedResumeDTO> {
     uploadClient.defaults.headers.common['Authorization'] = `Bearer ${token}`
   }
 
-  const response = await uploadClient.post<ApiEnvelope<ParsedResumeDTO>>('/resume/parse', formData)
+  const response = await uploadClient.post<ApiEnvelope<ParsedResumeDTO>>('/resume/parse', formData, {
+    onUploadProgress: (event) => {
+      if (onUploadProgress && event.total) {
+        onUploadProgress(Math.round((event.loaded / event.total) * 100))
+      }
+    },
+  })
 
   if (response.data.code !== 200) {
     throw new Error(response.data.message || 'PDF 解析失败')

@@ -9,6 +9,7 @@ import { JdParsePanel } from '../components/jd/JdParsePanel'
 import { JdMatchPanel } from '../components/jd/JdMatchPanel'
 import { CoverLetterPanel } from '../components/tools/CoverLetterPanel'
 import { SharePanel } from '../components/tools/SharePanel'
+import { ReparsePanel } from '../components/tools/ReparsePanel'
 import { ErrorCheckPanel } from '../components/editor/ErrorCheckPanel'
 import { AtsCheckPanel } from '../components/editor/AtsCheckPanel'
 import { AiOptimizePanel } from '../components/analysis/AiOptimizePanel'
@@ -39,7 +40,7 @@ import {
   type ResumePdfPreviewConfig,
 } from '../utils/resumePdf'
 
-type EditorView = 'module' | 'analysis' | 'template-selection' | 'jd-parse' | 'jd-match' | 'cover-letter' | 'share' | 'error-check' | 'ats-check'
+type EditorView = 'module' | 'analysis' | 'template-selection' | 'jd-parse' | 'jd-match' | 'cover-letter' | 'share' | 'reparse' | 'error-check' | 'ats-check'
 const AI_OPTIMIZABLE_MODULE_TYPES = new Set<ModuleType>(['research', 'skill'])
 const NON_REMOVABLE_MODULE_TYPES = new Set<ModuleType>(['basic_info'])
 const PREVIEW_PANEL_COLLAPSED_STORAGE_KEY = 'pai-resume.preview-panel-collapsed'
@@ -83,6 +84,8 @@ export default function EditorPage() {
             ? 'cover-letter'
             : requestedViewParam === 'share'
               ? 'share'
+            : requestedViewParam === 'reparse'
+              ? 'reparse'
             : requestedViewParam === 'error-check'
               ? 'error-check'
               : requestedViewParam === 'ats-check'
@@ -222,6 +225,8 @@ export default function EditorPage() {
               ? 'cover-letter'
               : currentQueryViewParam === 'share'
                 ? 'share'
+              : currentQueryViewParam === 'reparse'
+                ? 'reparse'
               : currentQueryViewParam === 'error-check'
                 ? 'error-check'
                 : currentQueryViewParam === 'ats-check'
@@ -250,6 +255,8 @@ export default function EditorPage() {
               ? 'cover-letter'
               : currentQueryViewParam === 'share'
                 ? 'share'
+              : currentQueryViewParam === 'reparse'
+                ? 'reparse'
               : currentQueryViewParam === 'error-check'
                 ? 'error-check'
                 : currentQueryViewParam === 'ats-check'
@@ -331,6 +338,12 @@ export default function EditorPage() {
     setAiModuleId(null)
     setEditorView('share')
     updateEditorLocation('share')
+  }, [updateEditorLocation])
+
+  const openReparseView = useCallback(() => {
+    setAiModuleId(null)
+    setEditorView('reparse')
+    updateEditorLocation('reparse')
   }, [updateEditorLocation])
 
   const openErrorCheckView = useCallback(() => {
@@ -468,7 +481,7 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col">
       <Header
       />
 
@@ -479,7 +492,7 @@ export default function EditorPage() {
           aria-label={previewCollapsed ? '展开预览面板' : '收起预览面板'}
           title={previewCollapsed ? '展开预览面板' : '收起预览面板'}
           style={{ right: previewToggleRight }}
-          className="fixed top-1/2 z-30 flex h-24 w-8 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-500 shadow-[0_18px_38px_-18px_rgba(15,23,42,0.32)] backdrop-blur transition hover:border-primary-200 hover:text-primary-700"
+          className="fixed top-1/2 z-30 flex h-24 w-8 -translate-y-1/2 flex-col items-center justify-center rounded-full bg-white/95 text-gray-500 shadow-[0_18px_38px_-18px_rgba(15,23,42,0.32)] ring-1 ring-gray-900/10 backdrop-blur transition hover:text-primary-700 hover:ring-primary-200"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {previewCollapsed ? (
@@ -533,6 +546,8 @@ export default function EditorPage() {
           onSelectCoverLetter={openCoverLetterView}
                     shareActive={editorView === 'share'}
                     onSelectShare={openShareView}
+                    reparseActive={editorView === 'reparse'}
+                    onSelectReparse={openReparseView}
           errorCheckActive={editorView === 'error-check'}
           onSelectErrorCheck={openErrorCheckView}
           atsCheckActive={editorView === 'ats-check'}
@@ -567,6 +582,8 @@ export default function EditorPage() {
             <CoverLetterPanel resumeId={resumeId} />
           ) : editorView === 'share' ? (
             <SharePanel resumeId={resumeId} />
+          ) : editorView === 'reparse' ? (
+            <ReparsePanel resumeId={resumeId} />
           ) : editorView === 'error-check' ? (
             <ErrorCheckPanel resumeId={resumeId} />
           ) : editorView === 'ats-check' ? (
@@ -593,7 +610,7 @@ export default function EditorPage() {
               {activeModules.length > 0 ? (
                 <div className="space-y-4">
                   {activeModules.map((mod, index) => (
-                    <div key={mod.id} className="bg-white rounded-xl border border-gray-200 p-5">
+                    <div key={mod.id} className="bg-white rounded-2xl shadow-card ring-1 ring-gray-900/10 p-5">
                       {activeModules.length > 1 && (
                         <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
                           <span className="text-sm font-medium text-gray-500">

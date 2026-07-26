@@ -30,25 +30,25 @@ function DashIcon({ className }: { className?: string }) {
 
 const tierStyles: Record<MembershipTier, { card: string; badge?: string; badgeBg?: string; badgeText?: string; button: string }> = {
   FREE: {
-    card: 'bg-white border-gray-200',
-    button: 'border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400',
+    card: 'bg-white ring-1 ring-gray-900/10',
+    button: 'bg-white text-gray-700 ring-1 ring-inset ring-gray-900/10 hover:bg-gray-900/5',
   },
   LITE: {
-    card: 'bg-white border-amber-200',
+    card: 'bg-white ring-1 ring-amber-200',
     badge: '限时免费',
     badgeBg: 'bg-gradient-to-r from-amber-500 to-orange-500',
     badgeText: 'text-white',
-    button: 'border border-amber-400 text-amber-700 hover:bg-amber-50',
+    button: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200 hover:bg-amber-100',
   },
   PRO: {
-    card: 'bg-white border-primary-500 ring-2 ring-primary-100 shadow-lg shadow-primary-500/10',
+    card: 'bg-white ring-2 ring-primary-200 shadow-card-hover',
     badge: '最受欢迎',
-    badgeBg: 'bg-gradient-to-r from-primary-500 to-blue-600',
+    badgeBg: 'bg-grad-brand',
     badgeText: 'text-white',
-    button: 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm shadow-primary-600/20',
+    button: 'bg-grad-brand text-white shadow-brand hover:brightness-110 hover:-translate-y-px',
   },
   MAX: {
-    card: 'bg-gradient-to-b from-gray-900 to-gray-800 border-gray-700',
+    card: 'bg-gradient-to-b from-gray-900 to-gray-800 ring-1 ring-gray-700',
     button: 'bg-white text-gray-900 hover:bg-gray-100 shadow-sm',
   },
 }
@@ -188,7 +188,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header />
 
       <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-white to-gray-50 pt-16 pb-12 sm:pt-20 sm:pb-16">
@@ -219,16 +219,16 @@ export default function PricingPage() {
             return (
               <div
                 key={plan.tier}
-                className={`relative flex flex-col border rounded-md p-6 transition-shadow hover:shadow-md ${styles.card} ${isCurrentPlan ? 'ring-2 ring-green-500 border-green-500' : ''}`}
+                className={`relative flex flex-col rounded-2xl p-6 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover ${styles.card} ${isCurrentPlan ? 'ring-2 ring-green-500' : ''}`}
               >
                 {isCurrentPlan && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 text-xs font-semibold tracking-wide bg-green-500 text-white rounded-sm shadow-sm">
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 text-xs font-semibold tracking-wide bg-green-500 text-white rounded-full shadow-sm">
                     当前方案
                   </span>
                 )}
                 {!isCurrentPlan && plan.badge && styles.badgeBg && isActivityTier && (
                   <span
-                    className={`absolute -top-2.5 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 text-xs font-semibold tracking-wide ${styles.badgeBg} ${styles.badgeText} rounded-sm shadow-sm`}
+                    className={`absolute -top-2.5 left-1/2 -translate-x-1/2 inline-flex items-center px-3 py-0.5 text-xs font-semibold tracking-wide ${styles.badgeBg} ${styles.badgeText} rounded-full shadow-sm`}
                   >
                     {plan.badge}
                   </span>
@@ -264,7 +264,7 @@ export default function PricingPage() {
                   )}
                 </div>
 
-                <div className={`border-t ${isMax ? 'border-gray-700' : 'border-gray-100'} mb-5`} />
+                <div className={`border-t ${isMax ? 'border-gray-700' : 'border-gray-900/10'} mb-5`} />
 
                 <ul className="space-y-3 flex-1 mb-8">
                   {plan.features.map((feature) => (
@@ -281,7 +281,7 @@ export default function PricingPage() {
                   <button
                     onClick={handleActivityRedeem}
                     disabled={activityLoading}
-                    className="w-full py-2.5 px-4 rounded-md text-sm font-semibold transition-all duration-150 bg-green-600 text-white hover:bg-green-700 shadow-sm shadow-green-600/20 disabled:opacity-60 disabled:cursor-wait"
+                    className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-150 bg-green-600 text-white hover:bg-green-700 shadow-sm shadow-green-600/20 disabled:opacity-60 disabled:cursor-wait"
                   >
                     {activityLoading ? '领取中…' : (activityInfo?.activityLabel || '立即领取')}
                   </button>
@@ -289,7 +289,7 @@ export default function PricingPage() {
                   <button
                     onClick={scrollToContact}
                     disabled={isCurrentPlan}
-                    className={`w-full py-2.5 px-4 rounded-md text-sm font-semibold transition-all duration-150 ${isCurrentPlan ? 'bg-green-100 text-green-700 cursor-default' : styles.button}`}
+                    className={`w-full py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-150 ${isCurrentPlan ? 'bg-green-100 text-green-700 cursor-default' : styles.button}`}
                   >
                     {isCurrentPlan ? '当前方案' : plan.ctaText}
                   </button>
@@ -303,7 +303,7 @@ export default function PricingPage() {
       {/* Redeem code section */}
       {!isActivityActive && (
         <section className="mx-auto max-w-xl px-4 pb-16">
-          <div className="bg-white border border-gray-200 rounded-md p-6">
+          <div className="bg-white rounded-2xl p-6 shadow-card ring-1 ring-gray-900/10">
             <h3 className="text-base font-semibold text-gray-900 mb-1">激活码兑换</h3>
             <p className="text-sm text-gray-500 mb-4">
               当前未接入支付系统，请联系管理员获取激活码
@@ -314,12 +314,12 @@ export default function PricingPage() {
                 value={redeemCode}
                 onChange={(e) => { setRedeemCode(e.target.value); setRedeemMessage(null) }}
                 placeholder="请输入激活码"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-gray-400"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-gray-400"
               />
               <button
                 onClick={handleRedeemCode}
                 disabled={redeemLoading || !redeemCode.trim()}
-                className="px-5 py-2 rounded-md text-sm font-semibold bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                className="px-5 py-2 rounded-xl text-sm font-semibold bg-grad-brand text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:opacity-50 disabled:cursor-wait"
               >
                 {redeemLoading ? '兑换中…' : '兑换'}
               </button>
@@ -345,7 +345,7 @@ export default function PricingPage() {
       )}
 
       <section className="mx-auto max-w-3xl px-4 pb-16 text-center">
-        <div className="bg-white border border-gray-200 rounded-md p-6">
+        <div className="bg-white rounded-2xl p-6 shadow-card ring-1 ring-gray-900/10">
           <div className="flex items-center justify-center gap-2 text-gray-500">
             <DashIcon className="h-4 w-4" />
             <span className="text-sm">
@@ -366,7 +366,7 @@ export default function PricingPage() {
           </p>
 
           <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-md mx-auto">
-            <div className="bg-gray-800 border border-gray-700 rounded-md p-5">
+            <div className="bg-gray-800 ring-1 ring-gray-700 rounded-2xl p-5">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <svg className="h-5 w-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584l-.001-.031m0 0a3 3 0 01-4.682-2.72 9.094 9.094 0 003.741.479M12 12a3 3 0 100-6 3 3 0 000 6z" />
@@ -375,7 +375,7 @@ export default function PricingPage() {
               </div>
               <p className="text-lg font-mono text-white">123456789</p>
             </div>
-            <div className="bg-gray-800 border border-gray-700 rounded-md p-5">
+            <div className="bg-gray-800 ring-1 ring-gray-700 rounded-2xl p-5">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <svg className="h-5 w-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />

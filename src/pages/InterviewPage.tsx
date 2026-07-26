@@ -114,7 +114,7 @@ export default function InterviewPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-4xl px-4 py-8">
         {view === 'select' && (
@@ -256,7 +256,7 @@ export default function InterviewPage() {
               <button
                 onClick={handleStart}
                 disabled={starting || mockInterviewRemaining <= 0}
-                className="w-full rounded-lg bg-primary-600 px-6 py-3 text-white font-medium transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-xl bg-grad-brand px-6 py-3 text-white font-medium shadow-brand transition-all hover:-translate-y-px hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {starting ? '正在开始...' : mockInterviewRemaining <= 0 ? '本月次数已用完' : '开始面试'}
               </button>

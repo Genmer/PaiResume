@@ -85,7 +85,7 @@ export function SharePanel({ resumeId }: Props) {
         </div>
       )}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-gray-900/10">
         {loading ? (
           <p className="text-sm text-gray-500">加载中...</p>
         ) : (
@@ -113,7 +113,7 @@ export function SharePanel({ resumeId }: Props) {
             </div>
 
             {status?.enabled && shareUrl && (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3.5">
+              <div className="rounded-xl bg-gray-50 p-3.5 ring-1 ring-inset ring-gray-900/5">
                 <p className="mb-2 text-xs font-medium text-gray-500">分享链接</p>
                 <div className="flex items-center gap-2">
                   <input

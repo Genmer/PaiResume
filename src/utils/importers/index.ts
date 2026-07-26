@@ -5,13 +5,18 @@ import { convertParsedResumeToImported } from './pdf'
 
 export type ResumeImportType = 'markdown' | 'word' | 'pdf'
 
+export interface ImportParseOptions {
+  /** 文件上传进度（0-100），仅走后端接口的导入类型支持 */
+  onUploadProgress?: (percent: number) => void
+}
+
 export interface ResumeImporter {
   type: ResumeImportType
   label: string
   accept: string
   enabled: boolean
   description: string
-  parse?: (file: File) => Promise<ImportedResumeData>
+  parse?: (file: File, options?: ImportParseOptions) => Promise<ImportedResumeData>
 }
 
 export type { ImportedResumeData, ImportedResumeModule }
@@ -20,9 +25,9 @@ export { convertParsedResumeToImported } from './pdf'
 /**
  * 解析 PDF 简历（调用后端 API）
  */
-async function parsePdfResume(file: File): Promise<ImportedResumeData> {
+async function parsePdfResume(file: File, options?: ImportParseOptions): Promise<ImportedResumeData> {
   try {
-    const result = await parseResumePdf(file)
+    const result = await parseResumePdf(file, options?.onUploadProgress)
     return convertParsedResumeToImported(result, file.name)
   } catch (error) {
     if (error instanceof Error) {

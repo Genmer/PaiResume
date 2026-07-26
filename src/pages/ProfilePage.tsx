@@ -116,7 +116,7 @@ export default function ProfilePage() {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <span className="text-gray-500">加载中...</span>
         </div>
       </>
@@ -127,13 +127,13 @@ export default function ProfilePage() {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <p className="text-red-600 mb-4">{error}</p>
             <button
               type="button"
               onClick={() => void fetchProfile()}
-              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
+              className="rounded-xl bg-grad-brand px-4 py-2 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
             >
               重试
             </button>
@@ -153,14 +153,14 @@ export default function ProfilePage() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
 
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">{error}</div>
           )}
 
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-2xl bg-white shadow-card ring-1 ring-gray-900/10 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900">用户信息</h2>
             </div>
@@ -181,21 +181,21 @@ export default function ProfilePage() {
                           onKeyDown={handleNicknameKeyDown}
                           maxLength={20}
                           disabled={savingNickname}
-                          className="rounded-lg border border-primary-300 px-3 py-1.5 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 w-56"
+                          className="rounded-xl border border-primary-300 px-3 py-1.5 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500 w-56"
                           autoFocus
                         />
                         <button
                           type="button"
                           onClick={() => void handleSaveNickname()}
                           disabled={savingNickname || !nicknameInput.trim()}
-                          className="rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                          className="rounded-xl bg-grad-brand px-3 py-1.5 text-sm font-medium text-white shadow-brand disabled:opacity-50 transition-all hover:-translate-y-px hover:brightness-110"
                         >
                           {savingNickname ? '保存中...' : '保存'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditingNickname(false)}
-                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                          className="rounded-xl bg-white px-3 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-900/10 transition-colors hover:bg-gray-900/5"
                         >
                           取消
                         </button>
@@ -226,7 +226,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className={`rounded-lg border ${tierCfg.border} shadow-sm overflow-hidden`}>
+          <div className={`rounded-2xl border ${tierCfg.border} bg-white shadow-card overflow-hidden`}>
             <div className={`px-6 py-5 border-b ${tierCfg.border} bg-gradient-to-r ${tierCfg.gradient}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                 {tier === 'FREE' && (
                   <Link
                     to="/pricing"
-                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors"
+                    className="rounded-xl bg-grad-brand px-4 py-2 text-sm font-medium text-white shadow-brand transition-all hover:-translate-y-px hover:brightness-110"
                   >
                     升级会员
                   </Link>
@@ -291,7 +291,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-2xl bg-white shadow-card ring-1 ring-gray-900/10 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900">激活码使用记录</h2>
             </div>
@@ -332,17 +332,17 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-2xl bg-white shadow-card ring-1 ring-gray-900/10 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900">账户统计</h2>
             </div>
             <div className="px-6 py-5">
               <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4">
+                <div className="rounded-xl bg-gray-50 px-4 py-4 ring-1 ring-inset ring-gray-900/5">
                   <div className="text-sm text-gray-500">注册时间</div>
                   <div className="mt-1 text-base font-semibold text-gray-900">{formatDate(profile.createdAt)}</div>
                 </div>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4">
+                <div className="rounded-xl bg-gray-50 px-4 py-4 ring-1 ring-inset ring-gray-900/5">
                   <div className="text-sm text-gray-500">账户角色</div>
                   <div className="mt-1 text-base font-semibold text-gray-900">
                     {profile.role === 1 ? '管理员' : '普通用户'}
