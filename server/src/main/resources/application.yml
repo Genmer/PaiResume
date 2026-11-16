@@ -71,6 +71,11 @@ ai:
   analysis-model: ${AI_ANALYSIS_MODEL:${DEEPSEEK_ANALYSIS_MODEL:${AI_MODEL:${DEEPSEEK_MODEL:deepseek-chat}}}}
   interview-model: ${AI_INTERVIEW_MODEL:${AI_MODEL:${DEEPSEEK_MODEL:deepseek-chat}}}
   timeout: 300
+  # 简历解析（PDF/Word → AI 结构化）专用参数
+  parse-max-tokens: 8192        # 单次输出预算；finish_reason=length 时自动翻倍重试一次
+  parse-temperature: 0.1       # 信息抽取任务取低温保证稳定
+  parse-max-pages: 15          # 最多解析 PDF 页数
+  parse-max-text-chars: 24000  # 送入 prompt 的文本字符硬上限
   prompts:
     jd-parse:
       config-file: ${JD_PARSE_PROMPTS_FILE:config/jd-parse-prompts.yml}

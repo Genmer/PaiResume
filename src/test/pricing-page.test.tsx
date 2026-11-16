@@ -49,6 +49,7 @@ vi.mock('react-router-dom', () => ({
     <a href={props.to} className={props.className}>{children}</a>,
   // Header 使用了 useNavigate，mock 中必须提供，否则渲染直接报错
   useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }),
 }))
 
 vi.mock('../components/branding/LogoMark', () => ({
@@ -95,8 +96,10 @@ describe('PricingPage', () => {
       durationDays: 30,
     }
 
+    // 后端活动接口返回 ActivityActiveInfo { tier, label, durationDays }
+    // （组件按 info.tier 判断活动是否生效，而非完整 ActivityConfig 形状）
     mockGetActivity.mockResolvedValue({
-      data: { code: 200, data: activityData },
+      data: { code: 200, data: { tier: 'LITE', durationDays: 30, label: '限时免费' } },
     })
 
     render(<PricingPage />)

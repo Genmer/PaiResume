@@ -189,13 +189,6 @@ export interface Resume {
   experiences: Experience[]
 }
 
-export interface ParsedResume {
-  basicInfo?: Partial<BasicInfo>
-  educations?: Array<Partial<Education>>
-  skills?: string[]
-  experiences?: Array<Partial<Experience>>
-}
-
 export interface AnalysisIssue {
   type: 'missing' | 'weak' | 'format' | 'content'
   field: string
@@ -211,19 +204,15 @@ export interface AnalysisResult {
 
 // ==================== PDF Parsing Types ====================
 
-export interface ParsedResume {
-  basicInfo?: Partial<BasicInfo>
-  educations?: Array<Partial<Education>>
-  skills?: string[]
-  experiences?: Array<Partial<Experience>>
-}
-
 export interface ParsedResumeDTO {
   basicInfo?: BasicInfoDTO
   educations?: EducationDTO[]
   skills?: string[]
   experiences?: ExperienceDTO[]
   projects?: ProjectDTO[]
+  awards?: AwardDTO[]
+  papers?: PaperDTO[]
+  researches?: ResearchDTO[]
 }
 
 export interface BasicInfoDTO {
@@ -239,19 +228,19 @@ export interface BasicInfoDTO {
 }
 
 export interface EducationDTO {
-  id?: string
   school?: string
   degree?: string
   major?: string
+  department?: string
   startDate?: string
   endDate?: string
-  description?: string
 }
 
 export interface ExperienceDTO {
-  id?: string
   company?: string
   position?: string
+  /** internship | full-time，原文未明示时为空 */
+  employmentType?: string
   startDate?: string
   endDate?: string
   description?: string
@@ -259,7 +248,6 @@ export interface ExperienceDTO {
 }
 
 export interface ProjectDTO {
-  id?: string
   projectName?: string
   role?: string
   startDate?: string
@@ -267,4 +255,24 @@ export interface ProjectDTO {
   techStack?: string[]
   description?: string
   achievements?: string[]
+}
+
+export interface AwardDTO {
+  awardName?: string
+  awardTime?: string
+}
+
+export interface PaperDTO {
+  journalType?: string
+  journalName?: string
+  publishTime?: string
+  content?: string
+}
+
+export interface ResearchDTO {
+  projectName?: string
+  projectCycle?: string
+  background?: string
+  workContent?: string
+  achievements?: string
 }

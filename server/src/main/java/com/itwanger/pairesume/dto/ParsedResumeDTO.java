@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * PDF 简历解析结果 DTO
- * 对齐前端 ParsedResume 接口
+ * 简历解析结果 DTO（PDF/Word 共用）
+ * 对齐前端 ParsedResume 接口：basicInfo/educations/experiences/projects/awards/papers/researches/skills
  */
 @Data
 @Builder
@@ -26,6 +26,15 @@ public class ParsedResumeDTO {
     private List<ExperienceDTO> experiences;
 
     private List<ProjectDTO> projects;
+
+    /** 获奖/证书 */
+    private List<AwardDTO> awards;
+
+    /** 论文发表 */
+    private List<PaperDTO> papers;
+
+    /** 科研经历 */
+    private List<ResearchDTO> researches;
 
     @Data
     @Builder
@@ -48,13 +57,13 @@ public class ParsedResumeDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class EducationDTO {
-        private String id;
         private String school;
         private String degree;
         private String major;
+        /** 院系（原文有则填） */
+        private String department;
         private String startDate;
         private String endDate;
-        private String description;
     }
 
     @Data
@@ -62,9 +71,10 @@ public class ParsedResumeDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ExperienceDTO {
-        private String id;
         private String company;
         private String position;
+        /** internship | full-time，原文未明示则为 null */
+        private String employmentType;
         private String startDate;
         private String endDate;
         private String description;
@@ -76,7 +86,6 @@ public class ParsedResumeDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ProjectDTO {
-        private String id;
         private String projectName;
         private String role;
         private String startDate;
@@ -84,5 +93,39 @@ public class ParsedResumeDTO {
         private List<String> techStack;
         private String description;
         private List<String> achievements;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AwardDTO {
+        private String awardName;
+        private String awardTime;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PaperDTO {
+        /** 期刊/会议类型，如 SCI、EI、核心期刊、CCF-A */
+        private String journalType;
+        private String journalName;
+        private String publishTime;
+        /** 论文简述：题目+贡献 */
+        private String content;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ResearchDTO {
+        private String projectName;
+        private String projectCycle;
+        private String background;
+        private String workContent;
+        private String achievements;
     }
 }
